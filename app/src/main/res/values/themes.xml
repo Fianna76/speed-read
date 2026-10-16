@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!--
+        The UI is 100% Jetpack Compose, so the platform theme only has to provide a window
+        background that matches the Compose theme to avoid a flash while the first frame draws.
+    -->
+    <style name="Theme.SpeedRead" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/window_background</item>
+    </style>
+
+    <!-- Launch theme used by androidx.core:core-splashscreen on every API level. -->
+    <style name="Theme.SpeedRead.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/ic_launcher_background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/Theme.SpeedRead</item>
+    </style>
+
+</resources>

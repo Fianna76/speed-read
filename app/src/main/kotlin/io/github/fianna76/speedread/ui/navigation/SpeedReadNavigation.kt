@@ -1,0 +1,63 @@
+package io.github.fianna76.speedread.ui.navigation
+
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
+import androidx.navigation3.runtime.NavBackStack
+import androidx.navigation3.runtime.NavKey
+import androidx.navigation3.runtime.entryProvider
+import androidx.navigation3.runtime.rememberNavBackStack
+import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
+import androidx.navigation3.ui.NavDisplay
+import io.github.fianna76.speedread.ui.library.LibraryScreen
+import io.github.fianna76.speedread.ui.reader.ReaderScreen
+import io.github.fianna76.speedread.ui.settings.SettingsScreen
+import kotlinx.serialization.Serializable
+
+/** Library of imported books; the start destination. */
+@Serializable
+data object LibraryRoute : NavKey
+
+/** RSVP reader for one book. */
+@Serializable
+data class ReaderRoute(val bookId: Long) : NavKey
+
+@Serializable
+data object SettingsRoute : NavKey
+
+/**
+ * App navigation built on Navigation 3: the back stack is plain, saveable state owned here,
+ * and every entry gets its own ViewModelStore so screen ViewModels are cleared when popped.
+ */
+@Composable
+fun SpeedReadNavigation(modifier: Modifier = Modifier) {
+    val backStack = rememberNavBackStack(LibraryRoute)
+    NavDisplay(
+        backStack = backStack,
+        modifier = modifier,
+        onBack = { backStack.removeLastOrNull() },
+        entryDecorators = listOf(
+            rememberSaveableStateHolderNavEntryDecorator(),
+            rememberViewModelStoreNavEntryDecorator(),
+        ),
+        entryProvider = entryProvider {
+            entry<LibraryRoute> {
+                LibraryScreen(
+                    onOpenBook = { bookId -> backStack.navigate(ReaderRoute(bookId)) },
+                    onOpenSettings = { backStack.navigate(SettingsRoute) },
+                )
+            }
+            entry<ReaderRoute> { route ->
+                ReaderScreen(bookId = route.bookId, onBack = { backStack.removeLastOrNull() })
+            }
+            entry<SettingsRoute> {
+                SettingsScreen(onBack = { backStack.removeLastOrNull() })
+            }
+        },
+    )
+}
+
+/** Pushes [route] unless it is already on top (guards against double taps). */
+private fun NavBackStack<NavKey>.navigate(route: NavKey) {
+    if (lastOrNull() != route) add(route)
+}

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Single-colour layer for Android 13+ themed icons; the launcher tints it. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M29.5,36h49a1.5,1.5 0,0 1,0 3h-49a1.5,1.5 0,0 1,0 -3z M29.5,69h49a1.5,1.5 0,0 1,0 3h-49a1.5,1.5 0,0 1,0 -3z M52.5,39h3v6h-3z M52.5,63h3v6h-3z" />
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M33,50h14a3,3 0,0 1,3 3v2a3,3 0,0 1,-3 3h-14a3,3 0,0 1,-3 -3v-2a3,3 0,0 1,3 -3z M61,50h14a3,3 0,0 1,3 3v2a3,3 0,0 1,-3 3h-14a3,3 0,0 1,-3 -3v-2a3,3 0,0 1,3 -3z M53,48h2a2.5,2.5 0,0 1,2.5 2.5v7a2.5,2.5 0,0 1,-2.5 2.5h-2a2.5,2.5 0,0 1,-2.5 -2.5v-7a2.5,2.5 0,0 1,2.5 -2.5z" />
+</vector>

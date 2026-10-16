@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Auto Backup rules for Android 11 and lower. Only reader preferences are backed up to the
+    cloud: imported books can be large (the backup quota is 25 MB) and the library database is
+    meaningless without them.
+-->
+<full-backup-content>
+    <include domain="file" path="datastore/" />
+</full-backup-content>
