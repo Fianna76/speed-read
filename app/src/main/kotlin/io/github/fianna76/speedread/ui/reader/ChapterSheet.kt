@@ -85,6 +85,14 @@ fun ChapterSheet(
     }
 }
 
-/** The chapter's own title, or a numbered fallback for untitled sections. */
+/** The chapter's own title, else its PDF pages, else a numbered fallback for untitled sections. */
 @Composable
-fun Chapter.displayTitle(): String = title ?: stringResource(R.string.reader_section, index + 1)
+fun Chapter.displayTitle(): String {
+    title?.let { return it }
+    val pages = pageRange ?: return stringResource(R.string.reader_section, index + 1)
+    return if (pages.first == pages.last) {
+        stringResource(R.string.reader_page, pages.first + 1)
+    } else {
+        stringResource(R.string.reader_pages, pages.first + 1, pages.last + 1)
+    }
+}

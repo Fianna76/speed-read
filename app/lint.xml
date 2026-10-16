@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<lint>
+    <!--
+        Bouncy Castle's EST (certificate enrollment) client contains trust-all TLS managers. It
+        comes in transitively with PdfBox-Android (for certificate-encrypted PDFs), is never
+        called, R8 removes it from release builds, and the app has no INTERNET permission.
+    -->
+    <issue id="TrustAllX509TrustManager">
+        <ignore path="**/bcpkix-jdk15to18-*.jar" />
+    </issue>
+</lint>

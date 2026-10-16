@@ -1,6 +1,7 @@
 package io.github.fianna76.speedread.data.db
 
 import android.content.Context
+import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
@@ -11,8 +12,12 @@ import androidx.room.RoomDatabase
  */
 @Database(
     entities = [BookEntity::class, ChapterEntity::class],
-    version = 1,
+    version = 2,
     exportSchema = true,
+    autoMigrations = [
+        // 1 → 2: books.format column (PDF support); existing rows default to EPUB.
+        AutoMigration(from = 1, to = 2),
+    ],
 )
 abstract class SpeedReadDatabase : RoomDatabase() {
 

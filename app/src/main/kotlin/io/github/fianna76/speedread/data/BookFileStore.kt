@@ -15,10 +15,33 @@ class BookFileStore(filesDir: File) {
     private val booksDir = File(filesDir, "books")
     private val coversDir = File(filesDir, "covers")
     private val tempDir = File(filesDir, "import-tmp")
+    private val textCacheDir = File(filesDir, "text-cache")
 
     fun bookFile(fileName: String): File = File(booksDir, fileName)
 
     fun coverFile(fileName: String): File = File(coversDir, fileName)
+
+    /**
+     * Plain text of one chapter, extracted once and reused. PDF extraction is slow (it lays out
+     * every glyph), so PDF chapters are cached at import instead of re-parsed on every open.
+     */
+    fun readChapterText(bookFileName: String, href: String): List<String>? = runCatching {
+        chapterTextFile(bookFileName, href).takeIf { it.isFile }?.readLines()
+    }.getOrNull()
+
+    /** Best effort: a failed write just means the text is extracted again next time. */
+    fun writeChapterText(bookFileName: String, href: String, paragraphs: List<String>) {
+        runCatching {
+            val file = chapterTextFile(bookFileName, href)
+            file.parentFile?.mkdirs()
+            val temp = File(file.parentFile, "${file.name}.tmp")
+            temp.writeText(paragraphs.joinToString("\n")) // Paragraphs never contain newlines.
+            if (!temp.renameTo(file)) temp.delete()
+        }
+    }
+
+    private fun chapterTextFile(bookFileName: String, href: String): File =
+        File(File(textCacheDir, bookFileName), href.replace(UNSAFE_FILE_CHARS, "_") + ".txt")
 
     fun ensureDirectories() {
         booksDir.mkdirs()
@@ -41,7 +64,14 @@ class BookFileStore(filesDir: File) {
     }
 
     fun delete(fileName: String?, coverFileName: String?) {
-        fileName?.let { bookFile(it).delete() }
+        fileName?.let {
+            bookFile(it).delete()
+            File(textCacheDir, it).deleteRecursively()
+        }
         coverFileName?.let { coverFile(it).delete() }
+    }
+
+    private companion object {
+        val UNSAFE_FILE_CHARS = Regex("[^A-Za-z0-9._-]")
     }
 }

@@ -9,8 +9,8 @@ plugins {
     alias(libs.plugins.room)
 }
 
-val appVersionName = "1.0.0"
-val appVersionCode = 1
+val appVersionName = "1.1.0"
+val appVersionCode = 2
 
 // Release signing credentials come from a git-ignored keystore.properties file or from
 // environment variables (CI). Without them the release build falls back to the debug key,
@@ -89,6 +89,7 @@ android {
     }
 
     lint {
+        lintConfig = file("lint.xml")
         abortOnError = true
         checkDependencies = true
     }
@@ -96,6 +97,9 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            // Post-quantum crypto tables from Bouncy Castle (a PdfBox dependency). PDF encryption
+            // never uses them, and they would add ~4 MB to the APK.
+            excludes += "org/bouncycastle/pqc/**"
         }
     }
 }
@@ -133,6 +137,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.core)
     implementation(libs.coil.compose)
+    implementation(libs.pdfbox.android)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)

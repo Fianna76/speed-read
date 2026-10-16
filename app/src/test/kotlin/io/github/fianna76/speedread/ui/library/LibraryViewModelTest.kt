@@ -119,13 +119,13 @@ class LibraryViewModelTest {
     fun `import results are queued as messages`() = runTest {
         val viewModel = createViewModel(importer = { uri ->
             if (uri.lastPathSegment == "good.epub") ImportResult.Imported(42, "Good Book")
-            else ImportResult.Failed("bad.epub", ImportError.NOT_AN_EPUB)
+            else ImportResult.Failed("bad.epub", ImportError.INVALID_FILE)
         })
         viewModel.importBooks(listOf(Uri.parse("content://test/good.epub"), Uri.parse("content://test/bad.epub")))
 
         val state = viewModel.awaitState { it.messages.size == 2 && it.importsInProgress == 0 }
         val results = state.messages.map { (it as LibraryMessage.Import).result }
         assertEquals(ImportResult.Imported(42, "Good Book"), results[0])
-        assertEquals(ImportResult.Failed("bad.epub", ImportError.NOT_AN_EPUB), results[1])
+        assertEquals(ImportResult.Failed("bad.epub", ImportError.INVALID_FILE), results[1])
     }
 }

@@ -7,12 +7,17 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import android.util.Log
 import androidx.core.graphics.scale
+import com.tom_roush.pdfbox.pdmodel.encryption.InvalidPasswordException
 import io.github.fianna76.speedread.data.BookFileStore
+import io.github.fianna76.speedread.data.BookFormat
 import io.github.fianna76.speedread.data.db.BookDao
 import io.github.fianna76.speedread.data.db.BookEntity
 import io.github.fianna76.speedread.data.db.ChapterEntity
+import io.github.fianna76.speedread.data.pdf.PdfBook
+import io.github.fianna76.speedread.data.pdf.PdfBooks
+import io.github.fianna76.speedread.data.pdf.PdfCoverRenderer
+import io.github.fianna76.speedread.data.pdf.PlatformPdfCoverRenderer
 import io.github.fianna76.speedread.epub.EpubArchive
-import io.github.fianna76.speedread.epub.EpubBook
 import io.github.fianna76.speedread.epub.EpubException
 import io.github.fianna76.speedread.epub.EpubParser
 import io.github.fianna76.speedread.epub.XhtmlTextExtractor
@@ -28,18 +33,22 @@ import java.io.IOException
 import java.security.MessageDigest
 
 /**
- * Imports an EPUB from a content [Uri] into the library:
+ * Imports an EPUB or PDF from a content [Uri] into the library:
  *
  * 1. copy it into app-private storage while hashing it (SHA-256) and enforcing a size limit;
  * 2. skip it if a book with the same hash is already in the library;
- * 3. parse the package, extract every chapter's text to count words and pick chapter titles;
- * 4. store a down-scaled cover thumbnail;
- * 5. insert the book and its chapters in one transaction.
+ * 3. identify the format from the file's first bytes;
+ * 4. split it into chapters (EPUB spine + TOC, or PDF outline / page blocks) and extract every
+ *    chapter's text to count words;
+ * 5. store a down-scaled cover thumbnail (EPUB cover image, or the PDF's first page);
+ * 6. insert the book and its chapters in one transaction.
  */
 class BookImporter(
     private val contentResolver: ContentResolver,
     private val files: BookFileStore,
     private val dao: BookDao,
+    private val pdfBooks: PdfBooks,
+    private val pdfCovers: PdfCoverRenderer = PlatformPdfCoverRenderer,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val clock: () -> Long = System::currentTimeMillis,
 ) {
@@ -53,23 +62,34 @@ class BookImporter(
             val hash = copyAndHash(uri, temp)
             dao.findByHash(hash)?.let { return@withContext ImportResult.AlreadyInLibrary(it.id, it.title) }
 
-            val analysis = EpubArchive.open(temp).use { archive -> analyze(archive) }
+            val format = BookFormat.sniff(temp)
+                ?: return@withContext ImportResult.Failed(displayName, ImportError.INVALID_FILE)
+            val bookFileName = "$hash.${format.extension}"
+            storedBook = bookFileName // From here on, a failure rolls back the book's files.
+            val analysis = when (format) {
+                BookFormat.EPUB -> EpubArchive.open(temp).use { archive -> analyzeEpub(archive) }
+                BookFormat.PDF -> openPdf(temp).use { pdf -> analyzePdf(pdf, bookFileName) }
+            }
             if (analysis.chapters.isEmpty()) return@withContext ImportResult.Failed(displayName, ImportError.NO_TEXT)
 
-            val bookFileName = "$hash.epub"
             val target = files.bookFile(bookFileName)
+            files.ensureDirectories()
             if (!temp.renameTo(target)) temp.copyTo(target, overwrite = true)
-            storedBook = bookFileName
-            storedCover = analysis.coverBytes?.let { bytes -> "$hash.jpg".takeIf { saveCover(bytes, files.coverFile(it)) } }
+            val coverFileName = "$hash.jpg"
+            val coverSaved = when (format) {
+                BookFormat.EPUB -> analysis.coverBytes?.let { saveCover(it, files.coverFile(coverFileName)) } == true
+                BookFormat.PDF -> renderPdfCover(target, files.coverFile(coverFileName))
+            }
+            storedCover = coverFileName.takeIf { coverSaved }
 
-            val metadata = analysis.book.metadata
-            val title = metadata.title?.takeIf { it.isNotBlank() }
+            val title = analysis.title?.takeIf { it.isNotBlank() }
                 ?: displayName?.substringBeforeLast('.')?.takeIf { it.isNotBlank() }
                 ?: UNTITLED
             val entity = BookEntity(
                 title = title,
-                author = metadata.authors.joinToString(", ").ifBlank { null },
-                language = metadata.language,
+                author = analysis.author,
+                language = analysis.language,
+                format = format.name,
                 fileName = bookFileName,
                 coverFileName = storedCover,
                 contentHash = hash,
@@ -83,6 +103,11 @@ class BookImporter(
         } catch (e: EpubException) {
             Log.w(TAG, "Rejected $displayName", e)
             ImportResult.Failed(displayName, e.toImportError())
+        } catch (e: InvalidPasswordException) {
+            ImportResult.Failed(displayName, ImportError.PASSWORD_PROTECTED)
+        } catch (e: InvalidBookException) {
+            Log.w(TAG, "Rejected $displayName", e)
+            ImportResult.Failed(displayName, ImportError.INVALID_FILE)
         } catch (e: BookTooLargeException) {
             ImportResult.Failed(displayName, ImportError.TOO_LARGE)
         } catch (e: IOException) {
@@ -119,7 +144,7 @@ class BookImporter(
         return digest.digest().joinToString("") { "%02x".format(it) }
     }
 
-    private suspend fun analyze(archive: EpubArchive): Analysis {
+    private suspend fun analyzeEpub(archive: EpubArchive): Analysis {
         val book = EpubParser().parse(archive)
         val chapters = mutableListOf<ChapterEntity>()
         var startWord = 0
@@ -144,7 +169,66 @@ class BookImporter(
         val coverBytes = book.coverImageHref?.let { href ->
             runCatching { archive.readBytes(href, limit = MAX_COVER_BYTES) }.getOrNull()
         }
-        return Analysis(book, chapters, coverBytes)
+        val metadata = book.metadata
+        return Analysis(
+            title = metadata.title,
+            author = metadata.authors.joinToString(", ").ifBlank { null },
+            language = metadata.language,
+            chapters = chapters,
+            coverBytes = coverBytes,
+        )
+    }
+
+    /** Opens a PDF, telling a damaged or fake file apart from a password-protected one. */
+    private fun openPdf(file: File): PdfBook = try {
+        pdfBooks.open(file)
+    } catch (e: InvalidPasswordException) {
+        throw e
+    } catch (e: IOException) {
+        throw InvalidBookException(e)
+    }
+
+    /** Splits [pdf] into sections and caches their text for reading, see [BookFileStore.readChapterText]. */
+    private suspend fun analyzePdf(pdf: PdfBook, bookFileName: String): Analysis {
+        val chapters = mutableListOf<ChapterEntity>()
+        var startWord = 0
+        for (section in pdf.sections()) {
+            currentCoroutineContext().ensureActive()
+            val paragraphs = runCatching { pdf.paragraphs(section.pages) }
+                .onFailure { Log.w(TAG, "Skipping unreadable pages ${section.pages}", it) }
+                .getOrNull() ?: continue
+            // Scanned pages have no text layer; such sections are simply skipped.
+            val wordCount = Tokenizer.countWords(paragraphs)
+            if (wordCount == 0) continue
+            val href = section.pages.toHref()
+            files.writeChapterText(bookFileName, href, paragraphs)
+            chapters += ChapterEntity(
+                bookId = 0,
+                index = chapters.size,
+                title = section.title?.take(MAX_TITLE_LENGTH),
+                href = href,
+                wordCount = wordCount,
+                startWord = startWord,
+            )
+            startWord += wordCount
+        }
+        return Analysis(title = pdf.title, author = pdf.author, language = null, chapters = chapters, coverBytes = null)
+    }
+
+    /** Stores the PDF's first page, rendered by [pdfCovers], as the cover thumbnail. */
+    private fun renderPdfCover(pdf: File, target: File): Boolean {
+        val bitmap = try {
+            pdfCovers.renderFirstPage(pdf, COVER_HEIGHT_PX)
+        } catch (e: Exception) {
+            // Covers are cosmetic: the platform renderer rejects some files PdfBox reads fine.
+            Log.w(TAG, "Could not render PDF cover", e)
+            null
+        } ?: return false
+        return try {
+            saveBitmap(bitmap, target)
+        } finally {
+            bitmap.recycle()
+        }
     }
 
     /** Decodes [bytes] at a reduced size and stores a JPEG thumbnail. Returns `false` if undecodable. */
@@ -164,30 +248,44 @@ class BookImporter(
             decoded
         }
         return try {
-            files.ensureDirectories()
-            target.outputStream().use { thumbnail.compress(Bitmap.CompressFormat.JPEG, COVER_JPEG_QUALITY, it) }
-        } catch (e: IOException) {
-            Log.w(TAG, "Could not store cover", e)
-            false
+            saveBitmap(thumbnail, target)
         } finally {
             if (thumbnail !== decoded) thumbnail.recycle()
             decoded.recycle()
         }
     }
 
+    private fun saveBitmap(bitmap: Bitmap, target: File): Boolean = try {
+        files.ensureDirectories()
+        target.outputStream().use { bitmap.compress(Bitmap.CompressFormat.JPEG, COVER_JPEG_QUALITY, it) }
+    } catch (e: IOException) {
+        Log.w(TAG, "Could not store cover", e)
+        false
+    }
+
     private fun queryDisplayName(uri: Uri): String? = runCatching {
         contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
             if (cursor.moveToFirst()) cursor.getString(0) else null
         }
-    }.getOrNull() ?: uri.lastPathSegment
+    }.getOrNull() ?: uri.lastPathSegment?.takeIf { '.' in it } // Skip bare IDs like ".../file/14".
 
     private fun EpubException.toImportError(): ImportError = when (this) {
         is EpubException.DrmProtected -> ImportError.DRM_PROTECTED
         is EpubException.TooLarge -> ImportError.TOO_LARGE
-        is EpubException.NotAnEpub, is EpubException.Malformed -> ImportError.NOT_AN_EPUB
+        is EpubException.NotAnEpub, is EpubException.Malformed -> ImportError.INVALID_FILE
     }
 
-    private class Analysis(val book: EpubBook, val chapters: List<ChapterEntity>, val coverBytes: ByteArray?)
+    /** What an import learned about a book, independent of its format. */
+    private class Analysis(
+        val title: String?,
+        val author: String?,
+        val language: String?,
+        val chapters: List<ChapterEntity>,
+        /** EPUB cover image bytes; PDFs render their first page instead. */
+        val coverBytes: ByteArray?,
+    )
+
+    private class InvalidBookException(cause: Throwable) : Exception(cause)
 
     private class BookTooLargeException : Exception()
 

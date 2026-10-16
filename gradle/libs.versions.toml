@@ -27,6 +27,7 @@ room = "2.8.5"
 # Third party
 coil = "3.6.3"
 jsoup = "1.23.2"
+pdfbox = "2.0.27.0"
 
 # Testing
 androidxTestCore = "1.7.0"
@@ -75,6 +76,7 @@ androidx-datastore-preferences = { module = "androidx.datastore:datastore-prefer
 # Third party
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
+pdfbox-android = { module = "com.tom-roush:pdfbox-android", version.ref = "pdfbox" }
 
 # Testing
 junit = { module = "junit:junit", version.ref = "junit" }

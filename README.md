@@ -1,6 +1,6 @@
 # SpeedRead
 
-An Android EPUB reader built on **Rapid Serial Visual Presentation (RSVP)**: words flash one
+An Android EPUB and PDF reader built on **Rapid Serial Visual Presentation (RSVP)**: words flash one
 at a time at a fixed point, each aligned on its optimal recognition point (the red letter),
 so your eyes stay still while you read.
 
@@ -13,9 +13,10 @@ so your eyes stay still while you read.
 
 ## Features
 
-- **EPUB import.** Standard EPUB 2 and EPUB 3 files from the system file picker (several
-  at once), "Open with", or "Share". Invalid files, DRM-protected books and duplicates are
-  detected and explained.
+- **EPUB and PDF import.** Standard EPUB 2/3 files and text-based PDFs from the system file
+  picker (several at once), "Open with", or "Share". PDFs are split into chapters by their
+  bookmarks, or into 10-page sections. Invalid files, DRM- or password-protected books,
+  scanned PDFs without a text layer, and duplicates are detected and explained.
 - **Library.** A cover grid with progress, four sort orders, tap to read, and long-press to
   select books for deletion.
 - **Speed control.** A 100–1000 wpm slider with −/+ buttons right on the reading screen.
@@ -38,10 +39,10 @@ The full design (goals, architecture, data model, testing strategy, roadmap and 
 
 ## Install the APK
 
-1. Copy `SpeedRead-1.0.0-release.apk` to your phone (Android 8.0 or newer). The APK comes
+1. Copy `SpeedRead-1.1.0-release.apk` to your phone (Android 8.0 or newer). The APK comes
    from a [CI run's](../../actions) artifacts or from a local build (below).
 2. Open it and allow installs from that source when prompted.
-3. Tap **Import EPUB** and pick a book. Public-domain EPUBs are available from
+3. Tap **Import book** and pick an EPUB or PDF. Public-domain EPUBs are available from
    [Standard Ebooks](https://standardebooks.org) and [Project Gutenberg](https://www.gutenberg.org).
 
 > Builds made without your own signing key are signed with a debug key. They are fine for
@@ -54,7 +55,7 @@ Requirements: JDK 17+ (JDK 21 recommended) and the Android SDK with platform 37
 (`ANDROID_HOME` or `local.properties`). The Gradle wrapper downloads everything else.
 
 ```bash
-./gradlew assembleRelease   # → app/build/outputs/apk/release/SpeedRead-1.0.0-release.apk
+./gradlew assembleRelease   # → app/build/outputs/apk/release/SpeedRead-1.1.0-release.apk
 ./gradlew assembleDebug     # → debug build (installs alongside release as "…speedread.debug")
 ./gradlew lint test         # static analysis + all unit, Robolectric and Compose UI tests
 ```
@@ -82,6 +83,7 @@ key.
 ```
 app/          Android app: Compose UI, ViewModels, Room/DataStore data layer, import pipeline
 core/epub/    Pure Kotlin: EPUB container, package and TOC parsing, XHTML → text
+              (PDF text comes from PdfBox-Android, in app/…/data/pdf)
 core/rsvp/    Pure Kotlin: tokenizer, optimal recognition point, pacing, playback engine
 docs/         Project plan and screenshots
 ```

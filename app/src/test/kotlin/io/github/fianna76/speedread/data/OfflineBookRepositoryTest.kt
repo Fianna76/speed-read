@@ -8,7 +8,9 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.github.fianna76.speedread.data.db.SpeedReadDatabase
 import io.github.fianna76.speedread.data.importing.BookImporter
 import io.github.fianna76.speedread.data.importing.ImportResult
+import io.github.fianna76.speedread.data.pdf.PdfBooks
 import io.github.fianna76.speedread.epub.testing.TestEpubs
+import io.github.fianna76.speedread.testing.TestPdfs
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -39,8 +41,9 @@ class OfflineBookRepositoryTest {
     fun setUp() {
         database = Room.inMemoryDatabaseBuilder(context, SpeedReadDatabase::class.java).build()
         files = BookFileStore(tmp.newFolder("files"))
-        repository = OfflineBookRepository(database.bookDao(), files, clock = { 5_000L })
-        importer = BookImporter(context.contentResolver, files, database.bookDao())
+        val pdfBooks = PdfBooks(context)
+        repository = OfflineBookRepository(database.bookDao(), files, pdfBooks, clock = { 5_000L })
+        importer = BookImporter(context.contentResolver, files, database.bookDao(), pdfBooks, pdfCovers = { _, _ -> null })
     }
 
     @After
@@ -78,6 +81,27 @@ class OfflineBookRepositoryTest {
 
         assertEquals(listOf("Chapter", "One", "It", "was", "a", "dark", "night."), text.words.map { it.text })
         assertEquals(chapters[0].wordCount, text.size)
+    }
+
+    @Test
+    fun `loads PDF chapter text for its page range`() = runTest {
+        val pdf = TestPdfs.write(
+            context,
+            tmp.newFile("doc.pdf"),
+            pages = listOf(listOf("Intro page."), listOf("Body text starts", "on this page.")),
+            outline = listOf("Intro" to 0, "Body" to 1),
+        )
+        val id = (importer.import(Uri.fromFile(pdf)) as ImportResult.Imported).bookId
+        val chapters = repository.getChapters(id)
+        assertEquals(1..1, chapters[1].pageRange)
+        assertEquals(BookFormat.PDF, repository.getBook(id)!!.format)
+
+        val text = repository.loadChapterText(id, chapters[1])
+        assertEquals(listOf("Body", "text", "starts", "on", "this", "page."), text.words.map { it.text })
+
+        // Text extracted at import is cached, so reading never has to re-parse the PDF.
+        files.bookFile(database.bookDao().findById(id)!!.fileName).delete()
+        assertEquals(text.words, repository.loadChapterText(id, chapters[1]).words)
     }
 
     @Test

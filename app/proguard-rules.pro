@@ -10,3 +10,7 @@
 # mapping file in app/build/outputs/mapping/release/), but hide the original file name.
 -keepattributes SourceFile,LineNumberTable
 -renamesourcefileattribute SourceFile
+
+# PdfBox-Android can decode JPEG 2000 images through an optional library we don't ship; the
+# app only extracts text, so that code path is never reached.
+-dontwarn com.gemalto.jp2.**

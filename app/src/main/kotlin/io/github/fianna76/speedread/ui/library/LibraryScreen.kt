@@ -65,8 +65,11 @@ import io.github.fianna76.speedread.data.importing.ImportResult
 import io.github.fianna76.speedread.data.settings.LibrarySort
 import io.github.fianna76.speedread.ui.theme.SpeedReadTheme
 
-/** MIME types offered in the system file picker. Some providers label EPUBs as generic binaries. */
-private val EPUB_MIME_TYPES = arrayOf("application/epub+zip", "application/octet-stream")
+/**
+ * MIME types offered in the system file picker. Some providers label EPUBs as generic binaries;
+ * the importer identifies the real format from the file's content.
+ */
+private val BOOK_MIME_TYPES = arrayOf("application/epub+zip", "application/pdf", "application/octet-stream")
 
 @Composable
 fun LibraryScreen(
@@ -80,7 +83,7 @@ fun LibraryScreen(
     }
     LibraryContent(
         state = state,
-        onImport = { pickBooks.launch(EPUB_MIME_TYPES) },
+        onImport = { pickBooks.launch(BOOK_MIME_TYPES) },
         onOpenBook = onOpenBook,
         onOpenSettings = onOpenSettings,
         onSortChange = viewModel::setSort,
@@ -315,7 +318,8 @@ private fun LibraryMessage.text(): String = when (this) {
         is ImportResult.Failed -> {
             val name = result.fileName ?: stringResource(R.string.import_unnamed_file)
             when (result.reason) {
-                ImportError.NOT_AN_EPUB -> stringResource(R.string.import_failed_not_epub, name)
+                ImportError.INVALID_FILE -> stringResource(R.string.import_failed_invalid, name)
+                ImportError.PASSWORD_PROTECTED -> stringResource(R.string.import_failed_password, name)
                 ImportError.DRM_PROTECTED -> stringResource(R.string.import_failed_drm, name)
                 ImportError.NO_TEXT -> stringResource(R.string.import_failed_no_text, name)
                 ImportError.TOO_LARGE -> stringResource(R.string.import_failed_too_large, name)

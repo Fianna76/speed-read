@@ -9,8 +9,12 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.github.fianna76.speedread.data.BookFileStore
+import io.github.fianna76.speedread.data.BookFormat
+import io.github.fianna76.speedread.data.pdf.PdfBooks
+import io.github.fianna76.speedread.data.pdf.PdfPageRange
 import io.github.fianna76.speedread.data.db.SpeedReadDatabase
 import io.github.fianna76.speedread.epub.testing.TestEpubs
+import io.github.fianna76.speedread.testing.TestPdfs
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -43,7 +47,15 @@ class BookImporterTest {
     fun setUp() {
         database = Room.inMemoryDatabaseBuilder(context, SpeedReadDatabase::class.java).build()
         files = BookFileStore(tmp.newFolder("files"))
-        importer = BookImporter(context.contentResolver, files, database.bookDao(), clock = { 1_000L })
+        importer = BookImporter(
+            context.contentResolver,
+            files,
+            database.bookDao(),
+            PdfBooks(context),
+            // Robolectric can't run the platform PdfRenderer; a solid page stands in for it.
+            pdfCovers = { _, height -> Bitmap.createBitmap(height * 2 / 3, height, Bitmap.Config.ARGB_8888) },
+            clock = { 1_000L },
+        )
     }
 
     @After
@@ -87,7 +99,7 @@ class BookImporterTest {
     @Test
     fun `rejects files that are not EPUBs`() = runTest {
         val file = tmp.newFile("notes.epub").apply { writeText("plain text") }
-        assertEquals(ImportResult.Failed("notes.epub", ImportError.NOT_AN_EPUB), importer.import(uriOf(file)))
+        assertEquals(ImportResult.Failed("notes.epub", ImportError.INVALID_FILE), importer.import(uriOf(file)))
         assertTrue(noFilesLeft())
     }
 
@@ -126,9 +138,94 @@ class BookImporterTest {
         assertEquals(400, bounds.outWidth)
     }
 
+    @Test
+    fun `imports a PDF using its outline as chapters`() = runTest {
+        val pdf = TestPdfs.write(
+            context,
+            tmp.newFile("guide.pdf"),
+            pages = listOf(
+                listOf("Speed Reading Guide"),
+                listOf("Chapter one begins here.", "It has two lines."),
+                listOf("More of chapter one."),
+                listOf("Chapter two is short."),
+            ),
+            title = "The Guide",
+            author = "Pat Writer",
+            outline = listOf("One" to 1, "Two" to 3),
+        )
+
+        val result = importer.import(uriOf(pdf)) as ImportResult.Imported
+
+        assertEquals("The Guide", result.title)
+        val book = database.bookDao().findById(result.bookId)!!
+        assertEquals(BookFormat.PDF.name, book.format)
+        assertEquals("Pat Writer", book.author)
+        assertTrue(book.fileName.endsWith(".pdf"))
+        assertTrue(files.coverFile(checkNotNull(book.coverFileName)).isFile)
+        val chapters = database.bookDao().chaptersOf(book.id)
+        // The untitled front matter before the first bookmark is kept as its own section.
+        assertEquals(listOf(null, "One", "Two"), chapters.map { it.title })
+        assertEquals(
+            listOf(PdfPageRange(0, 1), PdfPageRange(1, 3), PdfPageRange(3, 4)),
+            chapters.map { PdfPageRange.fromHref(it.href) },
+        )
+        assertEquals(listOf(3, 12, 4), chapters.map { it.wordCount })
+    }
+
+    @Test
+    fun `bookmarks starting on the same page share a section`() = runTest {
+        val pdf = TestPdfs.write(
+            context,
+            tmp.newFile("paper.pdf"),
+            pages = listOf(listOf("Abstract text here."), listOf("Methods and more."), listOf("Results text.")),
+            outline = listOf("Abstract" to 0, "Introduction" to 1, "Methods" to 1, "Results" to 2),
+        )
+
+        val result = importer.import(uriOf(pdf)) as ImportResult.Imported
+
+        assertEquals(
+            listOf("Abstract", "Introduction \u00B7 Methods", "Results"),
+            database.bookDao().chaptersOf(result.bookId).map { it.title },
+        )
+    }
+
+    @Test
+    fun `PDFs without an outline are read in blocks of pages`() = runTest {
+        val pages = List(35) { listOf("This is page number ${it + 1} of the book.") }
+        val pdf = TestPdfs.write(context, tmp.newFile("long.pdf"), pages)
+
+        val result = importer.import(uriOf(pdf)) as ImportResult.Imported
+
+        assertEquals("long", result.title) // No document title: falls back to the file name.
+        val ranges = database.bookDao().chaptersOf(result.bookId).map { PdfPageRange.fromHref(it.href) }
+        assertEquals(
+            listOf(PdfPageRange(0, 10), PdfPageRange(10, 20), PdfPageRange(20, 30), PdfPageRange(30, 35)),
+            ranges,
+        )
+    }
+
+    @Test
+    fun `rejects password-protected PDFs`() = runTest {
+        val pdf = TestPdfs.write(context, tmp.newFile("locked.pdf"), listOf(listOf("Secret")), userPassword = "hunter2")
+        assertEquals(ImportResult.Failed("locked.pdf", ImportError.PASSWORD_PROTECTED), importer.import(uriOf(pdf)))
+        assertTrue(noFilesLeft())
+    }
+
+    @Test
+    fun `rejects PDFs without a text layer`() = runTest {
+        val pdf = TestPdfs.write(context, tmp.newFile("scan.pdf"), listOf(emptyList(), emptyList()))
+        assertEquals(ImportResult.Failed("scan.pdf", ImportError.NO_TEXT), importer.import(uriOf(pdf)))
+    }
+
+    @Test
+    fun `rejects damaged PDFs`() = runTest {
+        val file = tmp.newFile("broken.pdf").apply { writeText("%PDF-1.7\nthis is not really a PDF") }
+        assertEquals(ImportResult.Failed("broken.pdf", ImportError.INVALID_FILE), importer.import(uriOf(file)))
+    }
+
     /** True when a failed import left no book, cover or scratch files behind. */
     private fun noFilesLeft(): Boolean {
         val root = File(tmp.root, "files")
-        return listOf("books", "covers", "import-tmp").all { File(root, it).listFiles().isNullOrEmpty() }
+        return listOf("books", "covers", "import-tmp", "text-cache").all { File(root, it).listFiles().isNullOrEmpty() }
     }
 }

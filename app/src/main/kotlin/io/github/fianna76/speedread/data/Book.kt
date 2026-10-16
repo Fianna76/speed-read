@@ -1,5 +1,7 @@
 package io.github.fianna76.speedread.data
 
+import io.github.fianna76.speedread.data.pdf.PdfPageRange
+
 /** A book in the library, as presented to the UI. */
 data class Book(
     val id: Long,
@@ -13,6 +15,7 @@ data class Book(
     val position: ReadingPosition,
     /** Words before the reading position, across all chapters. */
     val wordsRead: Int,
+    val format: BookFormat = BookFormat.EPUB,
 ) {
     /** Reading progress in `[0, 1]`. */
     val progress: Float
@@ -31,4 +34,8 @@ data class Chapter(
     val wordCount: Int,
     /** Words in all preceding chapters. */
     val startWord: Int,
-)
+) {
+    /** Zero-based page indices of a PDF section (`null` for EPUB chapters). */
+    val pageRange: IntRange?
+        get() = PdfPageRange.fromHref(href)?.let { it.start until it.endExclusive }
+}

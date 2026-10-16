@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import io.github.fianna76.speedread.R
 import io.github.fianna76.speedread.data.Book
+import io.github.fianna76.speedread.data.BookFormat
 import io.github.fianna76.speedread.ui.theme.SpeedReadTheme
 import java.io.File
 import kotlin.math.roundToInt
@@ -60,6 +61,8 @@ fun BookCard(
         book.wordsRead <= 0 -> stringResource(R.string.book_new)
         finished -> stringResource(R.string.book_finished)
         else -> stringResource(R.string.book_progress, (book.progress * 100).roundToInt().coerceIn(1, 99))
+    }.let { label ->
+        if (book.format == BookFormat.PDF) stringResource(R.string.book_format_label, stringResource(R.string.book_format_pdf), label) else label
     }
     val selectedLabel = stringResource(R.string.book_selected)
 

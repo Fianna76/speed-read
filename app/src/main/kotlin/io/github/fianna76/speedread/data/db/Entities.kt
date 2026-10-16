@@ -16,11 +16,13 @@ data class BookEntity(
     val title: String,
     val author: String?,
     val language: String?,
-    /** File name of the EPUB inside the app's private books directory. */
+    /** [io.github.fianna76.speedread.data.BookFormat] name; added in schema version 2. */
+    @ColumnInfo(name = "format", defaultValue = "EPUB") val format: String = "EPUB",
+    /** File name of the book inside the app's private books directory. */
     @ColumnInfo(name = "file_name") val fileName: String,
     /** File name of the down-scaled cover inside the covers directory, if the book has one. */
     @ColumnInfo(name = "cover_file_name") val coverFileName: String?,
-    /** SHA-256 of the EPUB file, used to detect duplicate imports. */
+    /** SHA-256 of the book file, used to detect duplicate imports. */
     @ColumnInfo(name = "content_hash") val contentHash: String,
     @ColumnInfo(name = "total_words") val totalWords: Int,
     @ColumnInfo(name = "added_at") val addedAt: Long,
@@ -47,9 +49,9 @@ data class BookEntity(
 data class ChapterEntity(
     @ColumnInfo(name = "book_id") val bookId: Long,
     @ColumnInfo(name = "chapter_index") val index: Int,
-    /** Title from the table of contents or the first heading; `null` when neither exists. */
+    /** Title from the table of contents, first heading or PDF outline; `null` when none exists. */
     val title: String?,
-    /** Path of the content document inside the EPUB archive. */
+    /** EPUB: path of the content document in the archive. PDF: page range, see `PdfPageRange`. */
     val href: String,
     @ColumnInfo(name = "word_count") val wordCount: Int,
     /** Number of words in all preceding chapters. */

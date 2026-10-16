@@ -10,13 +10,16 @@ sealed interface ImportResult {
 }
 
 enum class ImportError {
-    /** Not a ZIP/EPUB, or the package structure is broken. */
-    NOT_AN_EPUB,
+    /** Neither an EPUB nor a PDF, or the file's structure is broken. */
+    INVALID_FILE,
 
     /** The text is encrypted with DRM. */
     DRM_PROTECTED,
 
-    /** Valid EPUB, but no readable text (e.g. image-only comics). */
+    /** A PDF that needs a password to open. */
+    PASSWORD_PROTECTED,
+
+    /** Valid book, but no readable text (image-only EPUBs, scanned PDFs without a text layer). */
     NO_TEXT,
 
     /** Larger than the import limit. */

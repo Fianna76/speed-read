@@ -9,6 +9,7 @@ import io.github.fianna76.speedread.data.OfflineBookRepository
 import io.github.fianna76.speedread.data.db.SpeedReadDatabase
 import io.github.fianna76.speedread.data.importing.BookImporter
 import io.github.fianna76.speedread.data.importing.ImportCoordinator
+import io.github.fianna76.speedread.data.pdf.PdfBooks
 import io.github.fianna76.speedread.data.settings.UserPreferencesRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -31,7 +32,9 @@ class AppContainer(context: Context) {
 
     private val fileStore by lazy { BookFileStore(appContext.filesDir) }
 
-    val bookRepository: BookRepository by lazy { OfflineBookRepository(database.bookDao(), fileStore) }
+    private val pdfBooks by lazy { PdfBooks(appContext) }
+
+    val bookRepository: BookRepository by lazy { OfflineBookRepository(database.bookDao(), fileStore, pdfBooks) }
 
     /** The container is the single owner of the DataStore, as DataStore requires one instance per file. */
     val preferencesRepository by lazy {
@@ -41,7 +44,7 @@ class AppContainer(context: Context) {
     }
 
     val importCoordinator by lazy {
-        val importer = BookImporter(appContext.contentResolver, fileStore, database.bookDao())
+        val importer = BookImporter(appContext.contentResolver, fileStore, database.bookDao(), pdfBooks)
         ImportCoordinator(
             importer = importer::import,
             scope = applicationScope,

@@ -1,11 +1,11 @@
 # SpeedRead — Project Plan
 
-SpeedRead is an Android e-reader for EPUB books that uses **Rapid Serial Visual Presentation
+SpeedRead is an Android e-reader for EPUB and PDF books that uses **Rapid Serial Visual Presentation
 (RSVP)**: words are shown one at a time at a fixed point on screen, each aligned on its
 *optimal recognition point* (ORP), so the eyes don't have to travel across lines and pages.
 
 This document is the plan for the app. The repository already contains a working
-first release (v1.0.0) built from it. §6 marks what is done and what comes next.
+first release (v1.0.0) built from it, plus PDF support added in v1.1.0. §6 marks what is done and what comes next.
 
 ---
 
@@ -18,6 +18,7 @@ first release (v1.0.0) built from it. §6 marks what is done and what comes next
 | R3 | WPM easily adjustable with sliders | A 100–1000 wpm slider (25-wpm steps) plus −/+ buttons sit on the reading screen and apply mid-sentence. The speed is persisted, and Settings has a default-speed slider. | ✅ |
 | R4 | Easy single-tap controls: pause, skip forward and back | Three invisible tap zones over the text: left = previous sentence, centre = play/pause, right = next sentence. A transport bar repeats them and adds previous/next chapter. | ✅ |
 | R5 | Best practices | Modular architecture, unidirectional data flow, tests at every layer, lint-clean, CI, R8, privacy by default. See §4–§5. | ✅ |
+| R7 | PDF support (added after v1.0) | Text-based PDFs import through the same paths. Chapters come from the PDF outline (bookmarks), or from 10-page sections. Line wrapping, hyphenation and page numbers are cleaned up. Password-protected and scanned (image-only) PDFs are rejected with a clear reason. The cover is the rendered first page. | ✅ |
 | R6 | Deliverable: one packaged `.apk` | A signed, R8-minified release APK built with `./gradlew assembleRelease`. | ✅ |
 
 ### Non-functional goals
@@ -36,7 +37,7 @@ first release (v1.0.0) built from it. §6 marks what is done and what comes next
 
 ### Out of scope for v1
 
-DRM-protected books (Adobe ADEPT, Readium LCP), PDF/MOBI/AZW3, cloud sync, text-to-speech,
+DRM-protected books (Adobe ADEPT, Readium LCP), OCR for scanned PDFs, MOBI/AZW3, cloud sync, text-to-speech,
 annotations, CJK word segmentation, right-to-left ORP tuning.
 
 ---
@@ -121,6 +122,7 @@ annotations, CJK word segmentation, right-to-left ORP tuning.
 | State | ViewModel + `StateFlow`, UI state as immutable data classes, one-off messages modelled as state | Unidirectional data flow, survives configuration changes |
 | Persistence | Room 2.8 (exported schemas) for the library; DataStore Preferences for settings | Transactional, observable storage; schemas ready for migrations |
 | EPUB parsing | Own parser on `java.util.zip` + jsoup 1.23 (lenient XML/HTML) | Small, testable on the JVM; full libraries such as Readium are overkill for text extraction |
+| PDF text | PdfBox-Android 2.0.27 (text extraction, outline); platform `PdfRenderer` for covers | Android has no built-in PDF text API; PdfBox is the established open-source extractor. Unused Bouncy Castle data tables are stripped from the APK (3.8 MB total) |
 | Images | Coil 3 | Async, cached cover thumbnails in Compose |
 | DI | Manual `AppContainer` | No codegen for a graph this small; the constructor-injected classes can move to Hilt unchanged |
 | Testing | JUnit 4, kotlinx-coroutines-test (virtual time), Robolectric 4.17, Compose UI test | Fast tests on the JVM at every layer, including UI, with no device required |
@@ -189,6 +191,29 @@ no binary test files.
 
 When reading, only the current chapter is extracted and tokenised (fast, low memory).
 
+### 4.3.1 PDF pipeline
+
+Steps 1, 2 and 7 are shared with EPUB. The format is identified from the file's first bytes
+(`PK` = EPUB, `%PDF-` = PDF), never from the name or MIME type.
+
+- **Open.** PdfBox opens the file with mixed memory/temp-file buffering, so large files
+  don't exhaust the heap. A required user password → *password-protected*. A damaged file
+  → *not a valid EPUB or PDF*.
+- **Sections.** If the outline has at least two top-level bookmarks, each bookmark runs to
+  the next one, plus an untitled front-matter section before the first. Otherwise pages are
+  grouped in tens. Sections longer than 30 pages are split into 10-page parts, so
+  extracting one while reading stays quick. A section's page range is stored as its
+  `href` (`pages:<start>-<end>`).
+- **Text.** Lines are joined into PdfBox-detected paragraphs. End-of-line hyphenation is
+  undone when the next line continues in lowercase. Lines holding only a page number are
+  dropped. Sections with no text layer (scans) are skipped, and a book with none is
+  rejected.
+- **Cover.** The first page is rendered at 600 px with the platform `PdfRenderer`. This is
+  best-effort: failure just means a generated cover.
+- **Schema.** `books.format` was added in database version 2. Room's auto-migration
+  defaults existing rows to `EPUB`, and a test upgrades a real version-1 database built
+  from the exported schema.
+
 ### 4.4 RSVP engine (`:core:rsvp`)
 
 - **`Tokenizer`.** Splits on Unicode whitespace and after em/en dashes inside tokens, and
@@ -209,9 +234,9 @@ When reading, only the current chapter is extracted and tokenised (fast, low mem
 | Table `books` | | Table `chapters` | |
 |---|---|---|---|
 | `id` PK | autoincrement | `book_id` FK → books (cascade) | composite PK with `chapter_index` |
-| `title`, `author`, `language` | metadata | `chapter_index` | reading order |
+| `title`, `author`, `language`, `format` | metadata; `format` = `EPUB`/`PDF` (v2) | `chapter_index` | reading order |
 | `file_name`, `cover_file_name` | app-private files | `title` | from TOC/heading, nullable |
-| `content_hash` | unique, dedupe | `href` | document inside the EPUB |
+| `content_hash` | unique, dedupe | `href` | EPUB document path, or PDF `pages:<start>-<end>` |
 | `total_words` | | `word_count`, `start_word` | for book-level progress |
 | `added_at`, `last_opened_at` | sorting | | |
 | `chapter_index`, `word_index`, `words_read` | reading position | | |
@@ -237,7 +262,9 @@ smart pacing, gentle start, font size, font, highlight, context, theme, library 
 
 | Layer | Tooling | What's covered |
 |---|---|---|
-| Core logic (JVM) | JUnit 4 | EPUB 2/3 parsing, fallbacks, DRM detection, size limits, XHTML extraction (entities, footnotes, ruby, soft hyphens), tokenizer, ORP (Unicode), pacing |
+| Core logic (JVM) | JUnit 4 | EPUB 2/3 parsing, fallbacks, DRM detection, size limits, XHTML extraction (entities, footnotes, ruby, soft hyphens), tokenizer, ORP (Unicode), pacing, PDF text clean-up, format sniffing |
+| PDF import | Robolectric + PDFs generated with PdfBox | Outline chapters with front matter, 10-page sections, password-protected, scanned and damaged files, chapter text by page range |
+| Migrations | Robolectric + real SQLite | A version-1 database built from `app/schemas/…/1.json` opens with the v2 code |
 | Playback timing | kotlinx-coroutines-test (virtual time) | Exact word timing, pause, speed changes, ramp-up, sentence skips, end-of-text |
 | Data layer | Robolectric + in-memory Room + real files | Import (success, duplicate, invalid, DRM, no text, unreadable, cover thumbnail), repository, preferences |
 | ViewModels | Robolectric + fakes + virtual time | Library sorting, selection, deletion, import messages; reader position restore, chapter auto-advance, skips across chapters, finishing, speed persistence, error and retry |
@@ -269,6 +296,7 @@ without covers, large books).
 **Enhancement backlog, in priority order**
 
 1. Chapters split at TOC fragments, for books with several chapters per file.
+   PDF: header/footer stripping, multi-column detection, password prompt, cached extracted text.
 2. A scrubber to jump anywhere in a chapter, and bookmarks.
 3. Chunk mode (2–3 words per flash) and an optional speed-training ramp.
 4. A bundled high-legibility font (e.g. Atkinson Hyperlegible), plus dyslexia-friendly options.
@@ -286,6 +314,7 @@ without covers, large books).
 
 | Risk | Impact | Mitigation |
 |---|---|---|
+| PDF text order is only as good as the file (multi-column layouts, headers, footnotes) | Garbled reading order in some PDFs | Paragraph detection + clean-up heuristics; per-section extraction; EPUB recommended when available; layout analysis is a backlog item |
 | Real-world EPUBs are often malformed | Import failures, missing text | Lenient parsing with fallbacks; failing sections are skipped, not fatal; clear error per reason; corpus testing in phase 3 |
 | DRM-protected purchases | Users can't read store-bought books | Detect DRM and explain it; scope statement in the store listing |
 | Comprehension drops at high speed (a known RSVP trade-off: no regressions) | Poor learning outcomes | Smart pacing, gentle start, context while paused, one-tap sentence rewind, 300 wpm default |

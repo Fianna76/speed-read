@@ -11,13 +11,13 @@
 
     <!-- Library -->
     <string name="library_title">Library</string>
-    <string name="library_import">Import EPUB</string>
+    <string name="library_import">Import book</string>
     <plurals name="library_importing">
         <item quantity="one">Importing %d book…</item>
         <item quantity="other">Importing %d books…</item>
     </plurals>
     <string name="library_empty_title">Your library is empty</string>
-    <string name="library_empty_body">Import an EPUB file to start speed reading. Books are copied to this device and never uploaded.</string>
+    <string name="library_empty_body">Import an EPUB or PDF file to start speed reading. Books are copied to this device and never uploaded.</string>
     <string name="library_sort">Sort</string>
     <string name="sort_recent">Recently read</string>
     <string name="sort_title">Title</string>
@@ -43,13 +43,16 @@
     <string name="book_progress">%1$d%%</string>
     <string name="book_unknown_author">Unknown author</string>
     <string name="book_selected">Selected</string>
+    <string name="book_format_pdf" translatable="false">PDF</string>
+    <string name="book_format_label">%1$s · %2$s</string>
 
     <!-- Import results -->
     <string name="import_success">Added “%1$s”</string>
     <string name="import_duplicate">“%1$s” is already in your library</string>
-    <string name="import_failed_not_epub">%1$s isn’t a valid EPUB file</string>
+    <string name="import_failed_invalid">%1$s isn’t a valid EPUB or PDF file</string>
+    <string name="import_failed_password">%1$s is password-protected</string>
     <string name="import_failed_drm">%1$s is protected by DRM and can’t be opened</string>
-    <string name="import_failed_no_text">%1$s doesn’t contain any readable text</string>
+    <string name="import_failed_no_text">%1$s has no readable text (scanned pages can’t be read yet)</string>
     <string name="import_failed_too_large">%1$s is too large to import</string>
     <string name="import_failed_unreadable">Couldn’t read %1$s</string>
     <string name="import_unnamed_file">The file</string>
@@ -57,6 +60,8 @@
     <!-- Reader -->
     <string name="reader_chapters">Chapters</string>
     <string name="reader_section">Section %1$d</string>
+    <string name="reader_pages">Pages %1$d–%2$d</string>
+    <string name="reader_page">Page %1$d</string>
     <string name="reader_chapter_position">Chapter %1$d of %2$d</string>
     <string name="reader_book_progress">%1$d%% · %2$s left</string>
     <string name="reader_less_than_a_minute">under a minute</string>
@@ -115,5 +120,5 @@
     <string name="settings_version">Version %1$s</string>
     <string name="settings_about_body">SpeedRead uses Rapid Serial Visual Presentation (RSVP): words appear one at a time at a fixed focal point, so your eyes don’t have to travel across the page. Your books stay on this device.</string>
     <string name="settings_licenses">Open-source licences</string>
-    <string name="settings_licenses_body">Built with Kotlin, Jetpack Compose, AndroidX (Room, DataStore, Navigation 3, Lifecycle), Coil and Material Symbols under the Apache License 2.0, and jsoup under the MIT License.</string>
+    <string name="settings_licenses_body">Built with Kotlin, Jetpack Compose, AndroidX (Room, DataStore, Navigation 3, Lifecycle), Coil, PdfBox-Android and Material Symbols under the Apache License 2.0, jsoup under the MIT License, and Bouncy Castle under the Bouncy Castle (MIT) licence.</string>
 </resources>
