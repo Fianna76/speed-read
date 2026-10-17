@@ -59,6 +59,7 @@ import io.github.fianna76.speedread.rsvp.WordsPerMinute
 import io.github.fianna76.speedread.ui.reader.RsvpWordView
 import io.github.fianna76.speedread.news.ArticleUrls
 import io.github.fianna76.speedread.news.NewsSources
+import io.github.fianna76.speedread.ui.news.labelRes
 import io.github.fianna76.speedread.ui.theme.SpeedReadTheme
 import kotlin.math.roundToInt
 
@@ -183,13 +184,22 @@ fun SettingsContent(
             SectionDivider()
             SectionHeader(stringResource(R.string.settings_section_news))
             AboutText(stringResource(R.string.settings_news_body))
-            NewsSources.ALL.forEach { source ->
-                SwitchSetting(
-                    title = source.name,
-                    summary = ArticleUrls.displayHost(source.homepage),
-                    checked = source.id !in preferences.disabledNewsSources,
-                    onCheckedChange = { enabled -> onNewsSourceChange(source.id, enabled) },
+            NewsSources.ALL.groupBy { it.region }.forEach { (region, sources) ->
+                Text(
+                    text = stringResource(region.labelRes()),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
                 )
+                sources.forEach { source ->
+                    val host = ArticleUrls.displayHost(source.homepage)
+                    SwitchSetting(
+                        title = source.name,
+                        summary = source.note?.let { stringResource(R.string.settings_news_source_summary, it, host) } ?: host,
+                        checked = preferences.isNewsSourceEnabled(source),
+                        onCheckedChange = { enabled -> onNewsSourceChange(source.id, enabled) },
+                    )
+                }
             }
 
             SectionDivider()

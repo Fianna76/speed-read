@@ -11,6 +11,7 @@ import io.github.fianna76.speedread.data.news.ArticleRepository
 import io.github.fianna76.speedread.data.news.NewsCache
 import io.github.fianna76.speedread.data.news.NewsRepository
 import io.github.fianna76.speedread.data.settings.UserPreferencesRepository
+import io.github.fianna76.speedread.news.NewsRegion
 import io.github.fianna76.speedread.news.NewsSources
 import io.github.fianna76.speedread.testing.FakeWebClient
 import io.github.fianna76.speedread.testing.MainDispatcherRule
@@ -79,9 +80,11 @@ class NewsstandViewModelTest {
 
         val state = viewModel.awaitState { it.hasLoaded && it.articles.isNotEmpty() }
 
-        assertEquals(listOf("bbc", "dw"), state.sources.map { it.id })
-        assertEquals(listOf("b1", "d1", "b2"), state.articles.map { it.item.url.substringAfterLast('/') })
-        assertEquals("BBC News", state.articles.first().source.name)
+        assertEquals(listOf("dw", "bbc"), state.sources.map { it.id }) // Europe before world.
+        // Each round of lead stories puts European news (DW) before world news (BBC).
+        assertEquals(listOf("d1", "b1", "b2"), state.articles.map { it.item.url.substringAfterLast('/') })
+        assertEquals(listOf(NewsRegion.EUROPE, NewsRegion.WORLD), state.regions)
+        assertEquals("DW", state.articles.first().source.name)
         assertTrue(web.requests.none { "aljazeera" in it })
     }
 
@@ -97,6 +100,21 @@ class NewsstandViewModelTest {
     }
 
     @Test
+    fun `filters by region, and a region change clears the source filter`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.awaitState { it.articles.size == 3 }
+        viewModel.selectSource("dw")
+        viewModel.awaitState { it.selectedSourceId == "dw" }
+
+        viewModel.selectRegion(NewsRegion.WORLD)
+
+        val state = viewModel.awaitState { it.selectedRegion == NewsRegion.WORLD }
+        assertNull(state.selectedSourceId)
+        assertEquals(listOf("bbc"), state.sourcesInRegion.map { it.id })
+        assertEquals(listOf("b1", "b2"), state.articles.map { it.item.url.substringAfterLast('/') })
+    }
+
+    @Test
     fun `reading in the app saves the article and opens the reader`() = runTest {
         val viewModel = createViewModel()
         val article = viewModel.awaitState { it.articles.isNotEmpty() }.articles.first()
@@ -109,7 +127,7 @@ class NewsstandViewModelTest {
         val state = viewModel.awaitState { it.bookToOpen == null && it.articles.first().progress != null }
         assertEquals(0f, state.articles.first().progress)
         assertNull(state.preparingUrl)
-        assertEquals("Story b1", database.bookDao().findById(bookId)!!.title)
+        assertEquals("Story d1", database.bookDao().findById(bookId)!!.title)
     }
 
     @Test

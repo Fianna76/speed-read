@@ -10,10 +10,19 @@ data class UserPreferences(
     val display: ReaderDisplay = ReaderDisplay(),
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val librarySort: LibrarySort = LibrarySort.RECENT,
-    /** Ids of [NewsSources] the user switched off; new sources are on by default. */
+    /** Ids of [NewsSources] the user switched off. */
     val disabledNewsSources: Set<String> = emptySet(),
+    /** Ids of [NewsSources] the user switched on (sources not enabled by default). */
+    val addedNewsSources: Set<String> = emptySet(),
 ) {
-    val enabledNewsSources: List<NewsSource> get() = NewsSources.ALL.filterNot { it.id in disabledNewsSources }
+    /** The user's choice if they made one, else the source's default. */
+    fun isNewsSourceEnabled(source: NewsSource): Boolean = when (source.id) {
+        in addedNewsSources -> true
+        in disabledNewsSources -> false
+        else -> source.enabledByDefault
+    }
+
+    val enabledNewsSources: List<NewsSource> get() = NewsSources.ALL.filter(::isNewsSourceEnabled)
 }
 
 /** How words are rendered on the reading screen. */

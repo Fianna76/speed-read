@@ -18,14 +18,29 @@ so your eyes stay still while you read.
   picker (several at once), "Open with", or "Share". PDFs are split into chapters by their
   bookmarks, or into 10-page sections. Invalid files, DRM- or password-protected books,
   scanned PDFs without a text layer, and duplicates are detected and explained.
-- **Newsstand.** Top stories from Al Jazeera, BBC News, DW, The Guardian, France 24, NPR,
-  ABC News (Australia), CBC News and PBS NewsHour, all from free public feeds. Each story
-  has a preview card (outlet, age, headline, teaser, thumbnail) and a detail sheet. Tap
-  **Speed-read** to read the story in the app with RSVP (the text is extracted like a
-  browser's reader mode, and progress is kept), or **Open online** for the full page in
-  your browser. Filter by outlet, pull to refresh, and choose sources in Settings.
-  Headlines are cached for offline viewing. Reuters and AP aren't included because neither
-  offers a public feed and both block automated access.
+- **Newsstand.** Top stories from 69 outlets with free public feeds, Irish first, then
+  European, then global:
+  - **Ireland:** RTÉ News, TheJournal.ie, Newstalk, BBC News NI, Irish Independent, RTÉ
+    Brainstorm, Silicon Republic, Belfast Telegraph, The Irish Post, Limerick Leader,
+    Agriland, RTÉ Nuacht and Tuairisc.ie (as Gaeilge).
+  - **Europe:** DW, France 24, Euronews, The Independent, El País English, ANSA, The Kyiv
+    Independent, The Guardian Europe, Sky News, RFI, Ukrainska Pravda, The Moscow Times,
+    Meduza, Notes from Poland, Balkan Insight, Yle, ERR, LRT, NL Times, The
+    Portugal News, Novinite and The Conversation Europe.
+  - **World:** Al Jazeera, BBC News, The Guardian, NPR, PBS NewsHour, CBS, The Christian
+    Science Monitor, CBC, ABC News (Australia), CNA, UN News, NBC, ABC News (US),
+    ProPublica, Semafor, The Conversation, Global Voices, Rest of World, RNZ, SBS, The
+    Straits Times, Rappler, The Korea Herald, Yonhap, The Hindu, Scroll.in, Dawn,
+    Africanews, AllAfrica, Daily Maverick, Premium Times, MercoPress, Buenos Aires Times and
+    Mexico News Daily.
+
+  22 are on by default; the rest are one switch away in Settings. Each story has a
+  preview card (outlet, age, headline, teaser, thumbnail) and a detail sheet. Tap
+  **Speed-read** to read it in the app with RSVP (the text is extracted like a browser's
+  reader mode, and progress is kept), or **Open online** for the full page. Filter by
+  region or outlet and pull to refresh. Headlines are cached for offline viewing.
+  Subscriber-only articles always open on the outlet's site. Paywalled outlets (The Irish
+  Times, Irish Examiner, NYT, FT…) and Reuters and AP (no public feeds) aren't included.
 - **Library.** A cover grid with progress, four sort orders, tap to read, and long-press to
   select books for deletion.
 - **Speed control.** A 100–1000 wpm slider with −/+ buttons right on the reading screen.
@@ -49,7 +64,7 @@ The full design (goals, architecture, data model, testing strategy, roadmap and 
 
 ## Install the APK
 
-1. Copy `SpeedRead-1.2.0-release.apk` to your phone (Android 8.0 or newer). The APK comes
+1. Copy `SpeedRead-1.3.0-release.apk` to your phone (Android 8.0 or newer). The APK comes
    from a [CI run's](../../actions) artifacts or from a local build (below).
 2. Open it and allow installs from that source when prompted.
 3. Tap **Import book** and pick an EPUB or PDF, or open the **News** tab. Public-domain EPUBs are available from
@@ -65,7 +80,7 @@ Requirements: JDK 17+ (JDK 21 recommended) and the Android SDK with platform 37
 (`ANDROID_HOME` or `local.properties`). The Gradle wrapper downloads everything else.
 
 ```bash
-./gradlew assembleRelease   # → app/build/outputs/apk/release/SpeedRead-1.2.0-release.apk
+./gradlew assembleRelease   # → app/build/outputs/apk/release/SpeedRead-1.3.0-release.apk
 ./gradlew assembleDebug     # → debug build (installs alongside release as "…speedread.debug")
 ./gradlew lint test         # static analysis + all unit, Robolectric and Compose UI tests
 ```

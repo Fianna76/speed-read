@@ -11,6 +11,7 @@ import io.github.fianna76.speedread.news.ArticleExtractionException
 import io.github.fianna76.speedread.news.ArticleExtractor
 import io.github.fianna76.speedread.news.FeedItem
 import io.github.fianna76.speedread.news.NewsSources
+import io.github.fianna76.speedread.news.PaywalledArticleException
 import io.github.fianna76.speedread.rsvp.Tokenizer
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -32,8 +33,11 @@ enum class ArticleError {
     /** The page could not be downloaded (offline, timeout, server error). */
     NETWORK,
 
-    /** The page has no readable article text (video page, paywall, unusual layout). */
+    /** The page has no readable article text (video page, unusual layout). */
     NO_TEXT,
+
+    /** The outlet marks the article as subscriber-only; it can only be read on their site. */
+    PAYWALLED,
 
     /** The text could not be stored on the device. */
     STORAGE,
@@ -79,6 +83,8 @@ class ArticleRepository(
             }
         } catch (e: CancellationException) {
             throw e
+        } catch (_: PaywalledArticleException) {
+            return ArticleResult.Failed(ArticleError.PAYWALLED)
         } catch (e: ArticleExtractionException) {
             Log.i(TAG, "No article text in $url: ${e.message}")
             return ArticleResult.Failed(ArticleError.NO_TEXT)

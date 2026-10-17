@@ -91,6 +91,12 @@ class ArticleRepositoryTest {
         web.responses[item.url] = "<html><body><p>Watch the video above.</p></body></html>"
         assertEquals(ArticleResult.Failed(ArticleError.NO_TEXT), articles.open(item))
 
+        web.responses[item.url] = TestNews.articlePage().replace(
+            "</head>",
+            "<script type=\"application/ld+json\">{\"isAccessibleForFree\": false}</script></head>",
+        )
+        assertEquals(ArticleResult.Failed(ArticleError.PAYWALLED), articles.open(item))
+
         assertNull(database.bookDao().findArticle(item.canonicalUrl))
     }
 

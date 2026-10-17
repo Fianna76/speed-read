@@ -97,6 +97,16 @@ class FeedParserTest {
     }
 
     @Test
+    fun `skips items whose titles mark them as live blogs or media`() {
+        val titles = listOf("LIVE: Connacht v Saracens", "Watch: Storm hits coast", "Live music returns to Galway", "Budget 2027 explained")
+        val xml = "<rss><channel>" +
+            titles.mapIndexed { i, t -> "<item><title>$t</title><link>https://news.example/$i</link></item>" }.joinToString("") +
+            "</channel></rss>"
+
+        assertEquals(listOf("Live music returns to Galway", "Budget 2027 explained"), FeedParser.parse(xml, source).map { it.title })
+    }
+
+    @Test
     fun `long summaries are cut at a word boundary`() {
         val long = List(200) { "word$it" }.joinToString(" ")
         val xml = "<rss><channel><item><title>T</title><link>https://news.example/a</link><description>$long</description></item></channel></rss>"

@@ -15,7 +15,10 @@ data class ExtractedArticle(
     val wordCount: Int get() = paragraphs.sumOf { p -> p.split(' ').count { it.isNotEmpty() } }
 }
 
-class ArticleExtractionException(message: String) : Exception(message)
+open class ArticleExtractionException(message: String) : Exception(message)
+
+/** The page declares itself subscriber-only; its text is not extracted even if present. */
+class PaywalledArticleException(url: String) : ArticleExtractionException("Subscriber-only article: $url")
 
 /**
  * Pulls the story text out of a news article page, like a browser's reader mode.
@@ -31,9 +34,13 @@ object ArticleExtractor {
     /** Fewer words than this means a teaser, a paywall or a non-article page. */
     const val MIN_WORDS = 60
 
-    /** @throws ArticleExtractionException when the page has no recognisable article text. */
+    /**
+     * @throws PaywalledArticleException when the page marks its content as not free.
+     * @throws ArticleExtractionException when the page has no recognisable article text.
+     */
     fun extract(html: String, url: String, bodySelector: String? = null): ExtractedArticle {
         val document = Jsoup.parse(html, url)
+        if (isPaywalled(document)) throw PaywalledArticleException(url)
         val title = withoutSiteName(
             metaContent(document, "og:title", "twitter:title")
                 ?: document.selectFirst("h1")?.text()?.trim()?.ifEmpty { null }
@@ -52,6 +59,14 @@ object ArticleExtractor {
         if (article.wordCount < MIN_WORDS) throw ArticleExtractionException("Only ${article.wordCount} words found at $url")
         return article
     }
+
+    /**
+     * Publishers mark subscriber-only articles with schema.org's `isAccessibleForFree: false`
+     * (the convention search engines use for paywalls). Such pages often ship the full text
+     * for subscribers' browsers to reveal; the app respects the paywall and links out instead.
+     */
+    fun isPaywalled(document: Document): Boolean =
+        document.select("script[type=application/ld+json]").any { NOT_FREE.containsMatchIn(it.data()) }
 
     // --- Cleaning ----------------------------------------------------------------------------
 
@@ -163,6 +178,7 @@ object ArticleExtractor {
     private const val MAIN_CONTENT = "article, main, [role=main], [itemprop=articleBody]"
     private const val BLOCK_TAGS = "p, h2, h3, h4, blockquote, li, pre"
     private val HEADING = Regex("h[2-4]")
+    private val NOT_FREE = Regex("\"isAccessibleForFree\"\\s*:\\s*\"?false\"?", RegexOption.IGNORE_CASE)
     /** " | CBC News", " - BBC News": the outlet's name appended to a page title. */
     private val SITE_NAME_SUFFIX = Regex("\\s+[|\u2013\u2014-]\\s+([^|\u2013\u2014-]{2,30})$")
     private val WHITESPACE = Regex("\\s+")
@@ -178,10 +194,25 @@ object ArticleExtractor {
 
     /** Lines that are page furniture rather than story, wherever they appear. */
     private val BOILERPLATE = Regex(
-        "^(advertisement|sponsored|related( articles?| stories?)?|read more|more on this story|share( this)?|" +
-            "follow us|sign up|subscribe|listen to this article|watch( \\||:)?|image (source|caption)|getty images|" +
-            "copyright|edited by:?|\u00A9)\\b.{0,80}$|^don't let the algorithm|^support trusted journalism|" +
-            "browser extensions? (seems? to be|is) blocking|^get in touch$|^listen to .{0,100} on (bbc )?sounds|^tell us (which|what) stories",
-        setOf(RegexOption.IGNORE_CASE),
+        listOf(
+            // Short labels and page furniture.
+            "^(advertisement|sponsored|related( articles?| stories?)?|read more|more on this story|share( this)?|" +
+                "listen to this article|watch( \\||:)?|image (source|caption)|getty images|edited by:?)\\b.{0,80}$",
+            "^(copyright\\s*(\u00A9|\\d{4})|all rights reserved|\u00A9).{0,120}$", "all rights reserved\\W*(\u00A9.*)?$",
+            "^\\w{1,4}:$", // A dangling label such as "In:".
+            "^last update(d)?\\b", "^(main image|pic|photo|picture):", "^in [\\w ,&]+ - \\d{1,2} \\w{3} \\d{4}",
+            "^\\S+@\\S+\\.\\w+( \\(end\\))?$", // A reporter's address, as in "name@agency.com (END)".
+            "^the views expressed (here|in this)",
+            // Newsletter, social and subscription prompts.
+            "^(follow us|sign up|subscribe)\\b.{0,200}$", "^follow .{0,60} on (facebook|x|twitter|instagram|bluesky)\\b",
+            "sign up for (our|the) .{0,80}newsletter", "please subscribe to our", "^already a subscriber",
+            "^a weekly e-?mail\\b", "^don.t miss out\\b", "^for the latest from\\b", "^everything from .{0,60} is available",
+            "^tell us (which|what) stories", "^get in touch$", "^listen to .{0,100} on (bbc )?sounds",
+            // Donation and support pleas.
+            "^don't let the algorithm", "^support trusted journalism", "^by supporting .{0,80}, you('re| are)\\b", "^keep our news free\\b",
+            // Video players.
+            "browser extensions? (seems? to be|is) blocking",
+        ).joinToString("|"),
+        RegexOption.IGNORE_CASE,
     )
 }

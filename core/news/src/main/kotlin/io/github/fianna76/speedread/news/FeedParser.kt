@@ -46,7 +46,7 @@ object FeedParser {
         if (entries.isEmpty() && !document.isFeed()) throw FeedException("Not an RSS or Atom feed: ${source.feedUrl}")
         return entries.asSequence()
             .mapNotNull { it.toItem(source) }
-            .filterNot { isNonTextUrl(it.url) }
+            .filterNot { isNonTextUrl(it.url) || NON_TEXT_TITLE.containsMatchIn(it.title) }
             .distinctBy { it.canonicalUrl }
             .take(maxItems)
             .toList()
@@ -131,6 +131,9 @@ object FeedParser {
 
     private val WHITESPACE = Regex("\\s+")
     private val CONTINUE_READING = Regex("\\s*Continue reading\\s*(\\.\\.\\.|\u2026)?\\s*$", RegexOption.IGNORE_CASE)
+
+    /** "LIVE: …", "Watch: …", "Video | …": labels for live blogs and media in titles. */
+    private val NON_TEXT_TITLE = Regex("^(live|watch|video|listen|podcast|in pictures)\\s*[:|]", RegexOption.IGNORE_CASE)
 
     private val NON_TEXT_SEGMENTS = setOf(
         "video", "videos", "av", "audio", "podcast", "podcasts", "sounds", "gallery", "galleries",

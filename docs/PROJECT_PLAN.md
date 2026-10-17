@@ -5,7 +5,7 @@ SpeedRead is an Android e-reader for EPUB and PDF books that uses **Rapid Serial
 *optimal recognition point* (ORP), so the eyes don't have to travel across lines and pages.
 
 This document is the plan for the app. The repository already contains a working
-first release (v1.0.0) built from it, plus PDF support added in v1.1.0 and the Newsstand in v1.2.0. §6 marks what is done and what comes next.
+first release (v1.0.0) built from it, plus PDF support added in v1.1.0, the Newsstand in v1.2.0 and 69 news sources in v1.3.0. §6 marks what is done and what comes next.
 
 ---
 
@@ -19,7 +19,7 @@ first release (v1.0.0) built from it, plus PDF support added in v1.1.0 and the N
 | R4 | Easy single-tap controls: pause, skip forward and back | Three invisible tap zones over the text: left = previous sentence, centre = play/pause, right = next sentence. A transport bar repeats them and adds previous/next chapter. | ✅ |
 | R5 | Best practices | Modular architecture, unidirectional data flow, tests at every layer, lint-clean, CI, R8, privacy by default. See §4–§5. | ✅ |
 | R7 | PDF support (added after v1.0) | Text-based PDFs import through the same paths. Chapters come from the PDF outline (bookmarks), or from 10-page sections. Line wrapping, hyphenation and page numbers are cleaned up. Password-protected and scanned (image-only) PDFs are rejected with a clear reason. The cover is the rendered first page. | ✅ |
-| R8 | Newsstand (added after v1.1) | Top stories from Al Jazeera, BBC News, DW, The Guardian, France 24, NPR, ABC News (Australia), CBC News and PBS NewsHour, using each outlet's free public RSS feed. Each story shows a preview (outlet, age, headline, teaser, thumbnail, plus a detail sheet). Every story can be opened online (Custom Tab) or read in the app with RSVP: the page's story text is extracted reader-mode style. Sources can be switched on and off. Reuters and AP are not included because neither offers a public feed and both block automated access (§7). | ✅ |
+| R8 | Newsstand (added after v1.1; widened in v1.3) | Top stories from 69 outlets' free public RSS feeds, organised Ireland → Europe → World (13 Irish, 22 European, 34 global; 22 on by default). Region and outlet filters; Irish stories lead each round of headlines. Each story shows a preview (outlet, age, headline, teaser, thumbnail, plus a detail sheet). Every story can be opened online (Custom Tab) or read in the app with RSVP: the page's story text is extracted reader-mode style. Sources can be switched on and off. Reuters and AP are not included because neither offers a public feed and both block automated access (§7). | ✅ |
 | R6 | Deliverable: one packaged `.apk` | A signed, R8-minified release APK built with `./gradlew assembleRelease`. | ✅ |
 
 ### Non-functional goals
@@ -237,10 +237,28 @@ Steps 1, 2 and 7 are shared with EPUB. The format is identified from the file's 
 
 ### 4.3.2 Newsstand pipeline
 
-- **Sources.** `NewsSources.ALL` (`:core:news`) lists each outlet's top-stories RSS feed,
-  homepage and an optional CSS hint for its article body. Every source must publish a free
-  public feed and serve articles without a paywall. Feed URLs are verified to answer an
-  app user agent.
+- **Sources.** `NewsSources.ALL` (`:core:news`) lists each outlet's region (Ireland, Europe
+  or World), top-stories RSS feed, homepage, whether it is on by default, a short note
+  ("As Gaeilge", "Farming", "Poland"…) and an optional CSS hint for its article body.
+- **Selection criteria.** A source must:
+  - publish a free public feed with fresh items;
+  - serve articles without a subscription;
+  - extract cleanly in an automated probe that fetches the feed and three live articles
+    through the app's own parser and extractor.
+
+  Over 100 candidates were probed. Rejected:
+  - paywalled: The Irish Times, Irish Examiner, The Irish News, The Local, SCMP, LA Times;
+  - stale feeds: CNN, VOA, BreakingNews.ie, Middle East Eye;
+  - blocked or challenge pages: Politico Europe, Euractiv, Times of Israel, Japan Today;
+  - JavaScript-only article text: Times of India, Hindustan Times;
+  - no public feed: Reuters, AP.
+
+  Four outlets (Irish Independent, Belfast Telegraph, Sky News, Ukrainska Pravda) had
+  working feeds, but their article pages refused the test environment's data-centre
+  network. They are off by default.
+- **Paywalls.** A page whose JSON-LD declares `isAccessibleForFree: false` (the schema.org
+  paywall convention) is never extracted, even when the subscriber text is in the HTML.
+  The app says the article is for subscribers and offers **Open online**.
 - **Headlines.** `NewsRepository` fetches enabled sources in parallel. Each source fails
   independently: its older headlines are kept and it is named in the status line. Items
   that are video, audio, galleries or live blogs (by URL path) are dropped, because there
@@ -266,7 +284,7 @@ Steps 1, 2 and 7 are shared with EPUB. The format is identified from the file's 
   progress therefore work unchanged. The library query excludes articles, the Newsstand
   shows their progress by URL, and articles not opened for 30 days are pruned.
 - **Network etiquette.** The User-Agent is browser-compatible but names the app
-  (`Mozilla/5.0 (Linux; Android …) SpeedRead/1.2.0`); one firewall rejects anything else.
+  (`Mozilla/5.0 (Linux; Android …) SpeedRead/1.3.0`); one firewall rejects anything else.
   Pages are fetched only when the user asks to read them. Requests use 15 s connect /
   45 s call timeouts and a 5 MB response cap, and are cancelled with their screen.
 
@@ -300,7 +318,7 @@ Steps 1, 2 and 7 are shared with EPUB. The format is identified from the file's 
 
 Settings live in DataStore Preferences (`files/datastore/settings.preferences_pb`): wpm,
 smart pacing, gentle start, font size, font, highlight, context, theme, library sort,
-disabled news sources. Headlines are cached in `cache/news/headlines.json`, and HTTP
+news sources switched off and on (overrides of each source's default). Headlines are cached in `cache/news/headlines.json`, and HTTP
 responses in `cache/http/`.
 
 ### 4.6 Security and privacy
@@ -398,11 +416,11 @@ without covers, large books).
 
 ```bash
 ./gradlew lint test        # static analysis + all JVM/Robolectric tests
-./gradlew assembleDebug    # app/build/outputs/apk/debug/SpeedRead-1.2.0-debug.apk
-./gradlew assembleRelease  # app/build/outputs/apk/release/SpeedRead-1.2.0-release.apk
+./gradlew assembleDebug    # app/build/outputs/apk/debug/SpeedRead-1.3.0-debug.apk
+./gradlew assembleRelease  # app/build/outputs/apk/release/SpeedRead-1.3.0-release.apk
 ```
 
-- **Versioning.** Semantic `versionName` (`1.2.0`) and a monotonically increasing
+- **Versioning.** Semantic `versionName` (`1.3.0`) and a monotonically increasing
   `versionCode`.
 - **Signing.** Put `storeFile`, `storePassword`, `keyAlias` and `keyPassword` in
   `keystore.properties`, or set the `SPEEDREAD_KEYSTORE_*` / `SPEEDREAD_KEY_*` environment

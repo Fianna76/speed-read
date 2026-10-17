@@ -13,6 +13,7 @@ import io.github.fianna76.speedread.data.news.ArticleResult
 import io.github.fianna76.speedread.data.news.NewsRepository
 import io.github.fianna76.speedread.data.settings.UserPreferencesRepository
 import io.github.fianna76.speedread.news.FeedItem
+import io.github.fianna76.speedread.news.NewsRegion
 import io.github.fianna76.speedread.news.NewsSource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,9 +38,11 @@ data class NewsArticle(
 data class NewsstandUiState(
     /** False until cached or fresh headlines are available (or the first refresh ends). */
     val hasLoaded: Boolean = false,
-    /** Sources the user has switched on, in catalogue order. */
+    /** Sources the user has switched on, in catalogue order (Ireland, Europe, world). */
     val sources: List<NewsSource> = emptyList(),
-    /** Source the list is filtered to; `null` shows all. */
+    /** Region the list is filtered to; `null` shows every region. */
+    val selectedRegion: NewsRegion? = null,
+    /** Source the list is filtered to; `null` shows every source (of [selectedRegion]). */
     val selectedSourceId: String? = null,
     val articles: List<NewsArticle> = emptyList(),
     /** Selected sources whose last refresh failed. */
@@ -51,7 +54,13 @@ data class NewsstandUiState(
     /** Saved article to open in the reader; the UI navigates and calls [NewsstandViewModel.onReaderOpened]. */
     val bookToOpen: Long? = null,
     val message: NewsMessage? = null,
-)
+) {
+    /** Regions that have at least one enabled source, in display order. */
+    val regions: List<NewsRegion> get() = NewsRegion.entries.filter { region -> sources.any { it.region == region } }
+
+    /** Sources offered as filters: those of the selected region, or all. */
+    val sourcesInRegion: List<NewsSource> get() = sources.filter { selectedRegion == null || it.region == selectedRegion }
+}
 
 /** Feedback for an article that could not be prepared for the reader. */
 data class NewsMessage(val id: Long, val item: FeedItem, val error: ArticleError)
@@ -63,7 +72,7 @@ class NewsstandViewModel(
     externalScope: CoroutineScope,
 ) : ViewModel() {
 
-    private val selectedSourceId = MutableStateFlow<String?>(null)
+    private val filter = MutableStateFlow(Filter())
     private val opening = MutableStateFlow(OpeningState())
     private var nextMessageId = 0L
 
@@ -73,18 +82,20 @@ class NewsstandViewModel(
         enabledSources,
         news.state,
         articles.observeProgress(),
-        selectedSourceId,
+        filter,
         opening,
-    ) { sources, feedState, progress, selectedId, openingState ->
-        val selected = selectedId?.takeIf { id -> sources.any { it.id == id } }
-        val shownSources = sources.filter { selected == null || it.id == selected }
+    ) { sources, feedState, progress, chosen, openingState ->
+        val region = chosen.region?.takeIf { r -> sources.any { it.region == r } }
+        val selected = chosen.sourceId?.takeIf { id -> sources.any { it.id == id && (region == null || it.region == region) } }
+        val shownSources = sources.filter { (region == null || it.region == region) && (selected == null || it.id == selected) }
         val byId = sources.associateBy { it.id }
         val shownIds = shownSources.map { it.id }
         NewsstandUiState(
             hasLoaded = feedState.feeds.keys.any { it in shownIds } || (!feedState.isRefreshing && openingState.refreshedOnce),
             sources = sources,
+            selectedRegion = region,
             selectedSourceId = selected,
-            articles = feedState.headlines(shownIds).mapNotNull { item ->
+            articles = feedState.headlines(shownIds) { id -> byId[id]?.region?.ordinal ?: 0 }.mapNotNull { item ->
                 byId[item.sourceId]?.let { source -> NewsArticle(item, source, progress[item.canonicalUrl]) }
             },
             failedSources = shownSources.filter { it.id in feedState.failedSources },
@@ -107,14 +118,21 @@ class NewsstandViewModel(
         externalScope.launch { articles.pruneOld() }
     }
 
-    fun selectSource(sourceId: String?) {
-        selectedSourceId.value = sourceId
-    }
+    /** Shows one region's stories (`null` for all); clears a source filter from another region. */
+    fun selectRegion(region: NewsRegion?) = filter.update { Filter(region = region) }
 
+    fun selectSource(sourceId: String?) = filter.update { it.copy(sourceId = sourceId) }
+
+    /** Refreshes the sources currently shown. */
     fun refresh() {
         viewModelScope.launch {
-            val sources = enabledSources.first()
-            news.refresh(sources.filter { selectedSourceId.value == null || it.id == selectedSourceId.value })
+            val shown = uiState.value.let { state ->
+                state.sources.filter { source ->
+                    (state.selectedRegion == null || source.region == state.selectedRegion) &&
+                        (state.selectedSourceId == null || source.id == state.selectedSourceId)
+                }
+            }
+            news.refresh(shown.ifEmpty { enabledSources.first() })
         }
     }
 
@@ -140,6 +158,8 @@ class NewsstandViewModel(
     fun onMessageShown(id: Long) = opening.update { state ->
         if (state.message?.id == id) state.copy(message = null) else state
     }
+
+    private data class Filter(val region: NewsRegion? = null, val sourceId: String? = null)
 
     private data class OpeningState(
         val preparingUrl: String? = null,

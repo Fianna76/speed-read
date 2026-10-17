@@ -1,6 +1,9 @@
 package io.github.fianna76.speedread.ui.news
 
 import android.content.Context
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasText
@@ -14,6 +17,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.github.fianna76.speedread.R
 import io.github.fianna76.speedread.data.news.ArticleError
 import io.github.fianna76.speedread.news.FeedItem
+import io.github.fianna76.speedread.news.NewsRegion
 import io.github.fianna76.speedread.news.NewsSources
 import io.github.fianna76.speedread.testing.PHONE
 import io.github.fianna76.speedread.testing.TestNews
@@ -80,14 +84,25 @@ class NewsstandContentTest {
     }
 
     @Test
-    fun selectingASourceFilters() {
-        val selected = mutableListOf<String?>()
-        setContent(state, NewsstandActions(onSelectSource = { selected += it }))
+    fun selectingARegionOrASourceFilters() {
+        val regions = mutableListOf<NewsRegion?>()
+        val sources = mutableListOf<String?>()
+        setContent(state, NewsstandActions(onSelectRegion = { regions += it }, onSelectSource = { sources += it }))
 
-        compose.onNodeWithText("Al Jazeera").performClick()
+        compose.onNodeWithText(string(R.string.news_region_ireland)).performClick()
         compose.onNodeWithText(string(R.string.news_all_sources)).performClick()
+        compose.onNodeWithText("RTÉ News").performClick()
 
-        assertEquals(listOf("aljazeera", null), selected)
+        assertEquals(listOf(NewsRegion.IRELAND, null), regions)
+        assertEquals(listOf("rte"), sources)
+    }
+
+    @Test
+    fun aSelectedRegionOffersOnlyItsOutlets() {
+        setContent(state.copy(selectedRegion = NewsRegion.IRELAND))
+
+        compose.onNodeWithText("RTÉ News").assertExists()
+        compose.onNodeWithText("Al Jazeera").assertDoesNotExist()
     }
 
     @Test
@@ -114,6 +129,18 @@ class NewsstandContentTest {
         compose.waitUntil(5_000) { shown.isNotEmpty() }
         assertEquals(listOf(articles[1].item), online)
         assertEquals(listOf(7L), shown)
+    }
+
+    @Test
+    fun aFewUnreachableSourcesAreNamedAndManyAreCounted() {
+        val failing = NewsSources.ALL.take(5)
+        var current by mutableStateOf(state.copy(failedSources = failing.take(2)))
+        compose.setContent { SpeedReadTheme(dynamicColor = false) { NewsstandContent(state = current, now = now, actions = NewsstandActions()) } }
+
+        compose.onNodeWithText(string(R.string.news_sources_failed, "RT\u00C9 News, TheJournal.ie")).assertIsDisplayed()
+
+        current = state.copy(failedSources = failing)
+        compose.onNodeWithText(context.resources.getQuantityString(R.plurals.news_many_sources_failed, 5, 5)).assertIsDisplayed()
     }
 
     @Test

@@ -90,6 +90,43 @@ class ArticleExtractorTest {
     }
 
     @Test
+    fun `newsletter, donation and copyright lines are dropped but similar story sentences are kept`() {
+        val furniture = listOf(
+            "LAST UPDATE | 7 mins ago",
+            "In:",
+            "ALL RIGHTS RESERVED \u00A9 Copyright ANSA",
+            "Sign up for our weekly newsletter to get more English-language news coverage from EL PA\u00CDS USA Edition",
+            "Follow ERR News on Facebook and X and never miss an update!",
+            "By supporting The Moscow Times, you're defending open, independent journalism in the face of repression.",
+            "Keep our news free from ads and paywalls by making a donation to support our work!",
+            "reporter@agency.co.kr (END)",
+            "The views expressed here are those of the author and do not represent or reflect the views of RT\u00C9",
+        )
+        val story = listOf(
+            "By supporting Ukraine's air defence, the EU hopes to protect power stations, ministers said on Saturday.",
+            "Copyright law in the bloc is being rewritten, and publishers, authors and technology firms all want a say in it.",
+        )
+        val html = page(
+            "<article>" + (1..4).joinToString("") { "<p>${sentence(it)}</p>" } +
+                (furniture + story).joinToString("") { "<p>$it</p>" } + "</article>",
+        )
+
+        assertEquals((1..4).map(::sentence) + story, ArticleExtractor.extract(html, url).paragraphs)
+    }
+
+    @Test
+    fun `subscriber-only pages are not extracted`() {
+        val html = page(
+            "<article>" + (1..6).joinToString("") { "<p>${sentence(it)}</p>" } + "</article>",
+            head = """<script type="application/ld+json">{"@type":"NewsArticle","isAccessibleForFree":false}</script>""",
+        )
+
+        val error = runCatching { ArticleExtractor.extract(html, url) }.exceptionOrNull()
+
+        assertTrue(error is PaywalledArticleException)
+    }
+
+    @Test
     fun `titles keep dashes that are not an outlet name`() {
         val html = page((1..5).joinToString("") { "<p>${sentence(it)}</p>" })
             .replace("Big story | Example News", "Election - the final days")

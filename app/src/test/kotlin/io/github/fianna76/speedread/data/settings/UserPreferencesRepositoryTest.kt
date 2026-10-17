@@ -52,17 +52,22 @@ class UserPreferencesRepositoryTest {
     }
 
     @Test
-    fun `news sources can be switched off and on`() = runTest {
+    fun `news sources start at their defaults and can be switched off and on`() = runTest {
         val repository = testPreferences(tmp.root, backgroundScope)
-        assertEquals(NewsSources.ALL, repository.preferences.first().enabledNewsSources)
+        val defaults = NewsSources.ALL.filter { it.enabledByDefault }
+        assertEquals(defaults, repository.preferences.first().enabledNewsSources)
+        assertEquals("rte", defaults.first().id) // Irish news first.
 
-        repository.setNewsSourceEnabled("bbc", false)
+        repository.setNewsSourceEnabled("bbc", false) // On by default.
+        repository.setNewsSourceEnabled("tuairisc", true) // Off by default.
         repository.setNewsSourceEnabled("dw", false)
-        repository.setNewsSourceEnabled("bbc", true)
+        repository.setNewsSourceEnabled("dw", true)
 
         val prefs = repository.preferences.first()
-        assertEquals(setOf("dw"), prefs.disabledNewsSources)
-        assertEquals(NewsSources.ALL.filterNot { it.id == "dw" }, prefs.enabledNewsSources)
+        assertEquals(
+            NewsSources.ALL.filter { (it.enabledByDefault && it.id != "bbc") || it.id == "tuairisc" },
+            prefs.enabledNewsSources,
+        )
     }
 
     @Test

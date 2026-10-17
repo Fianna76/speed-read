@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -60,6 +61,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -74,9 +76,11 @@ import io.github.fianna76.speedread.R
 import io.github.fianna76.speedread.data.news.ArticleError
 import io.github.fianna76.speedread.news.ArticleUrls
 import io.github.fianna76.speedread.news.FeedItem
+import io.github.fianna76.speedread.news.NewsRegion
 
 /** Callbacks of the Newsstand, grouped to keep signatures readable. */
 data class NewsstandActions(
+    val onSelectRegion: (NewsRegion?) -> Unit = {},
     val onSelectSource: (String?) -> Unit = {},
     val onRefresh: () -> Unit = {},
     val onReadInApp: (FeedItem) -> Unit = {},
@@ -106,6 +110,7 @@ fun NewsstandScreen(
         state = state,
         now = System.currentTimeMillis(),
         actions = NewsstandActions(
+            onSelectRegion = viewModel::selectRegion,
             onSelectSource = viewModel::selectSource,
             onRefresh = viewModel::refresh,
             onReadInApp = viewModel::readInApp,
@@ -130,7 +135,7 @@ fun NewsstandContent(
     var previewUrl by rememberSaveable { mutableStateOf<String?>(null) }
     val listState = rememberLazyListState()
     // A different filter is a different list: start it from the top.
-    LaunchedEffect(state.selectedSourceId) { listState.scrollToItem(0) }
+    LaunchedEffect(state.selectedRegion, state.selectedSourceId) { listState.scrollToItem(0) }
 
     state.message?.let { message ->
         val text = message.text()
@@ -170,7 +175,7 @@ fun NewsstandContent(
                 )
                 return@Column
             }
-            SourceFilterRow(state, actions.onSelectSource)
+            FilterRows(state, actions.onSelectRegion, actions.onSelectSource)
             PullToRefreshBox(
                 isRefreshing = state.isRefreshing && state.articles.isNotEmpty(),
                 onRefresh = actions.onRefresh,
@@ -233,21 +238,29 @@ fun NewsstandContent(
     LaunchedEffect(state.bookToOpen) { if (state.bookToOpen != null) previewUrl = null }
 }
 
+/** Region chips (All, Ireland, Europe, World), then the outlets of the selected region. */
 @Composable
-private fun SourceFilterRow(state: NewsstandUiState, onSelectSource: (String?) -> Unit) {
-    LazyRow(
-        contentPadding = PaddingValues(horizontal = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        item(key = "all") {
-            FilterChip(
-                selected = state.selectedSourceId == null,
-                onClick = { onSelectSource(null) },
-                label = { Text(stringResource(R.string.news_all_sources)) },
-            )
+private fun FilterRows(state: NewsstandUiState, onSelectRegion: (NewsRegion?) -> Unit, onSelectSource: (String?) -> Unit) {
+    if (state.regions.size > 1) {
+        ChipRow {
+            item(key = "all") {
+                FilterChip(
+                    selected = state.selectedRegion == null,
+                    onClick = { onSelectRegion(null) },
+                    label = { Text(stringResource(R.string.news_all_sources)) },
+                )
+            }
+            items(state.regions, key = { it.name }) { region ->
+                FilterChip(
+                    selected = state.selectedRegion == region,
+                    onClick = { onSelectRegion(if (state.selectedRegion == region) null else region) },
+                    label = { Text(stringResource(region.labelRes())) },
+                )
+            }
         }
-        items(state.sources, key = { it.id }) { source ->
+    }
+    ChipRow {
+        items(state.sourcesInRegion, key = { it.id }) { source ->
             FilterChip(
                 selected = state.selectedSourceId == source.id,
                 onClick = { onSelectSource(if (state.selectedSourceId == source.id) null else source.id) },
@@ -258,8 +271,28 @@ private fun SourceFilterRow(state: NewsstandUiState, onSelectSource: (String?) -
 }
 
 @Composable
+private fun ChipRow(content: LazyListScope.() -> Unit) {
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxWidth(),
+        content = content,
+    )
+}
+
+fun NewsRegion.labelRes(): Int = when (this) {
+    NewsRegion.IRELAND -> R.string.news_region_ireland
+    NewsRegion.EUROPE -> R.string.news_region_europe
+    NewsRegion.WORLD -> R.string.news_region_world
+}
+
+@Composable
 private fun FeedStatus(state: NewsstandUiState, now: Long) {
     val text = when {
+        state.failedSources.size > MAX_NAMED_FAILURES -> {
+            val count = state.failedSources.size
+            pluralStringResource(R.plurals.news_many_sources_failed, count, count)
+        }
         state.failedSources.isNotEmpty() ->
             stringResource(R.string.news_sources_failed, state.failedSources.joinToString(", ") { it.name })
         state.lastUpdated != null && now - state.lastUpdated < DateUtils.MINUTE_IN_MILLIS ->
@@ -503,6 +536,9 @@ private fun NewsEmptyState(title: String, body: String, button: String, onClick:
     }
 }
 
+/** Beyond this many unreachable outlets the status line gives a count instead of names. */
+private const val MAX_NAMED_FAILURES = 3
+
 @Composable
 private fun sourceLine(article: NewsArticle, now: Long): String {
     val published = article.item.publishedAt ?: return article.source.name
@@ -518,5 +554,6 @@ private fun relativeTime(time: Long, now: Long): String =
 private fun NewsMessage.text(): String = when (error) {
     ArticleError.NETWORK -> stringResource(R.string.news_error_network)
     ArticleError.NO_TEXT -> stringResource(R.string.news_error_no_text)
+    ArticleError.PAYWALLED -> stringResource(R.string.news_error_paywalled)
     ArticleError.STORAGE -> stringResource(R.string.news_error_storage)
 }

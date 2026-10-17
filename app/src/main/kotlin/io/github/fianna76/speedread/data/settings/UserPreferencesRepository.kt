@@ -56,7 +56,9 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
 
     suspend fun setNewsSourceEnabled(sourceId: String, enabled: Boolean) = update {
         val disabled = it[Keys.DISABLED_NEWS_SOURCES].orEmpty()
+        val added = it[Keys.ADDED_NEWS_SOURCES].orEmpty()
         it[Keys.DISABLED_NEWS_SOURCES] = if (enabled) disabled - sourceId else disabled + sourceId
+        it[Keys.ADDED_NEWS_SOURCES] = if (enabled) added + sourceId else added - sourceId
     }
 
     private suspend fun update(block: (MutablePreferences) -> Unit) {
@@ -81,6 +83,7 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
             themeMode = enumOrDefault(this[Keys.THEME], defaults.themeMode),
             librarySort = enumOrDefault(this[Keys.LIBRARY_SORT], defaults.librarySort),
             disabledNewsSources = this[Keys.DISABLED_NEWS_SOURCES] ?: defaults.disabledNewsSources,
+            addedNewsSources = this[Keys.ADDED_NEWS_SOURCES] ?: defaults.addedNewsSources,
         )
     }
 
@@ -98,6 +101,7 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
         val THEME = stringPreferencesKey("theme_mode")
         val LIBRARY_SORT = stringPreferencesKey("library_sort")
         val DISABLED_NEWS_SOURCES = stringSetPreferencesKey("disabled_news_sources")
+        val ADDED_NEWS_SOURCES = stringSetPreferencesKey("added_news_sources")
     }
 
     private companion object {

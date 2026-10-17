@@ -30,18 +30,18 @@ data class NewsFeedState(
 ) {
     /**
      * Headlines of [sourceIds], interleaved by feed position: every outlet's lead story, then
-     * every second story, and so on (newest first within each round). Feeds list top stories in
-     * editorial order, so this keeps each outlet's priorities and stops a busy feed crowding
-     * out the rest.
+     * every second story, and so on. Feeds list top stories in editorial order, so this keeps
+     * each outlet's priorities and stops a busy feed crowding out the rest. Within a round,
+     * stories are ordered by [priority] (lower first, e.g. home news before world news), then
+     * newest first.
      */
-    fun headlines(sourceIds: Collection<String>): List<FeedItem> {
+    fun headlines(sourceIds: Collection<String>, priority: (sourceId: String) -> Int = { 0 }): List<FeedItem> {
         val lists = sourceIds.mapNotNull { feeds[it]?.items?.takeIf(List<FeedItem>::isNotEmpty) }
         val rounds = lists.maxOfOrNull { it.size } ?: 0
+        val order = compareBy<FeedItem> { priority(it.sourceId) }
+            .thenByDescending(nullsFirst()) { it.publishedAt }
         return (0 until rounds)
-            .flatMap { round ->
-                lists.mapNotNull { it.getOrNull(round) }
-                    .sortedWith(compareByDescending<FeedItem, Long?>(nullsFirst()) { it.publishedAt })
-            }
+            .flatMap { round -> lists.mapNotNull { it.getOrNull(round) }.sortedWith(order) }
             .distinctBy { it.canonicalUrl }
     }
 

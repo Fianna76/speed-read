@@ -61,6 +61,20 @@ class NewsRepositoryTest {
     }
 
     @Test
+    fun `within a round, higher-priority sources lead`() {
+        val state = NewsFeedState(
+            feeds = mapOf(
+                "world" to SourceFeed(listOf(TestNews.item("world", "w1", publishedAt = 9), TestNews.item("world", "w2")), 0),
+                "home" to SourceFeed(listOf(TestNews.item("home", "h1", publishedAt = 1), TestNews.item("home", "h2")), 0),
+            ),
+        )
+
+        val ordered = state.headlines(listOf("world", "home")) { id -> if (id == "home") 0 else 1 }
+
+        assertEquals(listOf("h1", "w1", "h2", "w2"), ordered.map { it.url.substringAfterLast('/') })
+    }
+
+    @Test
     fun `a failing source is reported without hiding the others or its older headlines`() = runTest {
         val repository = repository()
         repository.refresh(listOf(bbc, dw))
