@@ -270,4 +270,27 @@ class NewsstandContentTest {
         compose.onNodeWithText(string(R.string.news_retry)).performClick()
         assertEquals(1, refreshed)
     }
+
+    @Test
+    fun aRequestedStoryIsPreviewedOnceListed() {
+        var current by mutableStateOf(state.copy(stories = emptyList()))
+        var handled = 0
+        compose.setContent {
+            SpeedReadTheme(dynamicColor = false) {
+                NewsstandContent(
+                    state = current,
+                    now = now,
+                    actions = NewsstandActions(),
+                    previewRequest = articles[2].item.canonicalUrl,
+                    onPreviewRequestHandled = { handled++ },
+                )
+            }
+        }
+        assertEquals(0, handled)
+
+        current = state // The headlines arrive.
+
+        compose.waitUntil(5_000) { compose.onAllNodes(hasText("dw.example")).fetchSemanticsNodes().isNotEmpty() }
+        assertEquals(1, handled)
+    }
 }

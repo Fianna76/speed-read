@@ -22,6 +22,8 @@ import io.github.fianna76.speedread.news.FeedItem
 import io.github.fianna76.speedread.news.NewsRegion
 import io.github.fianna76.speedread.news.NewsSource
 import io.github.fianna76.speedread.news.NewsSources
+import io.github.fianna76.speedread.news.NewsTopic
+import io.github.fianna76.speedread.news.TopicClassifier
 import io.github.fianna76.speedread.news.StoryGrouping
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -66,6 +68,10 @@ data class NewsstandUiState(
     val selectedRegion: NewsRegion? = null,
     /** Source the feed is filtered to; `null` shows every source (of [selectedRegion]). */
     val selectedSourceId: String? = null,
+    /** Topic the feed is filtered to; `null` shows every topic. */
+    val selectedTopic: NewsTopic? = null,
+    /** Stories per topic in the current region/outlet filter, for the topic menu. */
+    val topicCounts: Map<NewsTopic, Int> = emptyMap(),
     /** Search text; empty when not searching. */
     val query: String = "",
     val hideRead: Boolean = false,
@@ -175,7 +181,12 @@ class NewsstandViewModel(
 
     fun selectSource(sourceId: String?) = view.update { it.copy(saved = false, sourceId = sourceId) }
 
+    fun selectTopic(topic: NewsTopic?) = view.update { it.copy(saved = false, topic = topic) }
+
     fun showSaved(show: Boolean) = view.update { it.copy(saved = show) }
+
+    /** Clears every filter and search, e.g. to show a story tapped in the widget. */
+    fun showAll() = view.update { ViewState() }
 
     fun setQuery(query: String) = view.update { it.copy(query = query) }
 
@@ -290,6 +301,7 @@ class NewsstandViewModel(
             NewsArticle(item, source, progress[item.canonicalUrl], isRead = entry?.isRead == true, isSaved = entry?.isSaved == true)
         }
 
+        var topicCounts = emptyMap<NewsTopic, Int>()
         val stories = if (chosen.saved) {
             entries.values.filter { it.isSaved }
                 .sortedByDescending { it.savedAt }
@@ -298,9 +310,12 @@ class NewsstandViewModel(
                 .map { NewsStory(it) }
         } else {
             val byRegion = sources.associate { it.id to it.region.ordinal }
-            val headlines = feedState.headlines(shownIds) { id -> byRegion[id] ?: 0 }
+            val candidates = feedState.headlines(shownIds) { id -> byRegion[id] ?: 0 }
                 .mapNotNull(::article)
                 .filter { it.matches(query) && !(prefs.hideReadNews && it.isRead) }
+            val topics = candidates.associateWith { TopicClassifier.topics(it.item) }
+            topicCounts = NewsTopic.entries.associateWith { topic -> topics.values.count { topic in it } }.filterValues { it > 0 }
+            val headlines = if (chosen.topic == null) candidates else candidates.filter { chosen.topic in topics.getValue(it) }
             if (selected != null) {
                 headlines.map { NewsStory(it) }
             } else {
@@ -326,6 +341,8 @@ class NewsstandViewModel(
             selectedRegion = region,
             selectedSourceId = selected,
             query = chosen.query,
+            selectedTopic = chosen.topic,
+            topicCounts = topicCounts,
             hideRead = prefs.hideReadNews,
             stories = stories,
             continueReading = continueReading,
@@ -348,6 +365,7 @@ class NewsstandViewModel(
         val saved: Boolean = false,
         val region: NewsRegion? = null,
         val sourceId: String? = null,
+        val topic: NewsTopic? = null,
         val query: String = "",
     )
 

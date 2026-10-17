@@ -16,6 +16,12 @@ import io.github.fianna76.speedread.data.news.NetworkMonitor
 import io.github.fianna76.speedread.data.news.NewsHistoryRepository
 import io.github.fianna76.speedread.data.news.NewsQueue
 import io.github.fianna76.speedread.data.news.NewsUpNext
+import io.github.fianna76.speedread.data.news.SharedLinkReader
+import io.github.fianna76.speedread.news.NewsRegion
+import io.github.fianna76.speedread.widget.NewsWidget
+import io.github.fianna76.speedread.widget.WidgetData
+import io.github.fianna76.speedread.widget.WidgetHeadline
+import androidx.glance.appwidget.updateAll
 import io.github.fianna76.speedread.data.news.background.NewsBackgroundScheduler
 import io.github.fianna76.speedread.data.news.background.NewsPrefetcher
 import io.github.fianna76.speedread.data.news.NewsRepository
@@ -26,6 +32,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -59,7 +66,9 @@ class AppContainer(context: Context) {
         OkHttpWebClient(httpClient, userAgent = "Mozilla/5.0 (Linux; Android ${Build.VERSION.RELEASE}) SpeedRead/$version")
     }
 
-    val newsRepository by lazy { NewsRepository(webClient, NewsCache(File(appContext.cacheDir, "news/headlines.json"))) }
+    val newsRepository by lazy {
+        NewsRepository(webClient, NewsCache(File(appContext.cacheDir, "news/headlines.json")), onUpdated = ::onHeadlinesUpdated)
+    }
 
     val articleRepository by lazy { ArticleRepository(database.bookDao(), fileStore, webClient) }
 
@@ -72,8 +81,26 @@ class AppContainer(context: Context) {
 
     val newsPrefetcher by lazy { NewsPrefetcher(newsRepository, articleRepository, newsHistoryRepository) }
 
-    /** Called after headlines change in the background (e.g. to refresh home-screen widgets). */
-    fun onHeadlinesUpdated() = Unit
+    /** Speed-reads web links shared to the app. */
+    val sharedLinkReader by lazy { SharedLinkReader(articleRepository, applicationScope) }
+
+    /** Called after headlines change (in the app or the background): refreshes home-screen widgets. */
+    fun onHeadlinesUpdated() {
+        applicationScope.launch { runCatching { NewsWidget().updateAll(appContext) } }
+    }
+
+    /** Top Irish headlines for the widget (all enabled sources if no Irish one is on). */
+    suspend fun widgetHeadlines(limit: Int = 6): WidgetData {
+        newsRepository.ensureLoaded()
+        val sources = preferencesRepository.preferences.first().enabledNewsSources
+        val irish = sources.filter { it.region == NewsRegion.IRELAND }
+        val shown = irish.ifEmpty { sources }
+        val names = shown.associate { it.id to it.name }
+        val headlines = newsRepository.state.value.headlines(shown.map { it.id }).take(limit).map { item ->
+            WidgetHeadline(item.title, names[item.sourceId].orEmpty(), item.canonicalUrl)
+        }
+        return WidgetData(irish = irish.isNotEmpty(), headlines = headlines)
+    }
 
     /**
      * Keeps the background sync in line with the setting. Started from the Application; only a

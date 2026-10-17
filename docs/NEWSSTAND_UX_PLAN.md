@@ -86,12 +86,31 @@ the existing upgrade test from version 1.
   options → Mark as read/unread) for TalkBack users.
 - **Per-region switches** in Settings: "Turn on all of Europe" / "Turn off all of Europe".
 
-### Phase 3: later
+### Phase 3: implemented in v1.6 ✅
 
-- **Topic filters** (politics, business, sport, science) using feed categories where
-  outlets provide them.
-- **Home-screen widget** with the latest Irish headlines.
-- **Share any web link to SpeedRead** to speed-read it, reusing the article extractor.
+- **Topic filters.** A **Topics** chip opens a menu with Politics, Business, Sport, Science
+  & tech, Health, Climate and Culture, each with its story count. Topics come from the
+  story's URL sections (`/sport/rugby/…`, `/news/business/…`), the most reliable signal
+  across outlets, plus feed categories where outlets provide them. Article slugs are
+  ignored, so "sport-shop-closes" isn't Sport. On live feeds about a fifth of headlines
+  get a topic; the rest are general news, which is expected for top-stories feeds.
+  Over-broad keywords were removed after checking real headlines ("energy" had tagged war
+  coverage as Climate).
+- **Home-screen widget** (Glance). It shows the latest headlines from the enabled Irish
+  outlets, or top headlines if none are on. It reads the cached headlines and updates
+  whenever they refresh, in the app or the background sync; it never fetches by itself.
+  Tapping a headline opens the Newsstand with that story's preview (filters are cleared
+  so it is visible), and tapping the title opens the Newsstand.
+- **Share any web link to SpeedRead.** From a browser or any app, Share → SpeedRead
+  extracts the article and opens it in the RSVP reader. The title comes from the page, and
+  the outlet is credited if it is in the catalogue (otherwise the site name is used). A
+  progress dialog can be cancelled. Failures (offline, no article text, subscriber-only)
+  offer **Open online**. Shared text without a link gets a short message.
+
+### Later ideas
+
+- Notifications for breaking Irish headlines (opt-in), building on the background sync.
+- A morning "briefing" playlist: the top story of each enabled region, read back to back.
 
 ## 3. Quality bar
 

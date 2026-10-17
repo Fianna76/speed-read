@@ -29,6 +29,7 @@ import io.github.fianna76.speedread.ui.news.NewsstandUiState
 import io.github.fianna76.speedread.ui.reader.ReaderActions
 import io.github.fianna76.speedread.ui.reader.ReaderContent
 import io.github.fianna76.speedread.ui.reader.ReaderUiState
+import io.github.fianna76.speedread.ui.reader.UpNextStory
 import io.github.fianna76.speedread.ui.settings.SettingsContent
 import io.github.fianna76.speedread.ui.theme.SpeedReadTheme
 import org.junit.Rule
@@ -157,6 +158,28 @@ class ScreenRenderTest {
                 totalWords = 412,
             ),
             PlayerState(text = paragraph, index = 13),
+            ReaderActions(),
+        )
+    }
+
+    @Test
+    fun readerUpNext() = capture("reader_up_next") {
+        ReaderContent(
+            readerUi.copy(
+                title = "Talks on public sector pay deal to begin at WRC on Monday",
+                sourceUrl = "https://www.rte.ie/news/ireland/2026/1017/1595725-pay-talks-meeting/",
+                sourceName = "RT\u00C9 News",
+                chapters = listOf(Chapter(0, null, "article", 828, 0)),
+                chapterIndex = 0,
+                totalWords = 828,
+                isFinished = true,
+                upNext = UpNextStory(
+                    TestNews.item("rte_brainstorm", "mick", "How 'the runt of the litter' became champion dog Mick the Miller"),
+                    "RT\u00C9 Brainstorm",
+                ),
+                autoContinueIn = 3,
+            ),
+            PlayerState(text = paragraph, index = 22),
             ReaderActions(),
         )
     }

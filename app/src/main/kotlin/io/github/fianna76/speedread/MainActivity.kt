@@ -4,6 +4,7 @@ import android.content.Intent
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
@@ -11,10 +12,13 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.core.content.IntentCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.fianna76.speedread.data.settings.ThemeMode
+import io.github.fianna76.speedread.ui.navigation.NavigationRequest
 import io.github.fianna76.speedread.ui.navigation.SpeedReadNavigation
 import io.github.fianna76.speedread.ui.theme.SpeedReadTheme
 import io.github.fianna76.speedread.ui.theme.isDark
@@ -29,7 +33,7 @@ class MainActivity : ComponentActivity() {
         // Hold the splash until the theme preference is known, to avoid a light/dark flash.
         splashScreen.setKeepOnScreenCondition { viewModel.themeMode.value == null }
 
-        if (savedInstanceState == null) importFrom(intent)
+        if (savedInstanceState == null) handle(intent)
 
         setContent {
             val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
@@ -45,14 +49,33 @@ class MainActivity : ComponentActivity() {
             }
 
             SpeedReadTheme(darkTheme = darkTheme) {
-                SpeedReadNavigation()
+                SpeedReadNavigation(request = navigationRequest, onRequestHandled = { navigationRequest = null })
             }
         }
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        importFrom(intent)
+        handle(intent)
+    }
+
+    /** Where an incoming intent (widget tap, shared link) wants the app to go. */
+    private var navigationRequest by mutableStateOf<NavigationRequest?>(null)
+
+    private fun handle(intent: Intent?) {
+        when (intent?.action) {
+            ACTION_OPEN_NEWS -> navigationRequest = NavigationRequest.OpenNews(previewUrl = intent.dataString)
+            Intent.ACTION_SEND if intent.type == "text/plain" -> readSharedLink(intent)
+            else -> importFrom(intent)
+        }
+    }
+
+    /** "Share → SpeedRead" with a web link: speed-read the article. */
+    private fun readSharedLink(intent: Intent) {
+        val text = intent.getStringExtra(Intent.EXTRA_TEXT).orEmpty()
+        val subject = intent.getStringExtra(Intent.EXTRA_SUBJECT)
+        val reader = (application as SpeedReadApplication).container.sharedLinkReader
+        if (!reader.open(text, subject)) Toast.makeText(this, R.string.shared_link_none, Toast.LENGTH_LONG).show()
     }
 
     /** Handles "Open with" (VIEW) and "Share" (SEND / SEND_MULTIPLE) intents carrying EPUB files. */
@@ -69,9 +92,12 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private companion object {
+    companion object {
+        /** Opens the Newsstand; the intent's data, if any, is a story to preview. */
+        const val ACTION_OPEN_NEWS = "io.github.fianna76.speedread.action.OPEN_NEWS"
+
         // Same scrims enableEdgeToEdge() uses for 3-button navigation by default.
-        val LIGHT_SCRIM = Color.argb(0xe6, 0xFF, 0xFF, 0xFF)
-        val DARK_SCRIM = Color.argb(0x80, 0x1b, 0x1b, 0x1b)
+        private val LIGHT_SCRIM = Color.argb(0xe6, 0xFF, 0xFF, 0xFF)
+        private val DARK_SCRIM = Color.argb(0x80, 0x1b, 0x1b, 0x1b)
     }
 }

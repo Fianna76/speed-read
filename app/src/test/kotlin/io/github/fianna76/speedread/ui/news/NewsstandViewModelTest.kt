@@ -15,6 +15,7 @@ import io.github.fianna76.speedread.data.settings.NewsImages
 import io.github.fianna76.speedread.data.settings.UserPreferencesRepository
 import io.github.fianna76.speedread.news.NewsRegion
 import io.github.fianna76.speedread.news.NewsSources
+import io.github.fianna76.speedread.news.NewsTopic
 import io.github.fianna76.speedread.testing.FakeWebClient
 import io.github.fianna76.speedread.testing.MainDispatcherRule
 import io.github.fianna76.speedread.testing.TestNews
@@ -316,5 +317,36 @@ class NewsstandViewModelTest {
         viewModel.awaitState { s -> s.articles.first().isRead }
         viewModel.setRead(article.item, false)
         viewModel.awaitState { s -> !s.articles.first().isRead }
+    }
+
+    @Test
+    fun `stories can be filtered by topic`() = runTest {
+        web.responses[dw.feedUrl] = "<rss><channel>" +
+            "<item><title>Cup final tonight</title><link>https://dw.example/sport/football/cup-final</link></item>" +
+            "<item><title>Markets rally</title><link>https://dw.example/news/business/markets</link><category>Economy</category></item>" +
+            "<item><title>General news</title><link>https://dw.example/news/general</link></item>" +
+            "</channel></rss>"
+        val viewModel = createViewModel()
+        val loaded = viewModel.awaitState { s -> s.articles.any { it.source.id == "dw" } }
+        assertEquals(mapOf(NewsTopic.SPORT to 1, NewsTopic.BUSINESS to 1), loaded.topicCounts)
+
+        viewModel.selectTopic(NewsTopic.SPORT)
+
+        val sport = viewModel.awaitState { it.selectedTopic == NewsTopic.SPORT }
+        assertEquals(listOf("Cup final tonight"), sport.articles.map { it.item.title })
+    }
+
+    @Test
+    fun `show all clears filters and search`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.awaitState { it.articles.size == 3 }
+        viewModel.selectRegion(NewsRegion.WORLD)
+        viewModel.selectTopic(NewsTopic.SPORT)
+        viewModel.setQuery("x")
+
+        viewModel.showAll()
+
+        val state = viewModel.awaitState { it.selectedRegion == null && it.selectedTopic == null && it.query.isEmpty() }
+        assertEquals(3, state.articles.size)
     }
 }

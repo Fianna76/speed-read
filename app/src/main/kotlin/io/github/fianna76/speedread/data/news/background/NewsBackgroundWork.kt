@@ -23,7 +23,6 @@ class NewsBackgroundWorker(context: Context, params: WorkerParameters) : Corouti
         return try {
             val result = container.newsPrefetcher.sync(prefs.enabledNewsSources)
             Log.i(TAG, "Background news: ${result.downloaded} downloaded, ${result.failed} unavailable")
-            container.onHeadlinesUpdated()
             Result.success()
         } catch (e: Exception) {
             Log.w(TAG, "Background news failed", e)

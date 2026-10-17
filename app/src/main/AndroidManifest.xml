@@ -44,6 +44,13 @@
                 <data android:mimeType="application/pdf" />
             </intent-filter>
 
+            <!-- "Share to SpeedRead" with a web link: speed-read the article. -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+
             <!-- "Share to SpeedRead" for one or more EPUB or PDF files. -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
@@ -53,6 +60,18 @@
                 <data android:mimeType="application/pdf" />
             </intent-filter>
         </activity>
+
+        <receiver
+            android:name=".widget.NewsWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/news_widget_info" />
+        </receiver>
     </application>
 
 </manifest>

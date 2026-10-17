@@ -51,11 +51,13 @@ class NewsCache(private val file: File) {
         val imageUrl: String? = null,
         val publishedAt: Long? = null,
         val author: String? = null,
+        val categories: List<String> = emptyList(),
     ) {
-        fun toFeedItem(sourceId: String) = FeedItem(sourceId, title, url, summary, imageUrl, publishedAt, author)
+        fun toFeedItem(sourceId: String) = FeedItem(sourceId, title, url, summary, imageUrl, publishedAt, author, categories)
 
         companion object {
-            fun from(item: FeedItem) = CachedItem(item.title, item.url, item.summary, item.imageUrl, item.publishedAt, item.author)
+            fun from(item: FeedItem) =
+                CachedItem(item.title, item.url, item.summary, item.imageUrl, item.publishedAt, item.author, item.categories)
         }
     }
 

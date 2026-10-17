@@ -44,7 +44,14 @@ so your eyes stay still while you read.
   - **Continue reading** brings back half-read articles;
   - search, share, hiding an outlet from its card (with Undo), "12 new stories" after a
     refresh, and tapping News again to jump to the top;
-  - region and outlet filters, pull to refresh, and headlines cached for offline viewing.
+  - region, outlet and topic filters, pull to refresh, and headlines cached for offline viewing;
+  - **Next story**: when an article ends, the next unread story starts after a 5-second
+    countdown, for hands-free news;
+  - swipe a card right to save it, left to mark it read;
+  - data saver for images (always, Wi-Fi only or never), and optional background
+    downloads on Wi-Fi;
+  - a home-screen widget with the latest Irish headlines;
+  - **Share → SpeedRead** from any browser or app to speed-read any web article.
   Subscriber-only articles always open on the outlet's site. Paywalled outlets (The Irish
   Times, Irish Examiner, NYT, FT…) and Reuters and AP (no public feeds) aren't included.
 - **Library.** A cover grid with progress, four sort orders, tap to read, and long-press to
@@ -70,7 +77,7 @@ The full design (goals, architecture, data model, testing strategy, roadmap and 
 
 ## Install the APK
 
-1. Copy `SpeedRead-1.4.0-release.apk` to your phone (Android 8.0 or newer). The APK comes
+1. Copy `SpeedRead-1.6.0-release.apk` to your phone (Android 8.0 or newer). The APK comes
    from a [CI run's](../../actions) artifacts or from a local build (below).
 2. Open it and allow installs from that source when prompted.
 3. Tap **Import book** and pick an EPUB or PDF, or open the **News** tab. Public-domain EPUBs are available from
@@ -86,7 +93,7 @@ Requirements: JDK 17+ (JDK 21 recommended) and the Android SDK with platform 37
 (`ANDROID_HOME` or `local.properties`). The Gradle wrapper downloads everything else.
 
 ```bash
-./gradlew assembleRelease   # → app/build/outputs/apk/release/SpeedRead-1.4.0-release.apk
+./gradlew assembleRelease   # → app/build/outputs/apk/release/SpeedRead-1.6.0-release.apk
 ./gradlew assembleDebug     # → debug build (installs alongside release as "…speedread.debug")
 ./gradlew lint test         # static analysis + all unit, Robolectric and Compose UI tests
 ```

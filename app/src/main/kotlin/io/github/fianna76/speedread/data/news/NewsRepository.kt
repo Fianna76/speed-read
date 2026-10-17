@@ -58,6 +58,8 @@ class NewsRepository(
     private val cache: NewsCache,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val clock: () -> Long = System::currentTimeMillis,
+    /** Called after a refresh that fetched at least one feed (e.g. to update widgets). */
+    private val onUpdated: () -> Unit = {},
 ) {
     private val _state = MutableStateFlow(NewsFeedState())
     val state: StateFlow<NewsFeedState> = _state.asStateFlow()
@@ -104,6 +106,7 @@ class NewsRepository(
                 state.copy(feeds = feeds, failedSources = failed)
             }
             withContext(ioDispatcher) { cache.write(_state.value.feeds) }
+            if (results.any { it.second != null }) onUpdated()
         } finally {
             _state.update { it.copy(isRefreshing = false) }
             refreshMutex.unlock()
@@ -119,6 +122,9 @@ class NewsRepository(
         Log.w(TAG, "Could not refresh ${source.id}", e)
         null
     }
+
+    /** Loads cached headlines if that hasn't happened yet (e.g. for a widget before the app opens). */
+    suspend fun ensureLoaded() = loadCache()
 
     private suspend fun loadCache() {
         if (cacheLoaded) return

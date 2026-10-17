@@ -208,7 +208,9 @@ fun ReaderContent(ui: ReaderUiState, player: PlayerState, actions: ReaderActions
                     ui.isFinished && ui.upNext != null -> UpNextPanel(ui, ui.upNext, actions)
                     ui.isFinished -> ReaderMessage(
                         iconRes = R.drawable.ic_check_circle,
-                        title = stringResource(R.string.reader_finished_title),
+                        title = stringResource(
+                            if (ui.sourceUrl != null) R.string.reader_finished_article_title else R.string.reader_finished_title,
+                        ),
                         body = stringResource(
                             R.string.reader_finished_body,
                             remember(ui.totalWords) { NumberFormat.getIntegerInstance().format(ui.totalWords) },
@@ -361,7 +363,7 @@ private fun UpNextPanel(ui: ReaderUiState, next: UpNextStory, actions: ReaderAct
             modifier = Modifier.size(48.dp),
         )
         Spacer(Modifier.height(8.dp))
-        Text(stringResource(R.string.reader_finished_title), style = MaterialTheme.typography.titleLarge)
+        Text(stringResource(R.string.reader_finished_article_title), style = MaterialTheme.typography.titleLarge)
         Spacer(Modifier.height(24.dp))
         OutlinedCard(Modifier.fillMaxWidth().widthIn(max = 480.dp)) {
             Column(Modifier.padding(20.dp)) {

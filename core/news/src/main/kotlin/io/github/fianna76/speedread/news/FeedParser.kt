@@ -24,6 +24,8 @@ data class FeedItem(
     /** Publication time in epoch milliseconds, if the feed gives one. */
     val publishedAt: Long?,
     val author: String?,
+    /** The feed's section or tag labels ("Sport", "Business"), used to infer [NewsTopic]s. */
+    val categories: List<String> = emptyList(),
 ) {
     /** [url] without tracking parameters; identifies the story across feed refreshes. */
     val canonicalUrl: String get() = ArticleUrls.canonical(url)
@@ -70,6 +72,10 @@ object FeedParser {
                 ?.let(::parseDate),
             author = (childText("dc|creator") ?: selectFirst("author > name")?.text() ?: childText("author"))
                 ?.let(::htmlToText)?.takeIf { it.isNotBlank() && '@' !in it },
+            categories = children()
+                .filter { it.normalName() == "category" || it.normalName() == "dc:subject" }
+                .mapNotNull { (it.text().ifBlank { it.attr("term") }).let(::htmlToText).trim().ifEmpty { null } }
+                .distinct(),
         )
     }
 

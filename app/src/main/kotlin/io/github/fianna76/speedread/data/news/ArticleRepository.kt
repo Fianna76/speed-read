@@ -9,6 +9,8 @@ import io.github.fianna76.speedread.data.db.BookEntity
 import io.github.fianna76.speedread.data.db.ChapterEntity
 import io.github.fianna76.speedread.news.ArticleExtractionException
 import io.github.fianna76.speedread.news.ArticleExtractor
+import io.github.fianna76.speedread.news.ArticleUrls
+import io.github.fianna76.speedread.news.ExtractedArticle
 import io.github.fianna76.speedread.news.FeedItem
 import io.github.fianna76.speedread.news.NewsSources
 import io.github.fianna76.speedread.news.PaywalledArticleException
@@ -77,9 +79,9 @@ class ArticleRepository(
             Log.w(TAG, "Could not download $url", e)
             return ArticleResult.Failed(ArticleError.NETWORK)
         }
-        val paragraphs = try {
+        val article = try {
             withContext(Dispatchers.Default) {
-                ArticleExtractor.extract(html, item.url, NewsSources.byId(item.sourceId)?.bodySelector).paragraphs
+                ArticleExtractor.extract(html, item.url, NewsSources.byId(item.sourceId)?.bodySelector)
             }
         } catch (e: CancellationException) {
             throw e
@@ -89,7 +91,7 @@ class ArticleRepository(
             Log.i(TAG, "No article text in $url: ${e.message}")
             return ArticleResult.Failed(ArticleError.NO_TEXT)
         }
-        return save(item, url, paragraphs)
+        return save(item, url, article)
     }
 
     /** Deletes saved articles not opened within [RETENTION_MILLIS]. */
@@ -97,14 +99,16 @@ class ArticleRepository(
         delete(dao.findArticlesOlderThan(clock() - RETENTION_MILLIS))
     }
 
-    private suspend fun save(item: FeedItem, url: String, paragraphs: List<String>): ArticleResult {
+    private suspend fun save(item: FeedItem, url: String, article: ExtractedArticle): ArticleResult {
+        val paragraphs = article.paragraphs
         val fileName = "article-${sha256(url)}"
         val stored = withContext(ioDispatcher) { files.writeChapterText(fileName, ARTICLE_HREF, paragraphs) }
         if (!stored) return ArticleResult.Failed(ArticleError.STORAGE)
         val words = Tokenizer.countWords(paragraphs)
         val book = BookEntity(
-            title = item.title,
-            author = NewsSources.byId(item.sourceId)?.name,
+            // Shared links have no feed headline or known outlet: use the page's own title and site.
+            title = item.title.ifBlank { article.title.ifBlank { ArticleUrls.displayHost(item.url) } },
+            author = NewsSources.byId(item.sourceId)?.name ?: ArticleUrls.displayHost(item.url).ifEmpty { null },
             language = null,
             format = BookFormat.ARTICLE.name,
             fileName = fileName,

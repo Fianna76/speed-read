@@ -66,6 +66,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -95,12 +97,16 @@ import io.github.fianna76.speedread.news.ArticleUrls
 import io.github.fianna76.speedread.news.FeedItem
 import io.github.fianna76.speedread.news.NewsRegion
 import io.github.fianna76.speedread.news.NewsSource
+import io.github.fianna76.speedread.news.NewsTopic
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 /** Callbacks of the Newsstand, grouped to keep signatures readable. */
 data class NewsstandActions(
     val onSelectRegion: (NewsRegion?) -> Unit = {},
     val onSelectSource: (String?) -> Unit = {},
+    val onSelectTopic: (NewsTopic?) -> Unit = {},
     val onShowSaved: (Boolean) -> Unit = {},
     val onQueryChange: (String) -> Unit = {},
     val onHideReadChange: (Boolean) -> Unit = {},
@@ -126,10 +132,16 @@ fun NewsstandScreen(
     onOpenSettings: () -> Unit,
     bottomBar: @Composable () -> Unit,
     scrollToTop: Int = 0,
+    /** A story (canonical URL) to preview as soon as it is in the list, e.g. tapped in the widget. */
+    previewRequest: String? = null,
+    onPreviewRequestHandled: () -> Unit = {},
     viewModel: NewsstandViewModel = viewModel(factory = NewsstandViewModel.Factory),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+
+    // A story tapped in the widget must not be hidden by a filter left from last time.
+    LaunchedEffect(previewRequest) { if (previewRequest != null) viewModel.showAll() }
 
     state.bookToOpen?.let { bookId ->
         LaunchedEffect(bookId) {
@@ -144,6 +156,7 @@ fun NewsstandScreen(
         actions = NewsstandActions(
             onSelectRegion = viewModel::selectRegion,
             onSelectSource = viewModel::selectSource,
+            onSelectTopic = viewModel::selectTopic,
             onShowSaved = viewModel::showSaved,
             onQueryChange = viewModel::setQuery,
             onHideReadChange = viewModel::setHideRead,
@@ -163,6 +176,8 @@ fun NewsstandScreen(
         ),
         bottomBar = bottomBar,
         scrollToTop = scrollToTop,
+        previewRequest = previewRequest,
+        onPreviewRequestHandled = onPreviewRequestHandled,
     )
 }
 
@@ -175,14 +190,30 @@ fun NewsstandContent(
     modifier: Modifier = Modifier,
     bottomBar: @Composable () -> Unit = {},
     scrollToTop: Int = 0,
+    previewRequest: String? = null,
+    onPreviewRequestHandled: () -> Unit = {},
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     var previewUrl by rememberSaveable { mutableStateOf<String?>(null) }
     var searching by rememberSaveable { mutableStateOf(state.isSearching) }
     val listState = rememberLazyListState()
     // A different filter is a different list: start it from the top.
-    LaunchedEffect(state.showingSaved, state.selectedRegion, state.selectedSourceId, state.query) { listState.scrollToItem(0) }
+    LaunchedEffect(state.showingSaved, state.selectedRegion, state.selectedSourceId, state.selectedTopic, state.query) {
+        listState.scrollToItem(0)
+    }
     LaunchedEffect(scrollToTop) { if (scrollToTop > 0) listState.animateScrollToItem(0) }
+    // Wait until the requested story is listed (headlines may still be loading), then preview it;
+    // give up quietly if it never appears (e.g. it has left the feed).
+    val currentState by rememberUpdatedState(state)
+    if (previewRequest != null) {
+        LaunchedEffect(previewRequest) {
+            val found = withTimeoutOrNull(PREVIEW_REQUEST_TIMEOUT_MS) {
+                snapshotFlow { findStory(currentState, previewRequest) }.first { it != null }
+            }
+            if (found != null) previewUrl = previewRequest
+            onPreviewRequestHandled()
+        }
+    }
 
     fun closeSearch() {
         searching = false
@@ -431,6 +462,9 @@ private fun FilterRows(state: NewsstandUiState, actions: NewsstandActions) {
                 },
             )
         }
+        if (!state.showingSaved && (state.topicCounts.isNotEmpty() || state.selectedTopic != null)) {
+            item(key = "topic") { TopicChip(state, actions.onSelectTopic) }
+        }
         if (state.regions.size > 1) {
             items(state.regions, key = { it.name }) { region ->
                 FilterChip(
@@ -452,6 +486,50 @@ private fun FilterRows(state: NewsstandUiState, actions: NewsstandActions) {
             }
         }
     }
+}
+
+/** A chip opening a menu of topics (with story counts); shows the chosen topic. */
+@Composable
+private fun TopicChip(state: NewsstandUiState, onSelectTopic: (NewsTopic?) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    Box {
+        FilterChip(
+            selected = state.selectedTopic != null,
+            onClick = { open = true },
+            label = { Text(state.selectedTopic?.let { stringResource(it.labelRes()) } ?: stringResource(R.string.news_topics)) },
+            trailingIcon = { Icon(painterResource(R.drawable.ic_arrow_drop_down), contentDescription = null, modifier = Modifier.size(18.dp)) },
+        )
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.news_all_topics)) },
+                onClick = {
+                    open = false
+                    onSelectTopic(null)
+                },
+            )
+            NewsTopic.entries.filter { it in state.topicCounts || it == state.selectedTopic }.forEach { topic ->
+                DropdownMenuItem(
+                    text = {
+                        Text(stringResource(R.string.news_topic_count, stringResource(topic.labelRes()), state.topicCounts[topic] ?: 0))
+                    },
+                    onClick = {
+                        open = false
+                        onSelectTopic(topic)
+                    },
+                )
+            }
+        }
+    }
+}
+
+fun NewsTopic.labelRes(): Int = when (this) {
+    NewsTopic.POLITICS -> R.string.news_topic_politics
+    NewsTopic.BUSINESS -> R.string.news_topic_business
+    NewsTopic.SPORT -> R.string.news_topic_sport
+    NewsTopic.SCIENCE_TECH -> R.string.news_topic_science
+    NewsTopic.HEALTH -> R.string.news_topic_health
+    NewsTopic.CLIMATE -> R.string.news_topic_climate
+    NewsTopic.CULTURE -> R.string.news_topic_culture
 }
 
 @Composable
@@ -941,6 +1019,9 @@ private fun NewsEmptyState(title: String, body: String, button: String?, onClick
 }
 
 // --- Formatting ----------------------------------------------------------------------------------
+
+/** How long a widget tap waits for its story to be listed before giving up. */
+private const val PREVIEW_REQUEST_TIMEOUT_MS = 15_000L
 
 /** Beyond this many unreachable outlets the status line gives a count instead of names. */
 private const val MAX_NAMED_FAILURES = 3

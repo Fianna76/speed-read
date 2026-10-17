@@ -1,8 +1,10 @@
 package io.github.fianna76.speedread.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -34,13 +36,36 @@ data class ReaderRoute(val bookId: Long, val autoPlay: Boolean = false) : NavKey
 @Serializable
 data object SettingsRoute : NavKey
 
+/** A destination requested from outside the navigation (widget taps, notifications). */
+sealed interface NavigationRequest {
+    /** The Newsstand, optionally previewing the story at [previewUrl] (canonical URL). */
+    data class OpenNews(val previewUrl: String? = null) : NavigationRequest
+}
+
 /**
  * App navigation built on Navigation 3: the back stack is plain, saveable state owned here,
  * and every entry gets its own ViewModelStore so screen ViewModels are cleared when popped.
  */
 @Composable
-fun SpeedReadNavigation(modifier: Modifier = Modifier) {
+fun SpeedReadNavigation(
+    modifier: Modifier = Modifier,
+    request: NavigationRequest? = null,
+    onRequestHandled: () -> Unit = {},
+) {
     val backStack = rememberNavBackStack(LibraryRoute)
+    // A story to preview once the Newsstand shows (from a widget tap).
+    var newsPreview by rememberSaveable { mutableStateOf<String?>(null) }
+    LaunchedEffect(request) {
+        when (request) {
+            is NavigationRequest.OpenNews -> {
+                backStack.navigateTopLevel(TopLevelDestination.NEWS)
+                newsPreview = request.previewUrl
+            }
+            null -> return@LaunchedEffect
+        }
+        onRequestHandled()
+    }
+    SharedLinkHost(onOpenBook = { bookId -> backStack.navigate(ReaderRoute(bookId)) })
     // Tapping News while on the Newsstand scrolls it back to the top.
     var newsReselected by rememberSaveable { mutableIntStateOf(0) }
     NavDisplay(
@@ -69,6 +94,8 @@ fun SpeedReadNavigation(modifier: Modifier = Modifier) {
                         }
                     },
                     scrollToTop = newsReselected,
+                    previewRequest = newsPreview,
+                    onPreviewRequestHandled = { newsPreview = null },
                 )
             }
             entry<ReaderRoute> { route ->
