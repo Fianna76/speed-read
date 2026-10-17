@@ -24,6 +24,7 @@ import io.github.fianna76.speedread.ui.navigation.TopLevelDestination
 import io.github.fianna76.speedread.ui.navigation.TopLevelNavigationBar
 import io.github.fianna76.speedread.ui.news.NewsstandActions
 import io.github.fianna76.speedread.ui.news.NewsstandContent
+import io.github.fianna76.speedread.ui.news.NewsStory
 import io.github.fianna76.speedread.ui.news.NewsstandUiState
 import io.github.fianna76.speedread.ui.reader.ReaderActions
 import io.github.fianna76.speedread.ui.reader.ReaderContent
@@ -103,7 +104,11 @@ class ScreenRenderTest {
     private val newsUi = NewsstandUiState(
         hasLoaded = true,
         sources = NewsSources.ALL,
-        articles = TestNews.sampleArticles(now),
+        stories = TestNews.sampleArticles(now).let { a ->
+            listOf(NewsStory(a[0].copy(isSaved = true), listOf(a[2].copy(source = NewsSources.byId("npr")!!))), NewsStory(a[1]), NewsStory(a[2].copy(isRead = true)))
+        },
+        continueReading = TestNews.sampleArticles(now).take(2).map { it.copy(progress = 0.3f) },
+        savedCount = 1,
         lastUpdated = now - 30_000,
     )
 
@@ -122,7 +127,7 @@ class ScreenRenderTest {
         NewsstandContent(
             state = newsUi.copy(
                 selectedSourceId = "bbc",
-                articles = newsUi.articles.take(1),
+                stories = newsUi.stories.take(1),
                 failedSources = listOf(NewsSources.byId("bbc")!!),
                 preparingUrl = newsUi.articles.first().item.canonicalUrl,
             ),

@@ -35,10 +35,16 @@ so your eyes stay still while you read.
     Mexico News Daily.
 
   22 are on by default; the rest are one switch away in Settings. Each story has a
-  preview card (outlet, age, headline, teaser, thumbnail) and a detail sheet. Tap
-  **Speed-read** to read it in the app with RSVP (the text is extracted like a browser's
-  reader mode, and progress is kept), or **Open online** for the full page. Filter by
-  region or outlet and pull to refresh. Headlines are cached for offline viewing.
+  compact preview card and a detail sheet. Tap **Speed-read** to read it in the app with
+  RSVP (the text is extracted like a browser's reader mode, and progress is kept), or
+  **Open online** for the full page. Other features:
+  - the same story from several outlets is grouped ("Also covered by DW, NPR +2");
+  - read stories are marked, and can be hidden;
+  - **Save** keeps a story on a reading list and downloads it for offline reading;
+  - **Continue reading** brings back half-read articles;
+  - search, share, hiding an outlet from its card (with Undo), "12 new stories" after a
+    refresh, and tapping News again to jump to the top;
+  - region and outlet filters, pull to refresh, and headlines cached for offline viewing.
   Subscriber-only articles always open on the outlet's site. Paywalled outlets (The Irish
   Times, Irish Examiner, NYT, FT…) and Reuters and AP (no public feeds) aren't included.
 - **Library.** A cover grid with progress, four sort orders, tap to read, and long-press to
@@ -64,7 +70,7 @@ The full design (goals, architecture, data model, testing strategy, roadmap and 
 
 ## Install the APK
 
-1. Copy `SpeedRead-1.3.0-release.apk` to your phone (Android 8.0 or newer). The APK comes
+1. Copy `SpeedRead-1.4.0-release.apk` to your phone (Android 8.0 or newer). The APK comes
    from a [CI run's](../../actions) artifacts or from a local build (below).
 2. Open it and allow installs from that source when prompted.
 3. Tap **Import book** and pick an EPUB or PDF, or open the **News** tab. Public-domain EPUBs are available from
@@ -80,7 +86,7 @@ Requirements: JDK 17+ (JDK 21 recommended) and the Android SDK with platform 37
 (`ANDROID_HOME` or `local.properties`). The Gradle wrapper downloads everything else.
 
 ```bash
-./gradlew assembleRelease   # → app/build/outputs/apk/release/SpeedRead-1.3.0-release.apk
+./gradlew assembleRelease   # → app/build/outputs/apk/release/SpeedRead-1.4.0-release.apk
 ./gradlew assembleDebug     # → debug build (installs alongside release as "…speedread.debug")
 ./gradlew lint test         # static analysis + all unit, Robolectric and Compose UI tests
 ```

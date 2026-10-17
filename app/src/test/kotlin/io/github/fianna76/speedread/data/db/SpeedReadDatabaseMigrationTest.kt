@@ -5,11 +5,13 @@ import android.database.sqlite.SQLiteDatabase
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.json.JSONObject
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
@@ -42,6 +44,8 @@ class SpeedReadDatabaseMigrationTest {
             assertNull(book.sourceUrl)
             assertEquals(42, book.wordsRead)
             assertEquals(1, database.bookDao().chaptersOf(1).size)
+            // Tables added by later versions exist and work.
+            assertTrue(database.newsHistoryDao().observeAll().first().isEmpty())
         } finally {
             database.close()
         }

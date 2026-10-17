@@ -9,6 +9,7 @@ import io.github.fianna76.speedread.data.db.SpeedReadDatabase
 import io.github.fianna76.speedread.data.news.ArticleError
 import io.github.fianna76.speedread.data.news.ArticleRepository
 import io.github.fianna76.speedread.data.news.NewsCache
+import io.github.fianna76.speedread.data.news.NewsHistoryRepository
 import io.github.fianna76.speedread.data.news.NewsRepository
 import io.github.fianna76.speedread.data.settings.UserPreferencesRepository
 import io.github.fianna76.speedread.news.NewsRegion
@@ -65,6 +66,7 @@ class NewsstandViewModelTest {
         val viewModel = NewsstandViewModel(
             news = NewsRepository(web, NewsCache(tmp.root.resolve("news.json"))),
             articles = ArticleRepository(database.bookDao(), files, web),
+            history = NewsHistoryRepository(database.newsHistoryDao()),
             preferences = preferences,
             externalScope = backgroundScope,
         )
@@ -137,7 +139,7 @@ class NewsstandViewModelTest {
 
         viewModel.readInApp(article.item)
 
-        val message = viewModel.awaitState { it.message != null }.message!!
+        val message = viewModel.awaitState { it.message != null }.message as NewsMessage.ArticleFailed
         assertEquals(ArticleError.NETWORK, message.error)
         assertEquals(article.item, message.item)
         viewModel.onMessageShown(message.id)
@@ -156,5 +158,131 @@ class NewsstandViewModelTest {
         preferences.setNewsSourceEnabled("dw", false)
         val empty = viewModel.awaitState { it.sources.isEmpty() }
         assertTrue(empty.articles.isEmpty())
+    }
+
+    private fun rssWithTitles(sourceId: String, vararg titles: Pair<String, String>): String =
+        "<rss><channel><title>$sourceId</title>" +
+            titles.joinToString("") { (slug, title) -> "<item><title>$title</title><link>https://$sourceId.example/news/$slug</link></item>" } +
+            "</channel></rss>"
+
+    @Test
+    fun `the same story from several outlets becomes one card`() = runTest {
+        web.responses[dw.feedUrl] = rssWithTitles("dw", "pope" to "Pope Leo leaves hospital after cancer surgery", "d2" to "Budget talks stall")
+        web.responses[bbc.feedUrl] = rssWithTitles("bbc", "pope" to "Pope discharged from hospital days after lung cancer surgery")
+        val viewModel = createViewModel()
+
+        val state = viewModel.awaitState { it.stories.isNotEmpty() }
+
+        assertEquals(2, state.stories.size)
+        assertEquals("dw", state.stories[0].article.source.id)
+        assertEquals(listOf("bbc"), state.stories[0].related.map { it.source.id })
+
+        // A single outlet's view shows its own stories ungrouped.
+        viewModel.selectSource("bbc")
+        assertTrue(viewModel.awaitState { it.selectedSourceId == "bbc" }.stories.single().related.isEmpty())
+    }
+
+    @Test
+    fun `stories read in the app are marked and can be hidden`() = runTest {
+        val viewModel = createViewModel()
+        val article = viewModel.awaitState { it.articles.isNotEmpty() }.articles.first()
+        web.responses[article.item.url] = TestNews.articlePage()
+
+        viewModel.readInApp(article.item)
+        viewModel.awaitState { it.bookToOpen != null }
+        viewModel.onReaderOpened()
+
+        assertTrue(viewModel.awaitState { it.articles.first().isRead }.articles.first().isRead)
+        viewModel.setHideRead(true)
+        val hidden = viewModel.awaitState { it.hideRead }
+        assertTrue(hidden.articles.none { it.item == article.item })
+        assertEquals(2, hidden.articles.size)
+    }
+
+    @Test
+    fun `stories opened online are marked read`() = runTest {
+        val viewModel = createViewModel()
+        val article = viewModel.awaitState { it.articles.isNotEmpty() }.articles.last()
+
+        viewModel.onOpenedOnline(article.item)
+
+        assertTrue(viewModel.awaitState { s -> s.articles.any { it.isRead } }.articles.last().isRead)
+    }
+
+    @Test
+    fun `saved stories stay on the reading list and are downloaded for offline reading`() = runTest {
+        val viewModel = createViewModel()
+        val article = viewModel.awaitState { it.articles.isNotEmpty() }.articles.first()
+        web.responses[article.item.url] = TestNews.articlePage()
+
+        viewModel.setSaved(article.item, true)
+        viewModel.awaitState { it.savedCount == 1 }
+        viewModel.showSaved(true)
+
+        val saved = viewModel.awaitState { it.showingSaved && it.stories.isNotEmpty() && it.stories[0].article.progress != null }
+        assertEquals(listOf(article.item), saved.stories.map { it.article.item })
+        assertTrue(saved.stories[0].article.isSaved)
+        assertEquals(listOf(article.item.url), web.requests.filter { it == article.item.url })
+
+        // Still there after the story leaves the feed.
+        web.responses[dw.feedUrl] = TestNews.rss("dw", "other")
+        viewModel.refresh()
+        assertEquals(1, viewModel.awaitState { !it.isRefreshing }.stories.size)
+
+        viewModel.setSaved(article.item, false)
+        assertEquals(0, viewModel.awaitState { it.savedCount == 0 }.stories.size)
+    }
+
+    @Test
+    fun `search filters headlines`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.awaitState { it.articles.size == 3 }
+
+        viewModel.setQuery("story b")
+
+        val state = viewModel.awaitState { it.query == "story b" }
+        assertEquals(listOf("b1", "b2"), state.articles.map { it.item.url.substringAfterLast('/') })
+        assertTrue(state.isSearching)
+    }
+
+    @Test
+    fun `half-read articles are offered to continue`() = runTest {
+        val viewModel = createViewModel()
+        val article = viewModel.awaitState { it.articles.isNotEmpty() }.articles.first()
+        web.responses[article.item.url] = TestNews.articlePage()
+        viewModel.readInApp(article.item)
+        val bookId = viewModel.awaitState { it.bookToOpen != null }.bookToOpen!!
+        viewModel.onReaderOpened()
+
+        database.bookDao().updatePosition(bookId, chapterIndex = 0, wordIndex = 20, wordsRead = 20)
+
+        val state = viewModel.awaitState { it.continueReading.isNotEmpty() }
+        assertEquals(listOf(article.item), state.continueReading.map { it.item })
+    }
+
+    @Test
+    fun `hiding an outlet from a card can be undone`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.awaitState { it.articles.size == 3 }
+
+        viewModel.hideSource(bbc)
+
+        val hidden = viewModel.awaitState { s -> s.sources.none { it.id == "bbc" } }
+        assertEquals(bbc, (hidden.message as NewsMessage.SourceHidden).source)
+        assertTrue(hidden.articles.none { it.source.id == "bbc" })
+
+        viewModel.undoHideSource(bbc)
+        viewModel.awaitState { s -> s.sources.any { it.id == "bbc" } }
+    }
+
+    @Test
+    fun `a manual refresh reports new stories`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.awaitState { it.articles.size == 3 }
+        web.responses[dw.feedUrl] = TestNews.rss("dw", "d1", "d2", "d3")
+
+        viewModel.refresh()
+
+        assertEquals(2, (viewModel.awaitState { it.message is NewsMessage.NewStories }.message as NewsMessage.NewStories).count)
     }
 }

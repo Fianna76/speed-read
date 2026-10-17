@@ -54,6 +54,8 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
 
     suspend fun setLibrarySort(sort: LibrarySort) = update { it[Keys.LIBRARY_SORT] = sort.name }
 
+    suspend fun setHideReadNews(hide: Boolean) = update { it[Keys.HIDE_READ_NEWS] = hide }
+
     suspend fun setNewsSourceEnabled(sourceId: String, enabled: Boolean) = update {
         val disabled = it[Keys.DISABLED_NEWS_SOURCES].orEmpty()
         val added = it[Keys.ADDED_NEWS_SOURCES].orEmpty()
@@ -82,6 +84,7 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
             ),
             themeMode = enumOrDefault(this[Keys.THEME], defaults.themeMode),
             librarySort = enumOrDefault(this[Keys.LIBRARY_SORT], defaults.librarySort),
+            hideReadNews = this[Keys.HIDE_READ_NEWS] ?: defaults.hideReadNews,
             disabledNewsSources = this[Keys.DISABLED_NEWS_SOURCES] ?: defaults.disabledNewsSources,
             addedNewsSources = this[Keys.ADDED_NEWS_SOURCES] ?: defaults.addedNewsSources,
         )
@@ -100,6 +103,7 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
         val SHOW_CONTEXT = booleanPreferencesKey("show_context_when_paused")
         val THEME = stringPreferencesKey("theme_mode")
         val LIBRARY_SORT = stringPreferencesKey("library_sort")
+        val HIDE_READ_NEWS = booleanPreferencesKey("hide_read_news")
         val DISABLED_NEWS_SOURCES = stringSetPreferencesKey("disabled_news_sources")
         val ADDED_NEWS_SOURCES = stringSetPreferencesKey("added_news_sources")
     }

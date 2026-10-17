@@ -27,8 +27,11 @@ interface BookDao {
     @Query("SELECT * FROM books WHERE format = 'ARTICLE' AND source_url = :url LIMIT 1")
     suspend fun findArticle(url: String): BookEntity?
 
-    /** Saved articles not opened since [cutoff] (epoch millis). */
-    @Query("SELECT * FROM books WHERE format = 'ARTICLE' AND COALESCE(last_opened_at, added_at) < :cutoff")
+    /** Downloaded articles not opened since [cutoff] (epoch millis), except those on the reading list. */
+    @Query(
+        "SELECT * FROM books WHERE format = 'ARTICLE' AND COALESCE(last_opened_at, added_at) < :cutoff " +
+            "AND source_url NOT IN (SELECT url FROM news_history WHERE saved_at IS NOT NULL)",
+    )
     suspend fun findArticlesOlderThan(cutoff: Long): List<BookEntity>
 
     @Query("SELECT * FROM books WHERE id = :id")

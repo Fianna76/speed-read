@@ -12,6 +12,7 @@ import io.github.fianna76.speedread.data.importing.BookImporter
 import io.github.fianna76.speedread.data.importing.ImportCoordinator
 import io.github.fianna76.speedread.data.news.ArticleRepository
 import io.github.fianna76.speedread.data.news.NewsCache
+import io.github.fianna76.speedread.data.news.NewsHistoryRepository
 import io.github.fianna76.speedread.data.news.NewsRepository
 import io.github.fianna76.speedread.data.news.OkHttpWebClient
 import io.github.fianna76.speedread.data.pdf.PdfBooks
@@ -53,6 +54,8 @@ class AppContainer(context: Context) {
     val newsRepository by lazy { NewsRepository(webClient, NewsCache(File(appContext.cacheDir, "news/headlines.json"))) }
 
     val articleRepository by lazy { ArticleRepository(database.bookDao(), fileStore, webClient) }
+
+    val newsHistoryRepository by lazy { NewsHistoryRepository(database.newsHistoryDao()) }
 
     val bookRepository: BookRepository by lazy { OfflineBookRepository(database.bookDao(), fileStore, pdfBooks) }
 

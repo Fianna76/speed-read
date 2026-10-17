@@ -10,6 +10,8 @@ data class UserPreferences(
     val display: ReaderDisplay = ReaderDisplay(),
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val librarySort: LibrarySort = LibrarySort.RECENT,
+    /** Hide stories already opened from the Newsstand list. */
+    val hideReadNews: Boolean = false,
     /** Ids of [NewsSources] the user switched off. */
     val disabledNewsSources: Set<String> = emptySet(),
     /** Ids of [NewsSources] the user switched on (sources not enabled by default). */

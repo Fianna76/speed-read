@@ -5,7 +5,7 @@ SpeedRead is an Android e-reader for EPUB and PDF books that uses **Rapid Serial
 *optimal recognition point* (ORP), so the eyes don't have to travel across lines and pages.
 
 This document is the plan for the app. The repository already contains a working
-first release (v1.0.0) built from it, plus PDF support added in v1.1.0, the Newsstand in v1.2.0 and 69 news sources in v1.3.0. §6 marks what is done and what comes next.
+first release (v1.0.0) built from it, plus PDF support added in v1.1.0, the Newsstand in v1.2.0, 69 news sources in v1.3.0 and Newsstand quality-of-life features in v1.4.0 ([`NEWSSTAND_UX_PLAN.md`](NEWSSTAND_UX_PLAN.md)). §6 marks what is done and what comes next.
 
 ---
 
@@ -284,7 +284,7 @@ Steps 1, 2 and 7 are shared with EPUB. The format is identified from the file's 
   progress therefore work unchanged. The library query excludes articles, the Newsstand
   shows their progress by URL, and articles not opened for 30 days are pruned.
 - **Network etiquette.** The User-Agent is browser-compatible but names the app
-  (`Mozilla/5.0 (Linux; Android …) SpeedRead/1.3.0`); one firewall rejects anything else.
+  (`Mozilla/5.0 (Linux; Android …) SpeedRead/1.4.0`); one firewall rejects anything else.
   Pages are fetched only when the user asks to read them. Requests use 15 s connect /
   45 s call timeouts and a 5 MB response cap, and are cancelled with their screen.
 
@@ -316,6 +316,11 @@ Steps 1, 2 and 7 are shared with EPUB. The format is identified from the file's 
 | `chapter_index`, `word_index`, `words_read` | reading position | | |
 | `source_url` | news article's canonical URL (v3), `NULL` for books | | |
 
+Table `news_history` (v4): canonical `url` (PK), the published `link`, `source_id`, `title`,
+`summary`, `image_url`, `published_at`, `author`, `read_at` and `saved_at`. It powers read
+marks, the reading list and "Continue reading", and keeps a story's headline after the story
+leaves its feed.
+
 Settings live in DataStore Preferences (`files/datastore/settings.preferences_pb`): wpm,
 smart pacing, gentle start, font size, font, highlight, context, theme, library sort,
 news sources switched off and on (overrides of each source's default). Headlines are cached in `cache/news/headlines.json`, and HTTP
@@ -345,6 +350,7 @@ responses in `cache/http/`.
 | PDF import | Robolectric + PDFs generated with PdfBox | Outline chapters with front matter, 10-page sections, password-protected, scanned and damaged files, chapter text by page range |
 | Migrations | Robolectric + real SQLite | A version-1 database built from `app/schemas/…/1.json` opens with the current code (1→2→3) |
 | News (JVM) | JUnit 4 | RSS 2.0/Atom parsing (media images, HTML teasers, zone-name dates, non-article links, limits), URL canonicalisation, article extraction (chrome removal, block-wrapped stories, source hints, title suffixes, rejection) |
+| Newsstand UX | JUnit 4 + Robolectric | Story grouping on real headline pairs (matches and near-misses), read/save history and pruning, ViewModel grouping/search/hide-read/reading list/continue reading/hide-and-undo/new-story counts, card menus, preview sheet versions, search bar and empty states |
 | News (app) | Robolectric + MockWebServer + fakes | HTTP client (UA, errors, size cap); feed refresh, failure isolation, staleness, cache restart; saving articles, re-use, progress, failures, pruning; Newsstand ViewModel and UI (cards, preview sheet, filters, preparing, snackbar, empty/offline states) |
 | Playback timing | kotlinx-coroutines-test (virtual time) | Exact word timing, pause, speed changes, ramp-up, sentence skips, end-of-text |
 | Data layer | Robolectric + in-memory Room + real files | Import (success, duplicate, invalid, DRM, no text, unreadable, cover thumbnail), repository, preferences |
@@ -416,11 +422,11 @@ without covers, large books).
 
 ```bash
 ./gradlew lint test        # static analysis + all JVM/Robolectric tests
-./gradlew assembleDebug    # app/build/outputs/apk/debug/SpeedRead-1.3.0-debug.apk
-./gradlew assembleRelease  # app/build/outputs/apk/release/SpeedRead-1.3.0-release.apk
+./gradlew assembleDebug    # app/build/outputs/apk/debug/SpeedRead-1.4.0-debug.apk
+./gradlew assembleRelease  # app/build/outputs/apk/release/SpeedRead-1.4.0-release.apk
 ```
 
-- **Versioning.** Semantic `versionName` (`1.3.0`) and a monotonically increasing
+- **Versioning.** Semantic `versionName` (`1.4.0`) and a monotonically increasing
   `versionCode`.
 - **Signing.** Put `storeFile`, `storePassword`, `keyAlias` and `keyPassword` in
   `keystore.properties`, or set the `SPEEDREAD_KEYSTORE_*` / `SPEEDREAD_KEY_*` environment

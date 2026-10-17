@@ -1,6 +1,10 @@
 package io.github.fianna76.speedread.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavBackStack
@@ -37,6 +41,8 @@ data object SettingsRoute : NavKey
 @Composable
 fun SpeedReadNavigation(modifier: Modifier = Modifier) {
     val backStack = rememberNavBackStack(LibraryRoute)
+    // Tapping News while on the Newsstand scrolls it back to the top.
+    var newsReselected by rememberSaveable { mutableIntStateOf(0) }
     NavDisplay(
         backStack = backStack,
         modifier = modifier,
@@ -57,7 +63,12 @@ fun SpeedReadNavigation(modifier: Modifier = Modifier) {
                 NewsstandScreen(
                     onOpenBook = { bookId -> backStack.navigate(ReaderRoute(bookId)) },
                     onOpenSettings = { backStack.navigate(SettingsRoute) },
-                    bottomBar = { TopLevelNavigationBar(TopLevelDestination.NEWS, backStack::navigateTopLevel) },
+                    bottomBar = {
+                        TopLevelNavigationBar(TopLevelDestination.NEWS) { destination ->
+                            if (destination == TopLevelDestination.NEWS) newsReselected++ else backStack.navigateTopLevel(destination)
+                        }
+                    },
+                    scrollToTop = newsReselected,
                 )
             }
             entry<ReaderRoute> { route ->
