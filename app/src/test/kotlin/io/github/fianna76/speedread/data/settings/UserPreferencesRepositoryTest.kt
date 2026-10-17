@@ -1,11 +1,13 @@
 package io.github.fianna76.speedread.data.settings
 
+import io.github.fianna76.speedread.news.NewsRegion
 import io.github.fianna76.speedread.news.NewsSources
 import io.github.fianna76.speedread.rsvp.PlaybackSettings
 import io.github.fianna76.speedread.testing.testPreferences
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -68,6 +70,25 @@ class UserPreferencesRepositoryTest {
             NewsSources.ALL.filter { (it.enabledByDefault && it.id != "bbc") || it.id == "tuairisc" },
             prefs.enabledNewsSources,
         )
+    }
+
+    @Test
+    fun `a whole region can be switched on and off, and newsstand options are stored`() = runTest {
+        val repository = testPreferences(tmp.root, backgroundScope)
+        val europe = NewsSources.ALL.filter { it.region == NewsRegion.EUROPE }.map { it.id }
+
+        repository.setNewsSourcesEnabled(europe, true)
+        assertTrue(repository.preferences.first().enabledNewsSources.map { it.id }.containsAll(europe))
+        repository.setNewsSourcesEnabled(europe, false)
+        assertTrue(repository.preferences.first().enabledNewsSources.none { it.id in europe })
+
+        repository.setNewsImages(NewsImages.NEVER)
+        repository.setAutoContinueNews(false)
+        repository.setBackgroundNews(true)
+        val prefs = repository.preferences.first()
+        assertEquals(NewsImages.NEVER, prefs.newsImages)
+        assertEquals(false, prefs.autoContinueNews)
+        assertEquals(true, prefs.backgroundNews)
     }
 
     @Test

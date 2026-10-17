@@ -12,6 +12,12 @@ data class UserPreferences(
     val librarySort: LibrarySort = LibrarySort.RECENT,
     /** Hide stories already opened from the Newsstand list. */
     val hideReadNews: Boolean = false,
+    /** When news thumbnails are loaded (data saver). */
+    val newsImages: NewsImages = NewsImages.ALWAYS,
+    /** After finishing a news article, start the next story automatically (after a short countdown). */
+    val autoContinueNews: Boolean = true,
+    /** Refresh headlines and download saved and top stories in the background, on unmetered networks. */
+    val backgroundNews: Boolean = false,
     /** Ids of [NewsSources] the user switched off. */
     val disabledNewsSources: Set<String> = emptySet(),
     /** Ids of [NewsSources] the user switched on (sources not enabled by default). */
@@ -48,3 +54,6 @@ enum class ReaderFont { SANS, SERIF, MONOSPACE }
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 
 enum class LibrarySort { RECENT, TITLE, AUTHOR, ADDED }
+
+/** Data saver for news thumbnails. */
+enum class NewsImages { ALWAYS, UNMETERED_ONLY, NEVER }

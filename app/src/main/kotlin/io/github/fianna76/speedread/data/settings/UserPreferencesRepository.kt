@@ -56,12 +56,21 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
 
     suspend fun setHideReadNews(hide: Boolean) = update { it[Keys.HIDE_READ_NEWS] = hide }
 
-    suspend fun setNewsSourceEnabled(sourceId: String, enabled: Boolean) = update {
+    suspend fun setNewsImages(images: NewsImages) = update { it[Keys.NEWS_IMAGES] = images.name }
+
+    suspend fun setAutoContinueNews(enabled: Boolean) = update { it[Keys.AUTO_CONTINUE_NEWS] = enabled }
+
+    suspend fun setBackgroundNews(enabled: Boolean) = update { it[Keys.BACKGROUND_NEWS] = enabled }
+
+    /** Switches several sources at once (e.g. a whole region). */
+    suspend fun setNewsSourcesEnabled(sourceIds: Collection<String>, enabled: Boolean) = update {
         val disabled = it[Keys.DISABLED_NEWS_SOURCES].orEmpty()
         val added = it[Keys.ADDED_NEWS_SOURCES].orEmpty()
-        it[Keys.DISABLED_NEWS_SOURCES] = if (enabled) disabled - sourceId else disabled + sourceId
-        it[Keys.ADDED_NEWS_SOURCES] = if (enabled) added + sourceId else added - sourceId
+        it[Keys.DISABLED_NEWS_SOURCES] = if (enabled) disabled - sourceIds.toSet() else disabled + sourceIds
+        it[Keys.ADDED_NEWS_SOURCES] = if (enabled) added + sourceIds else added - sourceIds.toSet()
     }
+
+    suspend fun setNewsSourceEnabled(sourceId: String, enabled: Boolean) = setNewsSourcesEnabled(listOf(sourceId), enabled)
 
     private suspend fun update(block: (MutablePreferences) -> Unit) {
         dataStore.edit { block(it) }
@@ -85,6 +94,9 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
             themeMode = enumOrDefault(this[Keys.THEME], defaults.themeMode),
             librarySort = enumOrDefault(this[Keys.LIBRARY_SORT], defaults.librarySort),
             hideReadNews = this[Keys.HIDE_READ_NEWS] ?: defaults.hideReadNews,
+            newsImages = enumOrDefault(this[Keys.NEWS_IMAGES], defaults.newsImages),
+            autoContinueNews = this[Keys.AUTO_CONTINUE_NEWS] ?: defaults.autoContinueNews,
+            backgroundNews = this[Keys.BACKGROUND_NEWS] ?: defaults.backgroundNews,
             disabledNewsSources = this[Keys.DISABLED_NEWS_SOURCES] ?: defaults.disabledNewsSources,
             addedNewsSources = this[Keys.ADDED_NEWS_SOURCES] ?: defaults.addedNewsSources,
         )
@@ -104,6 +116,9 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
         val THEME = stringPreferencesKey("theme_mode")
         val LIBRARY_SORT = stringPreferencesKey("library_sort")
         val HIDE_READ_NEWS = booleanPreferencesKey("hide_read_news")
+        val NEWS_IMAGES = stringPreferencesKey("news_images")
+        val AUTO_CONTINUE_NEWS = booleanPreferencesKey("auto_continue_news")
+        val BACKGROUND_NEWS = booleanPreferencesKey("background_news")
         val DISABLED_NEWS_SOURCES = stringSetPreferencesKey("disabled_news_sources")
         val ADDED_NEWS_SOURCES = stringSetPreferencesKey("added_news_sources")
     }

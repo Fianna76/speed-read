@@ -12,8 +12,10 @@ import io.github.fianna76.speedread.data.news.ArticleRepository
 import io.github.fianna76.speedread.data.news.ArticleResult
 import io.github.fianna76.speedread.data.news.NewsFeedState
 import io.github.fianna76.speedread.data.news.NewsHistoryRepository
+import io.github.fianna76.speedread.data.news.NewsQueue
 import io.github.fianna76.speedread.data.news.NewsRepository
 import io.github.fianna76.speedread.data.news.StoryHistory
+import io.github.fianna76.speedread.data.settings.NewsImages
 import io.github.fianna76.speedread.data.settings.UserPreferences
 import io.github.fianna76.speedread.data.settings.UserPreferencesRepository
 import io.github.fianna76.speedread.news.FeedItem
@@ -23,12 +25,14 @@ import io.github.fianna76.speedread.news.NewsSources
 import io.github.fianna76.speedread.news.StoryGrouping
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -65,6 +69,8 @@ data class NewsstandUiState(
     /** Search text; empty when not searching. */
     val query: String = "",
     val hideRead: Boolean = false,
+    /** Load thumbnails (the data saver may turn them off). */
+    val showImages: Boolean = true,
     val stories: List<NewsStory> = emptyList(),
     /** Started but unfinished articles, most recently opened first. */
     val continueReading: List<NewsArticle> = emptyList(),
@@ -111,6 +117,8 @@ class NewsstandViewModel(
     private val history: NewsHistoryRepository,
     private val preferences: UserPreferencesRepository,
     private val externalScope: CoroutineScope,
+    isMetered: Flow<Boolean> = flowOf(false),
+    private val queue: NewsQueue = NewsQueue(),
 ) : ViewModel() {
 
     private val view = MutableStateFlow(ViewState())
@@ -119,6 +127,14 @@ class NewsstandViewModel(
 
     private val enabledSources = preferences.preferences.map { it.enabledNewsSources }.distinctUntilChanged()
 
+    private val showImages = combine(preferences.preferences, isMetered) { prefs, metered ->
+        when (prefs.newsImages) {
+            NewsImages.ALWAYS -> true
+            NewsImages.UNMETERED_ONLY -> !metered
+            NewsImages.NEVER -> false
+        }
+    }.distinctUntilChanged()
+
     private val content = combine(
         preferences.preferences,
         news.state,
@@ -126,6 +142,7 @@ class NewsstandViewModel(
         history.observe(),
         view,
     ) { prefs, feedState, progress, entries, chosen -> buildContent(prefs, feedState, progress, entries, chosen) }
+        .combine(showImages) { state, images -> state.copy(showImages = images) }
         .flowOn(Dispatchers.Default)
 
     val uiState: StateFlow<NewsstandUiState> = combine(content, opening) { state, openingState ->
@@ -202,6 +219,11 @@ class NewsstandViewModel(
             when (result) {
                 is ArticleResult.Ready -> {
                     externalScope.launch { history.markRead(item) }
+                    // "Next story" in the reader continues through the list this story came from.
+                    val state = uiState.value
+                    val list = (state.stories.map { it.article.item }).takeIf { list -> list.any { it.canonicalUrl == item.canonicalUrl } }
+                        ?: (state.continueReading.map { it.item } + state.stories.map { it.article.item })
+                    queue.set(list)
                     opening.update { it.copy(bookToOpen = result.bookId) }
                 }
                 is ArticleResult.Failed -> postMessage { id -> NewsMessage.ArticleFailed(id, item, result.reason) }
@@ -212,6 +234,10 @@ class NewsstandViewModel(
     /** The UI opened [item] in the browser. */
     fun onOpenedOnline(item: FeedItem) {
         externalScope.launch { history.markRead(item) }
+    }
+
+    fun setRead(item: FeedItem, read: Boolean) {
+        externalScope.launch { history.setRead(item, read) }
     }
 
     /**
@@ -345,6 +371,8 @@ class NewsstandViewModel(
                     container.newsHistoryRepository,
                     container.preferencesRepository,
                     container.applicationScope,
+                    container.networkMonitor.isMetered,
+                    container.newsQueue,
                 )
             }
         }

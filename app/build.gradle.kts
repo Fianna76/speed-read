@@ -9,8 +9,8 @@ plugins {
     alias(libs.plugins.room)
 }
 
-val appVersionName = "1.4.0"
-val appVersionCode = 5
+val appVersionName = "1.5.0"
+val appVersionCode = 6
 
 // Release signing credentials come from a git-ignored keystore.properties file or from
 // environment variables (CI). Without them the release build falls back to the debug key,
@@ -117,6 +117,8 @@ dependencies {
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.browser)
+    implementation(libs.androidx.work.runtime)
+    implementation(libs.androidx.glance.appwidget)
     implementation(libs.androidx.profileinstaller)
 
     implementation(libs.androidx.lifecycle.runtime.compose)
@@ -152,6 +154,7 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)
     testImplementation(libs.okhttp.mockwebserver)
+    testImplementation(libs.androidx.work.testing)
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.androidx.test.ext.junit)
     testImplementation(platform(libs.androidx.compose.bom))

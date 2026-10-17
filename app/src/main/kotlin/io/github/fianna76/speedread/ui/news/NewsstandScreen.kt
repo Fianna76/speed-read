@@ -51,17 +51,21 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -91,6 +95,7 @@ import io.github.fianna76.speedread.news.ArticleUrls
 import io.github.fianna76.speedread.news.FeedItem
 import io.github.fianna76.speedread.news.NewsRegion
 import io.github.fianna76.speedread.news.NewsSource
+import kotlinx.coroutines.launch
 
 /** Callbacks of the Newsstand, grouped to keep signatures readable. */
 data class NewsstandActions(
@@ -103,6 +108,7 @@ data class NewsstandActions(
     val onReadInApp: (FeedItem) -> Unit = {},
     val onOpenOnline: (FeedItem) -> Unit = {},
     val onSetSaved: (FeedItem, Boolean) -> Unit = { _, _ -> },
+    val onSetRead: (FeedItem, Boolean) -> Unit = { _, _ -> },
     val onShare: (FeedItem) -> Unit = {},
     val onHideSource: (NewsSource) -> Unit = {},
     val onUndoHideSource: (NewsSource) -> Unit = {},
@@ -148,6 +154,7 @@ fun NewsstandScreen(
                 context.openInBrowser(item.url)
             },
             onSetSaved = viewModel::setSaved,
+            onSetRead = viewModel::setRead,
             onShare = { context.shareStory(it) },
             onHideSource = viewModel::hideSource,
             onUndoHideSource = viewModel::undoHideSource,
@@ -230,15 +237,17 @@ fun NewsstandContent(
                             }
                         }
                         items(state.stories, key = { it.article.item.canonicalUrl }) { story ->
-                            StoryCard(
-                                story = story,
-                                now = now,
-                                preparing = state.preparingUrl == story.article.item.canonicalUrl,
-                                busy = state.preparingUrl != null,
-                                actions = actions,
-                                onPreview = { previewUrl = story.article.item.canonicalUrl },
-                                modifier = Modifier.animateItem(),
-                            )
+                            SwipeableStory(story.article, actions, Modifier.animateItem()) {
+                                StoryCard(
+                                    story = story,
+                                    now = now,
+                                    preparing = state.preparingUrl == story.article.item.canonicalUrl,
+                                    busy = state.preparingUrl != null,
+                                    showImages = state.showImages,
+                                    actions = actions,
+                                    onPreview = { previewUrl = story.article.item.canonicalUrl },
+                                )
+                            }
                         }
                     }
                 }
@@ -253,6 +262,7 @@ fun NewsstandContent(
             now = now,
             preparing = state.preparingUrl == previewed.article.item.canonicalUrl,
             busy = state.preparingUrl != null,
+            showImages = state.showImages,
             actions = actions,
             onShowVersion = { previewUrl = it.item.canonicalUrl },
             onDismiss = { previewUrl = null },
@@ -531,6 +541,7 @@ private fun StoryCard(
     now: Long,
     preparing: Boolean,
     busy: Boolean,
+    showImages: Boolean,
     actions: NewsstandActions,
     onPreview: () -> Unit,
     modifier: Modifier = Modifier,
@@ -559,7 +570,7 @@ private fun StoryCard(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-                if (item.imageUrl != null) {
+                if (item.imageUrl != null && showImages) {
                     Spacer(Modifier.width(12.dp))
                     AsyncImage(
                         model = item.imageUrl,
@@ -612,6 +623,64 @@ private fun StoryCard(
     }
 }
 
+/**
+ * Swipe right to save (or unsave) a story, left to mark it read (or unread). The card springs
+ * back after the action; the same actions are on the card's buttons and menu for accessibility.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SwipeableStory(article: NewsArticle, actions: NewsstandActions, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    val state = rememberSwipeToDismissBoxState()
+    val scope = rememberCoroutineScope()
+    SwipeToDismissBox(
+        state = state,
+        modifier = modifier,
+        onDismiss = { direction ->
+            when (direction) {
+                SwipeToDismissBoxValue.StartToEnd -> actions.onSetSaved(article.item, !article.isSaved)
+                SwipeToDismissBoxValue.EndToStart -> actions.onSetRead(article.item, !article.isRead)
+                SwipeToDismissBoxValue.Settled -> Unit
+            }
+            scope.launch { state.reset() }
+        },
+        backgroundContent = {
+            val direction = state.dismissDirection
+            val saving = direction == SwipeToDismissBoxValue.StartToEnd
+            Row(
+                horizontalArrangement = if (saving) Arrangement.Start else Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(if (direction == SwipeToDismissBoxValue.Settled) Color.Transparent else MaterialTheme.colorScheme.secondaryContainer)
+                    .padding(horizontal = 24.dp),
+            ) {
+                if (direction != SwipeToDismissBoxValue.Settled) {
+                    Icon(
+                        painterResource(if (saving) R.drawable.ic_bookmark_filled else R.drawable.ic_check),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        stringResource(
+                            when {
+                                saving && article.isSaved -> R.string.news_unsave
+                                saving -> R.string.news_save
+                                article.isRead -> R.string.news_mark_unread
+                                else -> R.string.news_mark_read
+                            },
+                        ),
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                }
+            }
+        },
+        content = { content() },
+    )
+}
+
 @Composable
 private fun SaveButton(saved: Boolean, onClick: () -> Unit) {
     IconButton(onClick = onClick) {
@@ -637,6 +706,14 @@ private fun MoreMenu(article: NewsArticle, actions: NewsstandActions) {
                 onClick = {
                     open = false
                     actions.onShare(article.item)
+                },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(if (article.isRead) R.string.news_mark_unread else R.string.news_mark_read)) },
+                leadingIcon = { Icon(painterResource(R.drawable.ic_check), contentDescription = null) },
+                onClick = {
+                    open = false
+                    actions.onSetRead(article.item, !article.isRead)
                 },
             )
             DropdownMenuItem(
@@ -703,6 +780,7 @@ private fun StoryPreviewSheet(
     now: Long,
     preparing: Boolean,
     busy: Boolean,
+    showImages: Boolean,
     actions: NewsstandActions,
     onShowVersion: (NewsArticle) -> Unit,
     onDismiss: () -> Unit,
@@ -718,7 +796,7 @@ private fun StoryPreviewSheet(
                 .padding(bottom = 24.dp)
                 .navigationBarsPadding(),
         ) {
-            if (item.imageUrl != null) {
+            if (item.imageUrl != null && showImages) {
                 AsyncImage(
                     model = item.imageUrl,
                     contentDescription = null,

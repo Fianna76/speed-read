@@ -12,7 +12,12 @@ import io.github.fianna76.speedread.data.importing.BookImporter
 import io.github.fianna76.speedread.data.importing.ImportCoordinator
 import io.github.fianna76.speedread.data.news.ArticleRepository
 import io.github.fianna76.speedread.data.news.NewsCache
+import io.github.fianna76.speedread.data.news.NetworkMonitor
 import io.github.fianna76.speedread.data.news.NewsHistoryRepository
+import io.github.fianna76.speedread.data.news.NewsQueue
+import io.github.fianna76.speedread.data.news.NewsUpNext
+import io.github.fianna76.speedread.data.news.background.NewsBackgroundScheduler
+import io.github.fianna76.speedread.data.news.background.NewsPrefetcher
 import io.github.fianna76.speedread.data.news.NewsRepository
 import io.github.fianna76.speedread.data.news.OkHttpWebClient
 import io.github.fianna76.speedread.data.pdf.PdfBooks
@@ -20,6 +25,9 @@ import io.github.fianna76.speedread.data.settings.UserPreferencesRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import java.io.File
@@ -55,7 +63,34 @@ class AppContainer(context: Context) {
 
     val articleRepository by lazy { ArticleRepository(database.bookDao(), fileStore, webClient) }
 
+    val networkMonitor by lazy { NetworkMonitor(appContext) }
+
     val newsHistoryRepository by lazy { NewsHistoryRepository(database.newsHistoryDao()) }
+
+    /** The Newsstand list the current article was opened from, for "next story". */
+    val newsQueue = NewsQueue()
+
+    val newsPrefetcher by lazy { NewsPrefetcher(newsRepository, articleRepository, newsHistoryRepository) }
+
+    /** Called after headlines change in the background (e.g. to refresh home-screen widgets). */
+    fun onHeadlinesUpdated() = Unit
+
+    /**
+     * Keeps the background sync in line with the setting. Started from the Application; only a
+     * change from the stored state touches WorkManager (nothing is scheduled by default).
+     */
+    fun startBackgroundNewsScheduling() {
+        val scheduler = NewsBackgroundScheduler(appContext)
+        applicationScope.launch {
+            var first = true
+            preferencesRepository.preferences.map { it.backgroundNews }.distinctUntilChanged().collect { enabled ->
+                if (enabled || !first) scheduler.apply(enabled)
+                first = false
+            }
+        }
+    }
+
+    val newsUpNext by lazy { NewsUpNext(newsQueue, newsHistoryRepository, articleRepository, applicationScope) }
 
     val bookRepository: BookRepository by lazy { OfflineBookRepository(database.bookDao(), fileStore, pdfBooks) }
 

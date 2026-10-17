@@ -110,6 +110,8 @@
     <string name="news_save_for_later">Save for later (downloads it for offline reading)</string>
     <string name="news_saved_offline">Saved, and available offline</string>
     <string name="news_share">Share</string>
+    <string name="news_mark_read">Mark as read</string>
+    <string name="news_mark_unread">Mark as unread</string>
     <string name="news_hide_source">Hide stories from %1$s</string>
     <string name="news_source_hidden">%1$s hidden. You can turn it back on in Settings.</string>
     <string name="news_undo">Undo</string>
@@ -140,6 +142,13 @@
     <string name="reader_section">Section %1$d</string>
     <string name="reader_pages">Pages %1$d–%2$d</string>
     <string name="reader_page">Page %1$d</string>
+    <string name="reader_up_next">Up next</string>
+    <string name="reader_read_next">Read next story</string>
+    <plurals name="reader_next_in">
+        <item quantity="one">Next story in %d second</item>
+        <item quantity="other">Next story in %d seconds</item>
+    </plurals>
+    <string name="reader_back_to_news">Back to news</string>
     <string name="reader_chapter_position">Chapter %1$d of %2$d</string>
     <plurals name="reader_article_words">
         <item quantity="one">Article · %d word</item>
@@ -201,6 +210,16 @@
     <string name="settings_section_news">News sources</string>
     <string name="settings_news_body">Headlines in the Newsstand come from these outlets’ free public feeds. Articles are downloaded only when you open them, and subscriber-only articles open on the outlet’s site.</string>
     <string name="settings_news_source_summary">%1$s · %2$s</string>
+    <string name="settings_news_images">News images</string>
+    <string name="settings_news_images_always">Always</string>
+    <string name="settings_news_images_unmetered">On Wi-Fi only</string>
+    <string name="settings_news_images_never">Never</string>
+    <string name="settings_news_auto_continue">Continue to the next story</string>
+    <string name="settings_news_auto_continue_summary">After a news article ends, start the next unread one after a short countdown</string>
+    <string name="settings_news_background">Download news in the background</string>
+    <string name="settings_news_background_summary">Every few hours on Wi-Fi: refresh headlines and download saved and top stories for offline reading</string>
+    <string name="settings_news_region_on">Turn on all of %1$s</string>
+    <string name="settings_news_region_off">Turn off all of %1$s</string>
     <string name="settings_section_about">About</string>
     <string name="settings_version">Version %1$s</string>
     <string name="settings_about_body">SpeedRead uses Rapid Serial Visual Presentation (RSVP): words appear one at a time at a fixed focal point, so your eyes don’t have to travel across the page. Your books stay on this device; the internet is used only to load the Newsstand. No tracking or analytics.</string>

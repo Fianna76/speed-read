@@ -65,17 +65,26 @@ Saved and Continue reading, survives feed rotation, and is pruned with the artic
 (unsaved entries older than 30 days). The upgrade is an automatic migration, covered by
 the existing upgrade test from version 1.
 
-### Phase 2: next
+### Phase 2: implemented in v1.5 ✅
 
-- **Read the news hands-free.** After finishing an article, offer "Next story" in the
-  reader: the next unread headline in the current filter, prepared in the background
-  while you read.
-- **Data saver.** Load thumbnails on Wi-Fi only, or never.
-- **Background refresh and pre-download.** With WorkManager, refresh headlines and
-  download saved stories on unmetered networks, optionally every morning. Off by default.
-- **Swipe actions on cards.** Swipe right to save, left to mark as read (alongside the
-  menu, never instead of it).
-- **Per-region quick switches** in Settings ("turn on all of Europe").
+- **Read the news hands-free.** The Newsstand remembers the list a story was opened from
+  (the current feed and filter, Saved, or Continue reading). While you read, the reader
+  finds the next unread story in that list and downloads it in the background. When the
+  article ends, an **Up next** panel shows it with a 5-second countdown, and the next story
+  then opens and starts playing by itself. You can cancel, or tap to start now. A story
+  that can't be read (paywall, no text, offline) is skipped for the one after. "Continue
+  to the next story" in Settings turns the countdown off (default on). The next story
+  replaces the current reader, so Back still returns to the Newsstand.
+- **Data saver.** Settings → News images: **Always**, **On Wi-Fi only** (no thumbnails on
+  metered networks, followed live from the system) or **Never**.
+- **Background refresh and pre-download.** Settings → Download news in the background
+  (off by default). WorkManager runs every 4 hours, only on unmetered networks with the
+  battery not low. It refreshes the enabled feeds, then downloads saved stories and the
+  top 8 unread stories (Irish first). Articles already downloaded are never fetched again.
+- **Swipe actions.** Swipe a card right to save or unsave it, left to mark it read or
+  unread. The card springs back. The same actions are on the card (Save, and Story
+  options → Mark as read/unread) for TalkBack users.
+- **Per-region switches** in Settings: "Turn on all of Europe" / "Turn off all of Europe".
 
 ### Phase 3: later
 

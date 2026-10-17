@@ -15,6 +15,7 @@ class SpeedReadApplication : Application(), SingletonImageLoader.Factory {
     override fun onCreate() {
         super.onCreate()
         container = AppContainer(this)
+        container.startBackgroundNewsScheduling()
     }
 
     /** News images share the app's HTTP connections; Coil keeps its own image caches. */

@@ -29,7 +29,7 @@ data object NewsstandRoute : NavKey
 
 /** RSVP reader for one book (or saved news article). */
 @Serializable
-data class ReaderRoute(val bookId: Long) : NavKey
+data class ReaderRoute(val bookId: Long, val autoPlay: Boolean = false) : NavKey
 
 @Serializable
 data object SettingsRoute : NavKey
@@ -72,7 +72,16 @@ fun SpeedReadNavigation(modifier: Modifier = Modifier) {
                 )
             }
             entry<ReaderRoute> { route ->
-                ReaderScreen(bookId = route.bookId, onBack = { backStack.removeLastOrNull() })
+                ReaderScreen(
+                    bookId = route.bookId,
+                    autoPlay = route.autoPlay,
+                    onBack = { backStack.removeLastOrNull() },
+                    onOpenNext = { next ->
+                        // The next story replaces this one, so Back still returns to the Newsstand.
+                        backStack.removeLastOrNull()
+                        backStack.add(ReaderRoute(next, autoPlay = true))
+                    },
+                )
             }
             entry<SettingsRoute> {
                 SettingsScreen(onBack = { backStack.removeLastOrNull() })

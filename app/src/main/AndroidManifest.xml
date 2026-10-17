@@ -8,6 +8,8 @@
         used only by the Newsstand, to fetch headline feeds and the articles the user opens.
     -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Data saver (news images on Wi-Fi only) and background downloads on unmetered networks. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application
         android:name=".SpeedReadApplication"

@@ -29,6 +29,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -50,6 +51,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.fianna76.speedread.BuildConfig
 import io.github.fianna76.speedread.R
+import io.github.fianna76.speedread.data.settings.NewsImages
 import io.github.fianna76.speedread.data.settings.ReaderDisplay
 import io.github.fianna76.speedread.data.settings.ReaderFont
 import io.github.fianna76.speedread.data.settings.ThemeMode
@@ -81,8 +83,22 @@ fun SettingsScreen(
         onShowContextChange = viewModel::setShowContextWhenPaused,
         onThemeModeChange = viewModel::setThemeMode,
         onNewsSourceChange = viewModel::setNewsSourceEnabled,
+        newsActions = NewsSettingsActions(
+            onRegionChange = viewModel::setNewsSourcesEnabled,
+            onImagesChange = viewModel::setNewsImages,
+            onAutoContinueChange = viewModel::setAutoContinueNews,
+            onBackgroundChange = viewModel::setBackgroundNews,
+        ),
     )
 }
+
+/** Newsstand settings callbacks. */
+data class NewsSettingsActions(
+    val onRegionChange: (sourceIds: List<String>, enabled: Boolean) -> Unit = { _, _ -> },
+    val onImagesChange: (NewsImages) -> Unit = {},
+    val onAutoContinueChange: (Boolean) -> Unit = {},
+    val onBackgroundChange: (Boolean) -> Unit = {},
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -99,6 +115,7 @@ fun SettingsContent(
     onThemeModeChange: (ThemeMode) -> Unit,
     modifier: Modifier = Modifier,
     onNewsSourceChange: (sourceId: String, enabled: Boolean) -> Unit = { _, _ -> },
+    newsActions: NewsSettingsActions = NewsSettingsActions(),
 ) {
     Scaffold(
         modifier = modifier,
@@ -184,13 +201,46 @@ fun SettingsContent(
             SectionDivider()
             SectionHeader(stringResource(R.string.settings_section_news))
             AboutText(stringResource(R.string.settings_news_body))
+            ChoiceSetting(
+                title = stringResource(R.string.settings_news_images),
+                options = NewsImages.entries,
+                selected = preferences.newsImages,
+                label = { stringResource(it.labelRes()) },
+                onSelect = newsActions.onImagesChange,
+            )
+            SwitchSetting(
+                title = stringResource(R.string.settings_news_auto_continue),
+                summary = stringResource(R.string.settings_news_auto_continue_summary),
+                checked = preferences.autoContinueNews,
+                onCheckedChange = newsActions.onAutoContinueChange,
+            )
+            SwitchSetting(
+                title = stringResource(R.string.settings_news_background),
+                summary = stringResource(R.string.settings_news_background_summary),
+                checked = preferences.backgroundNews,
+                onCheckedChange = newsActions.onBackgroundChange,
+            )
             NewsSources.ALL.groupBy { it.region }.forEach { (region, sources) ->
-                Text(
-                    text = stringResource(region.labelRes()),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
-                )
+                val allOn = sources.all { preferences.isNewsSourceEnabled(it) }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(start = 16.dp, end = 8.dp, top = 8.dp),
+                ) {
+                    Text(
+                        text = stringResource(region.labelRes()),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f),
+                    )
+                    TextButton(onClick = { newsActions.onRegionChange(sources.map { it.id }, !allOn) }) {
+                        Text(
+                            stringResource(
+                                if (allOn) R.string.settings_news_region_off else R.string.settings_news_region_on,
+                                stringResource(region.labelRes()),
+                            ),
+                        )
+                    }
+                }
                 sources.forEach { source ->
                     val host = ArticleUrls.displayHost(source.homepage)
                     SwitchSetting(
@@ -342,6 +392,12 @@ private fun ReaderFont.labelRes(): Int = when (this) {
     ReaderFont.SANS -> R.string.font_sans
     ReaderFont.SERIF -> R.string.font_serif
     ReaderFont.MONOSPACE -> R.string.font_monospace
+}
+
+private fun NewsImages.labelRes(): Int = when (this) {
+    NewsImages.ALWAYS -> R.string.settings_news_images_always
+    NewsImages.UNMETERED_ONLY -> R.string.settings_news_images_unmetered
+    NewsImages.NEVER -> R.string.settings_news_images_never
 }
 
 private fun ThemeMode.labelRes(): Int = when (this) {

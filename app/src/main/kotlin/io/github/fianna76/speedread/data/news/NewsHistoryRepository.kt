@@ -31,9 +31,13 @@ class NewsHistoryRepository(
         entries.associate { it.url to StoryHistory(it.toFeedItem(), it.readAt, it.savedAt) }
     }
 
-    suspend fun markRead(item: FeedItem) {
+    suspend fun markRead(item: FeedItem) = setRead(item, read = true)
+
+    suspend fun setRead(item: FeedItem, read: Boolean) {
         val now = clock()
-        dao.update(item.canonicalUrl, initial = { item.toEntity() }) { it.withHeadline(item).copy(readAt = now) }
+        dao.update(item.canonicalUrl, initial = { item.toEntity() }) { entry ->
+            entry.withHeadline(item).copy(readAt = if (read) now else null).takeIf { it.savedAt != null || it.readAt != null }
+        }
     }
 
     suspend fun setSaved(item: FeedItem, saved: Boolean) {

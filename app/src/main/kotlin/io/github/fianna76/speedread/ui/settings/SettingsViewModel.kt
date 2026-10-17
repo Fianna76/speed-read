@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import io.github.fianna76.speedread.SpeedReadApplication
+import io.github.fianna76.speedread.data.settings.NewsImages
 import io.github.fianna76.speedread.data.settings.ReaderFont
 import io.github.fianna76.speedread.data.settings.ThemeMode
 import io.github.fianna76.speedread.data.settings.UserPreferences
@@ -39,6 +40,15 @@ class SettingsViewModel(private val preferences: UserPreferencesRepository) : Vi
     fun setThemeMode(mode: ThemeMode) = launch { preferences.setThemeMode(mode) }
 
     fun setNewsSourceEnabled(sourceId: String, enabled: Boolean) = launch { preferences.setNewsSourceEnabled(sourceId, enabled) }
+
+    fun setNewsSourcesEnabled(sourceIds: Collection<String>, enabled: Boolean) =
+        launch { preferences.setNewsSourcesEnabled(sourceIds, enabled) }
+
+    fun setNewsImages(images: NewsImages) = launch { preferences.setNewsImages(images) }
+
+    fun setAutoContinueNews(enabled: Boolean) = launch { preferences.setAutoContinueNews(enabled) }
+
+    fun setBackgroundNews(enabled: Boolean) = launch { preferences.setBackgroundNews(enabled) }
 
     private fun launch(block: suspend () -> Unit) {
         viewModelScope.launch { block() }

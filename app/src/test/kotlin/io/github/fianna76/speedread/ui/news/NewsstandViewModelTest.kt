@@ -11,6 +11,7 @@ import io.github.fianna76.speedread.data.news.ArticleRepository
 import io.github.fianna76.speedread.data.news.NewsCache
 import io.github.fianna76.speedread.data.news.NewsHistoryRepository
 import io.github.fianna76.speedread.data.news.NewsRepository
+import io.github.fianna76.speedread.data.settings.NewsImages
 import io.github.fianna76.speedread.data.settings.UserPreferencesRepository
 import io.github.fianna76.speedread.news.NewsRegion
 import io.github.fianna76.speedread.news.NewsSources
@@ -18,6 +19,7 @@ import io.github.fianna76.speedread.testing.FakeWebClient
 import io.github.fianna76.speedread.testing.MainDispatcherRule
 import io.github.fianna76.speedread.testing.TestNews
 import io.github.fianna76.speedread.testing.testPreferences
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
@@ -58,6 +60,8 @@ class NewsstandViewModelTest {
     @After
     fun tearDown() = database.close()
 
+    private val metered = MutableStateFlow(false)
+
     /** A Newsstand showing only the BBC and DW (every other source switched off). */
     private suspend fun TestScope.createViewModel(): NewsstandViewModel {
         preferences = testPreferences(tmp.newFolder(), backgroundScope)
@@ -69,6 +73,7 @@ class NewsstandViewModelTest {
             history = NewsHistoryRepository(database.newsHistoryDao()),
             preferences = preferences,
             externalScope = backgroundScope,
+            isMetered = metered,
         )
         backgroundScope.launch { viewModel.uiState.collect {} }
         return viewModel
@@ -284,5 +289,32 @@ class NewsstandViewModelTest {
         viewModel.refresh()
 
         assertEquals(2, (viewModel.awaitState { it.message is NewsMessage.NewStories }.message as NewsMessage.NewStories).count)
+    }
+
+    @Test
+    fun `the data saver hides images on metered networks or always`() = runTest {
+        val viewModel = createViewModel()
+        assertTrue(viewModel.awaitState { it.hasLoaded }.showImages)
+
+        preferences.setNewsImages(NewsImages.UNMETERED_ONLY)
+        assertTrue(viewModel.awaitState { s -> s.articles.isNotEmpty() }.showImages)
+        metered.value = true
+        viewModel.awaitState { !it.showImages }
+        metered.value = false
+        viewModel.awaitState { it.showImages }
+
+        preferences.setNewsImages(NewsImages.NEVER)
+        viewModel.awaitState { !it.showImages }
+    }
+
+    @Test
+    fun `stories can be marked unread again`() = runTest {
+        val viewModel = createViewModel()
+        val article = viewModel.awaitState { it.articles.isNotEmpty() }.articles.first()
+
+        viewModel.setRead(article.item, true)
+        viewModel.awaitState { s -> s.articles.first().isRead }
+        viewModel.setRead(article.item, false)
+        viewModel.awaitState { s -> !s.articles.first().isRead }
     }
 }

@@ -13,7 +13,11 @@ import io.github.fianna76.speedread.data.BookRepository
 import io.github.fianna76.speedread.data.Chapter
 import io.github.fianna76.speedread.data.ReadingPosition
 import io.github.fianna76.speedread.data.settings.ReaderDisplay
+import io.github.fianna76.speedread.data.news.ArticleResult
+import io.github.fianna76.speedread.data.news.UpNext
 import io.github.fianna76.speedread.data.settings.UserPreferencesRepository
+import io.github.fianna76.speedread.news.FeedItem
+import io.github.fianna76.speedread.news.NewsSources
 import io.github.fianna76.speedread.rsvp.PlayerState
 import io.github.fianna76.speedread.rsvp.RsvpPlayer
 import io.github.fianna76.speedread.rsvp.WordsPerMinute
@@ -49,6 +53,14 @@ data class ReaderUiState(
     /** Explains the tap zones; shown for unread books until playback first starts. */
     val showTapHint: Boolean = false,
     val display: ReaderDisplay = ReaderDisplay(),
+    /** For news articles: the next unread story from the list the article was opened from. */
+    val upNext: UpNextStory? = null,
+    /** Seconds until the next story starts by itself; `null` when no countdown is running. */
+    val autoContinueIn: Int? = null,
+    /** The next story is being downloaded. */
+    val preparingNext: Boolean = false,
+    /** Next story ready to open; the UI navigates and calls [ReaderViewModel.onNextOpened]. */
+    val nextBookToOpen: Long? = null,
 ) {
     val chapter: Chapter? get() = chapters.getOrNull(chapterIndex)
     val hasPreviousChapter: Boolean get() = chapterIndex > 0
@@ -56,6 +68,9 @@ data class ReaderUiState(
 }
 
 enum class ReaderError { BOOK_NOT_FOUND, NO_TEXT, LOAD_FAILED }
+
+/** The story offered after a news article. */
+data class UpNextStory(val item: FeedItem, val sourceName: String?)
 
 /**
  * Coordinates the RSVP [RsvpPlayer] with the book's chapters: loads chapter text on demand,
@@ -72,6 +87,10 @@ class ReaderViewModel(
     private val externalScope: CoroutineScope,
     // The main thread's scheduling clock, so word deadlines line up with Dispatchers.Main delays.
     clock: () -> Long = SystemClock::uptimeMillis,
+    /** Offers the next news story after an article; `null` disables it. */
+    private val upNext: UpNext? = null,
+    /** Start playing as soon as the text is loaded (continuing from the previous story). */
+    private val autoPlay: Boolean = false,
 ) : ViewModel() {
 
     private val player = RsvpPlayer(viewModelScope, clock, onEndReached = ::onEndOfChapter)
@@ -84,11 +103,16 @@ class ReaderViewModel(
     private var loadedChapterIndex = NO_CHAPTER
     private val saveMutex = Mutex()
     private var lastSaved: Pair<ReadingPosition, Int>? = null
+    private var autoContinue = true
+    private var countdownJob: Job? = null
+    /** Next stories that could not be read (no text, paywall, offline), skipped from now on. */
+    private val skippedNext = HashSet<String>()
 
     init {
         viewModelScope.launch {
             preferences.preferences.collect { prefs ->
                 player.updateSettings(prefs.playback)
+                autoContinue = prefs.autoContinueNews
                 _uiState.update { it.copy(display = prefs.display) }
             }
         }
@@ -222,7 +246,8 @@ class ReaderViewModel(
         books.markOpened(bookId)
         val chapterIndex = book.position.chapterIndex.coerceIn(0, chapters.lastIndex)
         val finished = book.totalWords > 0 && book.wordsRead >= book.totalWords
-        loadChapter(chapterIndex, startWord = book.position.wordIndex, autoPlay = false, finished = finished)
+        loadChapter(chapterIndex, startWord = book.position.wordIndex, autoPlay = autoPlay && !finished, finished = finished)
+        book.sourceUrl?.let { url -> findUpNext(url, prefetch = true) }
     }
 
     private fun loadChapter(
@@ -270,6 +295,54 @@ class ReaderViewModel(
         player.pause()
         _uiState.update { it.copy(isFinished = true) }
         savePosition()
+        if (autoContinue && _uiState.value.upNext != null) startCountdown()
+    }
+
+    // --- Next story (news articles) ------------------------------------------------------------
+
+    /** Opens the next story now (also what the countdown does when it reaches zero). */
+    fun readNext() {
+        val next = _uiState.value.upNext ?: return
+        val upNext = upNext ?: return
+        countdownJob?.cancel()
+        _uiState.update { it.copy(autoContinueIn = null, preparingNext = true) }
+        viewModelScope.launch {
+            when (val result = upNext.open(next.item)) {
+                is ArticleResult.Ready -> _uiState.update { it.copy(preparingNext = false, nextBookToOpen = result.bookId) }
+                is ArticleResult.Failed -> {
+                    // Skip stories that can't be read here and offer the one after.
+                    skippedNext += next.item.canonicalUrl
+                    _uiState.update { it.copy(preparingNext = false) }
+                    _uiState.value.sourceUrl?.let { url -> findUpNext(url, prefetch = false) }
+                    if (_uiState.value.upNext != null && autoContinue) startCountdown()
+                }
+            }
+        }
+    }
+
+    fun cancelAutoContinue() {
+        countdownJob?.cancel()
+        _uiState.update { it.copy(autoContinueIn = null) }
+    }
+
+    fun onNextOpened() = _uiState.update { it.copy(nextBookToOpen = null) }
+
+    private suspend fun findUpNext(url: String, prefetch: Boolean) {
+        val upNext = upNext ?: return
+        val next = upNext.nextAfter(url, skippedNext)
+        _uiState.update { state -> state.copy(upNext = next?.let { UpNextStory(it, NewsSources.byId(it.sourceId)?.name) }) }
+        if (next != null && prefetch) upNext.prefetch(next)
+    }
+
+    private fun startCountdown() {
+        countdownJob?.cancel()
+        countdownJob = viewModelScope.launch {
+            for (seconds in AUTO_CONTINUE_SECONDS downTo 1) {
+                _uiState.update { it.copy(autoContinueIn = seconds) }
+                delay(1_000)
+            }
+            readNext()
+        }
     }
 
     private fun canControlPlayback(): Boolean {
@@ -299,11 +372,19 @@ class ReaderViewModel(
         private const val TAG = "ReaderViewModel"
         private const val NO_CHAPTER = -1
         private const val PERIODIC_SAVE_MS = 10_000L
+        const val AUTO_CONTINUE_SECONDS = 5
 
-        fun factory(bookId: Long): ViewModelProvider.Factory = viewModelFactory {
+        fun factory(bookId: Long, autoPlay: Boolean = false): ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val container = (this[APPLICATION_KEY] as SpeedReadApplication).container
-                ReaderViewModel(bookId, container.bookRepository, container.preferencesRepository, container.applicationScope)
+                ReaderViewModel(
+                    bookId,
+                    container.bookRepository,
+                    container.preferencesRepository,
+                    container.applicationScope,
+                    upNext = container.newsUpNext,
+                    autoPlay = autoPlay,
+                )
             }
         }
     }

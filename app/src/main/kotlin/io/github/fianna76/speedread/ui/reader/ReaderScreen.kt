@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -22,11 +24,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -39,6 +44,8 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -65,11 +72,21 @@ import kotlin.math.roundToInt
 fun ReaderScreen(
     bookId: Long,
     onBack: () -> Unit,
-    viewModel: ReaderViewModel = viewModel(factory = ReaderViewModel.factory(bookId)),
+    autoPlay: Boolean = false,
+    /** Replaces this reader with the next news story's, playing. */
+    onOpenNext: (Long) -> Unit = {},
+    viewModel: ReaderViewModel = viewModel(factory = ReaderViewModel.factory(bookId, autoPlay)),
 ) {
     val ui by viewModel.uiState.collectAsStateWithLifecycle()
     val player by viewModel.playerState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+
+    ui.nextBookToOpen?.let { next ->
+        LaunchedEffect(next) {
+            viewModel.onNextOpened()
+            onOpenNext(next)
+        }
+    }
 
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.onBackgrounded() }
     KeepScreenOn(player.isPlaying)
@@ -90,6 +107,8 @@ fun ReaderScreen(
             onChangeWordsPerMinuteBy = viewModel::changeWordsPerMinuteBy,
             onRestart = viewModel::restartBook,
             onRetry = viewModel::retry,
+            onReadNext = viewModel::readNext,
+            onCancelAutoContinue = viewModel::cancelAutoContinue,
             onOpenOnline = { url ->
                 viewModel.onBackgrounded() // Pause and save before leaving for the browser.
                 context.openInBrowser(url)
@@ -113,6 +132,8 @@ class ReaderActions(
     val onRestart: () -> Unit = {},
     val onRetry: () -> Unit = {},
     val onOpenOnline: (String) -> Unit = {},
+    val onReadNext: () -> Unit = {},
+    val onCancelAutoContinue: () -> Unit = {},
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -184,6 +205,7 @@ fun ReaderContent(ui: ReaderUiState, player: PlayerState, actions: ReaderActions
                         secondaryLabel = if (ui.error == ReaderError.LOAD_FAILED) stringResource(R.string.reader_retry) else null,
                         onSecondary = actions.onRetry,
                     )
+                    ui.isFinished && ui.upNext != null -> UpNextPanel(ui, ui.upNext, actions)
                     ui.isFinished -> ReaderMessage(
                         iconRes = R.drawable.ic_check_circle,
                         title = stringResource(R.string.reader_finished_title),
@@ -319,6 +341,69 @@ private fun PausedContext(context: ContextWindow, modifier: Modifier = Modifier)
         overflow = TextOverflow.Ellipsis,
         modifier = modifier,
     )
+}
+
+/** The end of a news article: the next story, starting by itself after a countdown. */
+@Composable
+private fun UpNextPanel(ui: ReaderUiState, next: UpNextStory, actions: ReaderActions) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(32.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Icon(
+            painter = painterResource(R.drawable.ic_check_circle),
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(48.dp),
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(stringResource(R.string.reader_finished_title), style = MaterialTheme.typography.titleLarge)
+        Spacer(Modifier.height(24.dp))
+        OutlinedCard(Modifier.fillMaxWidth().widthIn(max = 480.dp)) {
+            Column(Modifier.padding(20.dp)) {
+                Text(
+                    stringResource(R.string.reader_up_next),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                next.sourceName?.let {
+                    Spacer(Modifier.height(4.dp))
+                    Text(it, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                }
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    next.item.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 4,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.semantics { heading() },
+                )
+            }
+        }
+        Spacer(Modifier.height(24.dp))
+        Button(onClick = actions.onReadNext, enabled = !ui.preparingNext) {
+            if (ui.preparingNext) {
+                CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                Spacer(Modifier.size(8.dp))
+                Text(stringResource(R.string.news_preparing))
+            } else {
+                Text(
+                    ui.autoContinueIn?.let { pluralStringResource(R.plurals.reader_next_in, it, it) }
+                        ?: stringResource(R.string.reader_read_next),
+                )
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        if (ui.autoContinueIn != null) {
+            TextButton(onClick = actions.onCancelAutoContinue) { Text(stringResource(R.string.action_cancel)) }
+        } else {
+            TextButton(onClick = actions.onBack) { Text(stringResource(R.string.reader_back_to_news)) }
+        }
+    }
 }
 
 @Composable
