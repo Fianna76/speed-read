@@ -4,6 +4,7 @@ import io.github.fianna76.speedread.data.news.ArticleRepository
 import io.github.fianna76.speedread.data.news.ArticleResult
 import io.github.fianna76.speedread.data.news.NewsHistoryRepository
 import io.github.fianna76.speedread.data.news.NewsRepository
+import io.github.fianna76.speedread.news.FeedItem
 import io.github.fianna76.speedread.news.NewsSource
 import kotlinx.coroutines.flow.first
 
@@ -30,10 +31,16 @@ class NewsPrefetcher(
         val top = news.state.value.headlines(sources.map { it.id }) { priority[it] ?: 0 }
             .filter { read[it.canonicalUrl]?.isRead != true }
             .take(topStories)
+        return download(saved + top, downloaded)
+    }
+
+    /** Downloads [items] that aren't downloaded yet. */
+    suspend fun download(items: List<FeedItem>, downloaded: Set<String>? = null): Result {
+        val have = downloaded ?: articles.observeProgress().first().keys
         var done = 0
         var failed = 0
-        for (item in (saved + top).distinctBy { it.canonicalUrl }) {
-            if (item.canonicalUrl in downloaded) continue
+        for (item in items.distinctBy { it.canonicalUrl }) {
+            if (item.canonicalUrl in have) continue
             when (articles.open(item)) {
                 is ArticleResult.Ready -> done++
                 is ArticleResult.Failed -> failed++

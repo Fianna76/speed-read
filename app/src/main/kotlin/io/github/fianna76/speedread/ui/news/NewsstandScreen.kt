@@ -30,6 +30,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -54,6 +55,7 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
@@ -112,6 +114,7 @@ data class NewsstandActions(
     val onHideReadChange: (Boolean) -> Unit = {},
     val onRefresh: () -> Unit = {},
     val onReadInApp: (FeedItem) -> Unit = {},
+    val onPlayBriefing: () -> Unit = {},
     val onOpenOnline: (FeedItem) -> Unit = {},
     val onSetSaved: (FeedItem, Boolean) -> Unit = { _, _ -> },
     val onSetRead: (FeedItem, Boolean) -> Unit = { _, _ -> },
@@ -128,13 +131,16 @@ data class NewsstandActions(
  */
 @Composable
 fun NewsstandScreen(
-    onOpenBook: (Long) -> Unit,
+    onOpenBook: (bookId: Long, autoPlay: Boolean) -> Unit,
     onOpenSettings: () -> Unit,
     bottomBar: @Composable () -> Unit,
     scrollToTop: Int = 0,
     /** A story (canonical URL) to preview as soon as it is in the list, e.g. tapped in the widget. */
     previewRequest: String? = null,
     onPreviewRequestHandled: () -> Unit = {},
+    /** Show or play the briefing as soon as it is ready, e.g. from its notification. */
+    briefingRequest: BriefingRequest? = null,
+    onBriefingRequestHandled: () -> Unit = {},
     viewModel: NewsstandViewModel = viewModel(factory = NewsstandViewModel.Factory),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -142,11 +148,14 @@ fun NewsstandScreen(
 
     // A story tapped in the widget must not be hidden by a filter left from last time.
     LaunchedEffect(previewRequest) { if (previewRequest != null) viewModel.showAll() }
+    // The briefing is offered on the unfiltered feed.
+    LaunchedEffect(briefingRequest) { if (briefingRequest != null) viewModel.showAll() }
 
     state.bookToOpen?.let { bookId ->
+        val autoPlay = state.autoPlayBook
         LaunchedEffect(bookId) {
             viewModel.onReaderOpened()
-            onOpenBook(bookId)
+            onOpenBook(bookId, autoPlay)
         }
     }
 
@@ -162,6 +171,7 @@ fun NewsstandScreen(
             onHideReadChange = viewModel::setHideRead,
             onRefresh = viewModel::refresh,
             onReadInApp = viewModel::readInApp,
+            onPlayBriefing = viewModel::playBriefing,
             onOpenOnline = { item ->
                 viewModel.onOpenedOnline(item)
                 context.openInBrowser(item.url)
@@ -178,8 +188,13 @@ fun NewsstandScreen(
         scrollToTop = scrollToTop,
         previewRequest = previewRequest,
         onPreviewRequestHandled = onPreviewRequestHandled,
+        briefingRequest = briefingRequest,
+        onBriefingRequestHandled = onBriefingRequestHandled,
     )
 }
+
+/** What a briefing notification asked for. */
+enum class BriefingRequest { SHOW, PLAY }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -192,6 +207,8 @@ fun NewsstandContent(
     scrollToTop: Int = 0,
     previewRequest: String? = null,
     onPreviewRequestHandled: () -> Unit = {},
+    briefingRequest: BriefingRequest? = null,
+    onBriefingRequestHandled: () -> Unit = {},
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     var previewUrl by rememberSaveable { mutableStateOf<String?>(null) }
@@ -212,6 +229,25 @@ fun NewsstandContent(
             }
             if (found != null) previewUrl = previewRequest
             onPreviewRequestHandled()
+        }
+    }
+
+    var briefingExpanded by rememberSaveable { mutableStateOf(false) }
+    if (briefingRequest != null) {
+        LaunchedEffect(briefingRequest) {
+            val ready = withTimeoutOrNull(PREVIEW_REQUEST_TIMEOUT_MS) {
+                snapshotFlow { currentState.showsBriefing }.first { it }
+            }
+            if (ready != null) {
+                when (briefingRequest) {
+                    BriefingRequest.SHOW -> {
+                        briefingExpanded = true
+                        listState.animateScrollToItem(0)
+                    }
+                    BriefingRequest.PLAY -> actions.onPlayBriefing()
+                }
+            }
+            onBriefingRequestHandled()
         }
     }
 
@@ -262,6 +298,19 @@ fun NewsstandContent(
                         modifier = Modifier.fillMaxSize(),
                     ) {
                         item(key = "status") { FeedStatus(state, now) }
+                        if (state.showsBriefing) {
+                            item(key = "briefing") {
+                                BriefingCard(
+                                    stories = state.briefing,
+                                    expanded = briefingExpanded,
+                                    preparing = state.preparingUrl != null && state.briefing.any { it.article.item.canonicalUrl == state.preparingUrl },
+                                    busy = state.preparingUrl != null,
+                                    onToggle = { briefingExpanded = !briefingExpanded },
+                                    onPlay = actions.onPlayBriefing,
+                                    onPreview = { previewUrl = it.item.canonicalUrl },
+                                )
+                            }
+                        }
                         if (state.continueReading.isNotEmpty()) {
                             item(key = "continue") {
                                 ContinueReading(state.continueReading, state.preparingUrl != null, actions.onReadInApp)
@@ -314,7 +363,103 @@ private fun findStory(state: NewsstandUiState, url: String): NewsStory? {
         val version = story.related.firstOrNull { it.item.canonicalUrl == url } ?: continue
         return NewsStory(version, listOf(story.article) + story.related.filter { it !== version })
     }
+    state.briefing.firstOrNull { it.article.item.canonicalUrl == url }?.let { return it }
     return state.continueReading.firstOrNull { it.item.canonicalUrl == url }?.let { NewsStory(it) }
+}
+
+/**
+ * The briefing: each region's biggest unread stories, played back to back. Collapsed it shows
+ * what is in it; expanded it lists the headlines, each tappable to preview.
+ */
+@Composable
+private fun BriefingCard(
+    stories: List<NewsStory>,
+    expanded: Boolean,
+    preparing: Boolean,
+    busy: Boolean,
+    onToggle: () -> Unit,
+    onPlay: () -> Unit,
+    onPreview: (NewsArticle) -> Unit,
+) {
+    val regions = stories.map { it.article.source.region }.distinct().sorted()
+    OutlinedCard(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.outlinedCardColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.35f),
+        ),
+    ) {
+        Column(Modifier.padding(start = 16.dp, top = 14.dp, end = 8.dp, bottom = 6.dp)) {
+            Text(
+                text = stringResource(R.string.news_briefing_title),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.semantics { heading() },
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = pluralStringResource(
+                    R.plurals.news_briefing_summary,
+                    stories.size,
+                    stories.size,
+                    regions.map { stringResource(it.labelRes()) }.joinToString(", "),
+                ),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(end = 8.dp),
+            )
+            if (expanded) {
+                Spacer(Modifier.height(8.dp))
+                stories.forEachIndexed { index, story ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { onPreview(story.article) }
+                            .padding(vertical = 6.dp),
+                    ) {
+                        Text(
+                            text = "${index + 1}",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.width(24.dp),
+                        )
+                        Column(Modifier.weight(1f).padding(end = 8.dp)) {
+                            Text(
+                                text = story.article.item.title,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text(
+                                text = (listOf(story.article) + story.related).map { it.source.name }.distinct().joinToString(" · "),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                }
+            }
+            Spacer(Modifier.height(6.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Button(onClick = onPlay, enabled = !busy) {
+                    if (preparing) {
+                        CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                    } else {
+                        Icon(painterResource(R.drawable.ic_play_arrow), contentDescription = null, modifier = Modifier.size(18.dp))
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.news_briefing_play))
+                }
+                Spacer(Modifier.weight(1f))
+                TextButton(onClick = onToggle) {
+                    Text(stringResource(if (expanded) R.string.news_briefing_hide else R.string.news_briefing_show))
+                }
+            }
+        }
+    }
 }
 
 @Composable

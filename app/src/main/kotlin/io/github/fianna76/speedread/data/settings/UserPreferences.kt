@@ -18,6 +18,12 @@ data class UserPreferences(
     val autoContinueNews: Boolean = true,
     /** Refresh headlines and download saved and top stories in the background, on unmetered networks. */
     val backgroundNews: Boolean = false,
+    /** Notify when Irish outlets lead with the same breaking story. */
+    val breakingNewsAlerts: Boolean = false,
+    /** A daily notification with the morning briefing, downloaded and ready to read. */
+    val morningBriefing: Boolean = false,
+    /** When the morning briefing arrives, in minutes after midnight (local time). */
+    val briefingTime: Int = DEFAULT_BRIEFING_TIME,
     /** Ids of [NewsSources] the user switched off. */
     val disabledNewsSources: Set<String> = emptySet(),
     /** Ids of [NewsSources] the user switched on (sources not enabled by default). */
@@ -31,6 +37,13 @@ data class UserPreferences(
     }
 
     val enabledNewsSources: List<NewsSource> get() = NewsSources.ALL.filter(::isNewsSourceEnabled)
+
+    companion object {
+        const val DEFAULT_BRIEFING_TIME = 7 * 60
+
+        /** Briefing times offered in Settings: every half hour from 5:30 to 10:00. */
+        val BRIEFING_TIMES: List<Int> = (11..20).map { it * 30 }
+    }
 }
 
 /** How words are rendered on the reading screen. */

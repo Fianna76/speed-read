@@ -15,6 +15,7 @@ import io.github.fianna76.speedread.data.news.NewsHistoryRepository
 import io.github.fianna76.speedread.data.news.NewsQueue
 import io.github.fianna76.speedread.data.news.NewsRepository
 import io.github.fianna76.speedread.data.news.StoryHistory
+import io.github.fianna76.speedread.data.news.briefing
 import io.github.fianna76.speedread.data.settings.NewsImages
 import io.github.fianna76.speedread.data.settings.UserPreferences
 import io.github.fianna76.speedread.data.settings.UserPreferencesRepository
@@ -89,6 +90,10 @@ data class NewsstandUiState(
     val preparingUrl: String? = null,
     /** Saved article to open in the reader; the UI navigates and calls [NewsstandViewModel.onReaderOpened]. */
     val bookToOpen: Long? = null,
+    /** Start [bookToOpen] playing right away (the briefing). */
+    val autoPlayBook: Boolean = false,
+    /** Each region's biggest unread stories, to read back to back (see [NewsstandViewModel.playBriefing]). */
+    val briefing: List<NewsStory> = emptyList(),
     val message: NewsMessage? = null,
 ) {
     /** Regions that have at least one enabled source, in display order. */
@@ -98,6 +103,11 @@ data class NewsstandUiState(
     val sourcesInRegion: List<NewsSource> get() = sources.filter { selectedRegion == null || it.region == selectedRegion }
 
     val isSearching: Boolean get() = query.isNotBlank()
+
+    /** The briefing is offered on the unfiltered feed only. */
+    val showsBriefing: Boolean
+        get() = briefing.isNotEmpty() && !showingSaved && !isSearching &&
+            selectedRegion == null && selectedSourceId == null && selectedTopic == null
 
     /** Every headline on screen, leads and grouped versions alike. */
     val articles: List<NewsArticle> get() = stories.flatMap { listOf(it.article) + it.related }
@@ -125,6 +135,8 @@ class NewsstandViewModel(
     private val externalScope: CoroutineScope,
     isMetered: Flow<Boolean> = flowOf(false),
     private val queue: NewsQueue = NewsQueue(),
+    /** Called when the briefing starts playing (e.g. to clear its notification). */
+    private val onBriefingStarted: () -> Unit = {},
 ) : ViewModel() {
 
     private val view = MutableStateFlow(ViewState())
@@ -156,6 +168,7 @@ class NewsstandViewModel(
             hasLoaded = state.hasLoaded || openingState.refreshedOnce,
             preparingUrl = openingState.preparingUrl,
             bookToOpen = openingState.bookToOpen,
+            autoPlayBook = openingState.autoPlay,
             message = openingState.message,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), NewsstandUiState())
@@ -235,10 +248,43 @@ class NewsstandViewModel(
                     val list = (state.stories.map { it.article.item }).takeIf { list -> list.any { it.canonicalUrl == item.canonicalUrl } }
                         ?: (state.continueReading.map { it.item } + state.stories.map { it.article.item })
                     queue.set(list)
-                    opening.update { it.copy(bookToOpen = result.bookId) }
+                    opening.update { it.copy(bookToOpen = result.bookId, autoPlay = false) }
                 }
                 is ArticleResult.Failed -> postMessage { id -> NewsMessage.ArticleFailed(id, item, result.reason) }
             }
+        }
+    }
+
+    /**
+     * Reads the briefing back to back: opens its first story that can be read (playing at
+     * once), with the rest queued as "next story".
+     */
+    fun playBriefing() {
+        if (opening.value.preparingUrl != null) return
+        val items = uiState.value.briefing.map { it.article.item }
+        if (items.isEmpty()) return
+        onBriefingStarted()
+        viewModelScope.launch {
+            var firstFailure: ArticleResult.Failed? = null
+            for (item in items) {
+                opening.update { it.copy(preparingUrl = item.canonicalUrl) }
+                val result = try {
+                    articles.open(item)
+                } finally {
+                    opening.update { it.copy(preparingUrl = null) }
+                }
+                when (result) {
+                    is ArticleResult.Ready -> {
+                        externalScope.launch { history.markRead(item) }
+                        queue.set(items)
+                        opening.update { it.copy(bookToOpen = result.bookId, autoPlay = true) }
+                        return@launch
+                    }
+                    // Subscriber-only or unreachable: the briefing goes on with the next story.
+                    is ArticleResult.Failed -> if (firstFailure == null) firstFailure = result
+                }
+            }
+            firstFailure?.let { failure -> postMessage { id -> NewsMessage.ArticleFailed(id, items.first(), failure.reason) } }
         }
     }
 
@@ -272,7 +318,7 @@ class NewsstandViewModel(
         externalScope.launch { preferences.setNewsSourceEnabled(source.id, true) }
     }
 
-    fun onReaderOpened() = opening.update { it.copy(bookToOpen = null) }
+    fun onReaderOpened() = opening.update { it.copy(bookToOpen = null, autoPlay = false) }
 
     fun onMessageShown(id: Long) = opening.update { state ->
         if (state.message?.id == id) state.copy(message = null) else state
@@ -324,6 +370,13 @@ class NewsstandViewModel(
             }
         }
 
+        val briefing = if (feedState.feeds.isEmpty()) {
+            emptyList()
+        } else {
+            feedState.briefing(sources) { entries[it.canonicalUrl]?.isRead == true }
+                .mapNotNull { group -> article(group.lead)?.let { NewsStory(it, group.related.mapNotNull(::article)) } }
+        }
+
         val continueReading = if (chosen.saved || query.isNotEmpty()) {
             emptyList()
         } else {
@@ -346,6 +399,7 @@ class NewsstandViewModel(
             hideRead = prefs.hideReadNews,
             stories = stories,
             continueReading = continueReading,
+            briefing = briefing,
             savedCount = entries.values.count { it.isSaved },
             failedSources = if (chosen.saved) emptyList() else shownSources.filter { it.id in feedState.failedSources },
             isRefreshing = feedState.isRefreshing,
@@ -372,6 +426,7 @@ class NewsstandViewModel(
     private data class OpeningState(
         val preparingUrl: String? = null,
         val bookToOpen: Long? = null,
+        val autoPlay: Boolean = false,
         val message: NewsMessage? = null,
         val refreshedOnce: Boolean = false,
     )
@@ -391,6 +446,7 @@ class NewsstandViewModel(
                     container.applicationScope,
                     container.networkMonitor.isMetered,
                     container.newsQueue,
+                    onBriefingStarted = container.newsNotifications::cancelBriefing,
                 )
             }
         }

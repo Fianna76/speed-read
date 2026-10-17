@@ -10,6 +10,7 @@ import io.github.fianna76.speedread.data.news.ArticleError
 import io.github.fianna76.speedread.data.news.ArticleRepository
 import io.github.fianna76.speedread.data.news.NewsCache
 import io.github.fianna76.speedread.data.news.NewsHistoryRepository
+import io.github.fianna76.speedread.data.news.NewsQueue
 import io.github.fianna76.speedread.data.news.NewsRepository
 import io.github.fianna76.speedread.data.settings.NewsImages
 import io.github.fianna76.speedread.data.settings.UserPreferencesRepository
@@ -64,7 +65,7 @@ class NewsstandViewModelTest {
     private val metered = MutableStateFlow(false)
 
     /** A Newsstand showing only the BBC and DW (every other source switched off). */
-    private suspend fun TestScope.createViewModel(): NewsstandViewModel {
+    private suspend fun TestScope.createViewModel(queue: NewsQueue = NewsQueue(), onBriefingStarted: () -> Unit = {}): NewsstandViewModel {
         preferences = testPreferences(tmp.newFolder(), backgroundScope)
         NewsSources.ALL.filter { it != bbc && it != dw }.forEach { preferences.setNewsSourceEnabled(it.id, false) }
         val files = BookFileStore(tmp.newFolder("files"))
@@ -75,6 +76,8 @@ class NewsstandViewModelTest {
             preferences = preferences,
             externalScope = backgroundScope,
             isMetered = metered,
+            queue = queue,
+            onBriefingStarted = onBriefingStarted,
         )
         backgroundScope.launch { viewModel.uiState.collect {} }
         return viewModel
@@ -94,6 +97,43 @@ class NewsstandViewModelTest {
         assertEquals(listOf(NewsRegion.EUROPE, NewsRegion.WORLD), state.regions)
         assertEquals("DW", state.articles.first().source.name)
         assertTrue(web.requests.none { "aljazeera" in it })
+    }
+
+    @Test
+    fun `the briefing holds each region's top unread stories, on the unfiltered feed only`() = runTest {
+        val viewModel = createViewModel()
+
+        val state = viewModel.awaitState { it.briefing.isNotEmpty() }
+
+        assertEquals(listOf("d1", "b1", "b2"), state.briefing.map { it.article.item.url.substringAfterLast('/') })
+        assertTrue(state.showsBriefing)
+        viewModel.selectRegion(NewsRegion.WORLD)
+        assertTrue(!viewModel.awaitState { it.selectedRegion == NewsRegion.WORLD }.showsBriefing)
+
+        viewModel.selectRegion(null)
+        viewModel.setRead(TestNews.item("dw", "d1"), true)
+        val after = viewModel.awaitState { it.selectedRegion == null && it.briefing.size == 2 }
+        assertEquals(listOf("b1", "b2"), after.briefing.map { it.article.item.url.substringAfterLast('/') })
+    }
+
+    @Test
+    fun `playing the briefing skips stories that can't be read and plays the rest back to back`() = runTest {
+        val queue = NewsQueue()
+        var notificationCleared = false
+        val viewModel = createViewModel(queue, onBriefingStarted = { notificationCleared = true })
+        viewModel.awaitState { it.briefing.size == 3 }
+        // d1 is unreachable; b1 opens.
+        web.responses["https://bbc.example/news/b1"] = TestNews.articlePage()
+
+        viewModel.playBriefing()
+
+        val state = viewModel.awaitState { it.bookToOpen != null }
+        assertTrue(state.autoPlayBook)
+        assertTrue(notificationCleared)
+        assertEquals("Story b1", database.bookDao().findById(state.bookToOpen!!)!!.title)
+        assertEquals(listOf("d1", "b1", "b2"), queue.items.map { it.url.substringAfterLast('/') })
+        viewModel.onReaderOpened()
+        assertTrue(!viewModel.awaitState { it.bookToOpen == null }.autoPlayBook)
     }
 
     @Test

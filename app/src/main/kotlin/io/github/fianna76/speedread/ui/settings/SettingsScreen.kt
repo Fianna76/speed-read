@@ -1,5 +1,12 @@
 package io.github.fianna76.speedread.ui.settings
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +21,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -34,11 +43,13 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -47,6 +58,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.fianna76.speedread.BuildConfig
@@ -63,6 +76,9 @@ import io.github.fianna76.speedread.news.ArticleUrls
 import io.github.fianna76.speedread.news.NewsSources
 import io.github.fianna76.speedread.ui.news.labelRes
 import io.github.fianna76.speedread.ui.theme.SpeedReadTheme
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import kotlin.math.roundToInt
 
 @Composable
@@ -71,6 +87,7 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = viewModel(factory = SettingsViewModel.Factory),
 ) {
     val preferences by viewModel.uiState.collectAsStateWithLifecycle()
+    val withNotifications = rememberNotificationPermission()
     SettingsContent(
         preferences = preferences,
         onBack = onBack,
@@ -88,6 +105,9 @@ fun SettingsScreen(
             onImagesChange = viewModel::setNewsImages,
             onAutoContinueChange = viewModel::setAutoContinueNews,
             onBackgroundChange = viewModel::setBackgroundNews,
+            onBreakingAlertsChange = withNotifications(viewModel::setBreakingNewsAlerts),
+            onMorningBriefingChange = withNotifications(viewModel::setMorningBriefing),
+            onBriefingTimeChange = viewModel::setBriefingTime,
         ),
     )
 }
@@ -98,7 +118,40 @@ data class NewsSettingsActions(
     val onImagesChange: (NewsImages) -> Unit = {},
     val onAutoContinueChange: (Boolean) -> Unit = {},
     val onBackgroundChange: (Boolean) -> Unit = {},
+    val onBreakingAlertsChange: (Boolean) -> Unit = {},
+    val onMorningBriefingChange: (Boolean) -> Unit = {},
+    val onBriefingTimeChange: (minuteOfDay: Int) -> Unit = {},
 )
+
+/**
+ * Wraps a notification setting's switch: switching it on first asks for the notification
+ * permission (Android 13+). If notifications stay off, the setting stays off and a message
+ * says where to turn them on.
+ */
+@Composable
+private fun rememberNotificationPermission(): ((Boolean) -> Unit) -> (Boolean) -> Unit {
+    val context = LocalContext.current
+    var onGranted by remember { mutableStateOf<(() -> Unit)?>(null) }
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) onGranted?.invoke() else Toast.makeText(context, R.string.settings_notifications_denied, Toast.LENGTH_LONG).show()
+        onGranted = null
+    }
+    return { set ->
+        { enabled ->
+            val needsPermission = enabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+            if (needsPermission) {
+                onGranted = { set(true) }
+                launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            } else {
+                set(enabled)
+                if (enabled && !NotificationManagerCompat.from(context).areNotificationsEnabled()) {
+                    Toast.makeText(context, R.string.settings_notifications_denied, Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -220,6 +273,21 @@ fun SettingsContent(
                 checked = preferences.backgroundNews,
                 onCheckedChange = newsActions.onBackgroundChange,
             )
+            SwitchSetting(
+                title = stringResource(R.string.settings_news_breaking),
+                summary = stringResource(R.string.settings_news_breaking_summary),
+                checked = preferences.breakingNewsAlerts,
+                onCheckedChange = newsActions.onBreakingAlertsChange,
+            )
+            SwitchSetting(
+                title = stringResource(R.string.settings_news_briefing),
+                summary = stringResource(R.string.settings_news_briefing_summary),
+                checked = preferences.morningBriefing,
+                onCheckedChange = newsActions.onMorningBriefingChange,
+            )
+            if (preferences.morningBriefing) {
+                BriefingTimeSetting(preferences.briefingTime, newsActions.onBriefingTimeChange)
+            }
             NewsSources.ALL.groupBy { it.region }.forEach { (region, sources) ->
                 val allOn = sources.all { preferences.isNewsSourceEnabled(it) }
                 Row(
@@ -363,6 +431,38 @@ private fun FontSizeSetting(display: ReaderDisplay, onValueCommitted: (Int) -> U
         modifier = Modifier.padding(horizontal = 16.dp),
     )
 }
+
+@Composable
+private fun BriefingTimeSetting(minuteOfDay: Int, onChange: (Int) -> Unit) {
+    var open by remember { mutableStateOf(false) }
+    val title = stringResource(R.string.settings_news_briefing_time)
+    Box {
+        ListItem(
+            headlineContent = { Text(title) },
+            supportingContent = { Text(formatTimeOfDay(minuteOfDay)) },
+            modifier = Modifier.clickable(onClickLabel = title) { open = true },
+        )
+        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
+            UserPreferences.BRIEFING_TIMES.forEach { time ->
+                DropdownMenuItem(
+                    text = { Text(formatTimeOfDay(time)) },
+                    onClick = {
+                        open = false
+                        onChange(time)
+                    },
+                    trailingIcon = if (time == minuteOfDay) {
+                        { Icon(painterResource(R.drawable.ic_check), contentDescription = null) }
+                    } else {
+                        null
+                    },
+                )
+            }
+        }
+    }
+}
+
+private fun formatTimeOfDay(minuteOfDay: Int): String =
+    LocalTime.of(minuteOfDay / 60, minuteOfDay % 60).format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT))
 
 @Composable
 private fun <T> ChoiceSetting(

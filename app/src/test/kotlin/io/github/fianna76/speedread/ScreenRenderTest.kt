@@ -22,6 +22,7 @@ import io.github.fianna76.speedread.ui.library.LibraryContent
 import io.github.fianna76.speedread.ui.library.LibraryUiState
 import io.github.fianna76.speedread.ui.navigation.TopLevelDestination
 import io.github.fianna76.speedread.ui.navigation.TopLevelNavigationBar
+import io.github.fianna76.speedread.ui.news.BriefingRequest
 import io.github.fianna76.speedread.ui.news.NewsstandActions
 import io.github.fianna76.speedread.ui.news.NewsstandContent
 import io.github.fianna76.speedread.ui.news.NewsStory
@@ -120,6 +121,19 @@ class ScreenRenderTest {
             now = now,
             actions = NewsstandActions(),
             bottomBar = { TopLevelNavigationBar(TopLevelDestination.NEWS) {} },
+        )
+    }
+
+    @Test
+    fun newsstandBriefing() = capture("newsstand_briefing") {
+        NewsstandContent(
+            state = newsUi.copy(
+                briefing = TestNews.sampleArticles(now).let { a -> listOf(NewsStory(a[2]), NewsStory(a[0], listOf(a[1])), NewsStory(a[1])) },
+                continueReading = emptyList(),
+            ),
+            now = now,
+            actions = NewsstandActions(),
+            briefingRequest = BriefingRequest.SHOW,
         )
     }
 

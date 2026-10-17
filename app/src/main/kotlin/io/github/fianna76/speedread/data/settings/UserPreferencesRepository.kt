@@ -62,6 +62,12 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
 
     suspend fun setBackgroundNews(enabled: Boolean) = update { it[Keys.BACKGROUND_NEWS] = enabled }
 
+    suspend fun setBreakingNewsAlerts(enabled: Boolean) = update { it[Keys.BREAKING_NEWS_ALERTS] = enabled }
+
+    suspend fun setMorningBriefing(enabled: Boolean) = update { it[Keys.MORNING_BRIEFING] = enabled }
+
+    suspend fun setBriefingTime(minuteOfDay: Int) = update { it[Keys.BRIEFING_TIME] = minuteOfDay.coerceIn(0, MINUTES_PER_DAY - 1) }
+
     /** Switches several sources at once (e.g. a whole region). */
     suspend fun setNewsSourcesEnabled(sourceIds: Collection<String>, enabled: Boolean) = update {
         val disabled = it[Keys.DISABLED_NEWS_SOURCES].orEmpty()
@@ -97,6 +103,9 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
             newsImages = enumOrDefault(this[Keys.NEWS_IMAGES], defaults.newsImages),
             autoContinueNews = this[Keys.AUTO_CONTINUE_NEWS] ?: defaults.autoContinueNews,
             backgroundNews = this[Keys.BACKGROUND_NEWS] ?: defaults.backgroundNews,
+            breakingNewsAlerts = this[Keys.BREAKING_NEWS_ALERTS] ?: defaults.breakingNewsAlerts,
+            morningBriefing = this[Keys.MORNING_BRIEFING] ?: defaults.morningBriefing,
+            briefingTime = (this[Keys.BRIEFING_TIME] ?: defaults.briefingTime).coerceIn(0, MINUTES_PER_DAY - 1),
             disabledNewsSources = this[Keys.DISABLED_NEWS_SOURCES] ?: defaults.disabledNewsSources,
             addedNewsSources = this[Keys.ADDED_NEWS_SOURCES] ?: defaults.addedNewsSources,
         )
@@ -119,11 +128,15 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
         val NEWS_IMAGES = stringPreferencesKey("news_images")
         val AUTO_CONTINUE_NEWS = booleanPreferencesKey("auto_continue_news")
         val BACKGROUND_NEWS = booleanPreferencesKey("background_news")
+        val BREAKING_NEWS_ALERTS = booleanPreferencesKey("breaking_news_alerts")
+        val MORNING_BRIEFING = booleanPreferencesKey("morning_briefing")
+        val BRIEFING_TIME = intPreferencesKey("briefing_time")
         val DISABLED_NEWS_SOURCES = stringSetPreferencesKey("disabled_news_sources")
         val ADDED_NEWS_SOURCES = stringSetPreferencesKey("added_news_sources")
     }
 
     private companion object {
         const val TAG = "UserPreferences"
+        const val MINUTES_PER_DAY = 24 * 60
     }
 }

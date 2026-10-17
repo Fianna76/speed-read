@@ -22,7 +22,13 @@ import io.github.fianna76.speedread.widget.NewsWidget
 import io.github.fianna76.speedread.widget.WidgetData
 import io.github.fianna76.speedread.widget.WidgetHeadline
 import androidx.glance.appwidget.updateAll
+import io.github.fianna76.speedread.data.news.background.BreakingNewsAlerts
+import io.github.fianna76.speedread.data.news.background.MorningBriefing
+import io.github.fianna76.speedread.data.news.background.NewsAlertLog
 import io.github.fianna76.speedread.data.news.background.NewsBackgroundScheduler
+import io.github.fianna76.speedread.data.news.background.NewsSyncConfig
+import io.github.fianna76.speedread.notifications.NewsNotifications
+import androidx.work.WorkManager
 import io.github.fianna76.speedread.data.news.background.NewsPrefetcher
 import io.github.fianna76.speedread.data.news.NewsRepository
 import io.github.fianna76.speedread.data.news.OkHttpWebClient
@@ -81,6 +87,14 @@ class AppContainer(context: Context) {
 
     val newsPrefetcher by lazy { NewsPrefetcher(newsRepository, articleRepository, newsHistoryRepository) }
 
+    val newsNotifications by lazy { NewsNotifications(appContext) }
+
+    private val newsAlertLog by lazy { NewsAlertLog(File(appContext.noBackupFilesDir, "news/alerts.json")) }
+
+    val breakingNewsAlerts by lazy { BreakingNewsAlerts(newsRepository, newsHistoryRepository, newsAlertLog, newsNotifications) }
+
+    val morningBriefing by lazy { MorningBriefing(newsRepository, newsPrefetcher, newsHistoryRepository, newsNotifications) }
+
     /** Speed-reads web links shared to the app. */
     val sharedLinkReader by lazy { SharedLinkReader(articleRepository, applicationScope) }
 
@@ -103,19 +117,39 @@ class AppContainer(context: Context) {
     }
 
     /**
-     * Keeps the background sync in line with the setting. Started from the Application; only a
-     * change from the stored state touches WorkManager (nothing is scheduled by default).
+     * Keeps the background sync and the morning briefing in line with the settings. Started
+     * from the Application; only a change from the stored state touches WorkManager (nothing
+     * is scheduled by default).
      */
     fun startBackgroundNewsScheduling() {
         val scheduler = NewsBackgroundScheduler(appContext)
+        val preferences = preferencesRepository.preferences
         applicationScope.launch {
             var first = true
-            preferencesRepository.preferences.map { it.backgroundNews }.distinctUntilChanged().collect { enabled ->
-                if (enabled || !first) scheduler.apply(enabled)
+            preferences.map { NewsSyncConfig(downloads = it.backgroundNews, alerts = it.breakingNewsAlerts) }
+                .distinctUntilChanged()
+                .collect { config ->
+                    if (config.enabled || !first) scheduler.apply(config)
+                    // Switching alerts back on starts afresh, without announcing what led meanwhile.
+                    if (!config.alerts && !first) withContext(Dispatchers.IO) { newsAlertLog.clear() }
+                    first = false
+                }
+        }
+        applicationScope.launch {
+            var first = true
+            preferences.map { it.briefingTime.takeIf { _ -> it.morningBriefing } }.distinctUntilChanged().collect { time ->
+                // Rescheduling on every launch would be harmless, but at start-up only fill a gap.
+                if (!first || (time != null && !isBriefingScheduled())) scheduler.applyBriefing(time)
                 first = false
             }
         }
     }
+
+    private fun isBriefingScheduled(): Boolean = runCatching {
+        WorkManager.getInstance(appContext)
+            .getWorkInfosForUniqueWork(NewsBackgroundScheduler.BRIEFING_WORK_NAME).get()
+            .any { !it.state.isFinished }
+    }.getOrDefault(false)
 
     val newsUpNext by lazy { NewsUpNext(newsQueue, newsHistoryRepository, articleRepository, applicationScope) }
 

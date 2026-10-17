@@ -50,6 +50,12 @@ class SettingsViewModel(private val preferences: UserPreferencesRepository) : Vi
 
     fun setBackgroundNews(enabled: Boolean) = launch { preferences.setBackgroundNews(enabled) }
 
+    fun setBreakingNewsAlerts(enabled: Boolean) = launch { preferences.setBreakingNewsAlerts(enabled) }
+
+    fun setMorningBriefing(enabled: Boolean) = launch { preferences.setMorningBriefing(enabled) }
+
+    fun setBriefingTime(minuteOfDay: Int) = launch { preferences.setBriefingTime(minuteOfDay) }
+
     private fun launch(block: suspend () -> Unit) {
         viewModelScope.launch { block() }
     }

@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasText
@@ -54,6 +55,50 @@ class NewsstandContentTest {
     }
 
     private fun string(id: Int, vararg args: Any) = context.getString(id, *args)
+
+    @Test
+    fun theBriefingCardPlaysAndListsItsStories() {
+        var played = 0
+        setContent(state.copy(briefing = articles.map { NewsStory(it) }), NewsstandActions(onPlayBriefing = { played++ }))
+
+        compose.onNodeWithText(string(R.string.news_briefing_title)).assertIsDisplayed()
+        compose.onNodeWithText(
+            context.resources.getQuantityString(R.plurals.news_briefing_summary, 3, 3, "Europe, World"),
+        ).assertIsDisplayed()
+        compose.onNodeWithText(string(R.string.news_briefing_play)).performClick()
+        assertEquals(1, played)
+
+        compose.onNodeWithText(string(R.string.news_briefing_show)).performClick()
+        compose.onNodeWithText("BBC News").assertExists()
+        compose.onNodeWithText(string(R.string.news_briefing_hide)).assertIsDisplayed()
+        compose.onAllNodesWithText(articles[2].item.title).assertCountEquals(2) // In the briefing and the feed.
+    }
+
+    @Test
+    fun aBriefingNotificationPlaysTheBriefingOnceItIsReady() {
+        var played = 0
+        var handled = 0
+        compose.setContent {
+            SpeedReadTheme(dynamicColor = false) {
+                NewsstandContent(
+                    state = state.copy(briefing = articles.map { NewsStory(it) }),
+                    now = now,
+                    actions = NewsstandActions(onPlayBriefing = { played++ }),
+                    briefingRequest = BriefingRequest.PLAY,
+                    onBriefingRequestHandled = { handled++ },
+                )
+            }
+        }
+        compose.waitForIdle()
+        assertEquals(1, played)
+        assertEquals(1, handled)
+    }
+
+    @Test
+    fun theBriefingIsOnlyOnTheUnfilteredFeed() {
+        setContent(state.copy(briefing = articles.map { NewsStory(it) }, selectedRegion = NewsRegion.WORLD))
+        compose.onNodeWithText(string(R.string.news_briefing_title)).assertDoesNotExist()
+    }
 
     @Test
     fun cardsPreviewTheStoryAndOfferEveryAction() {

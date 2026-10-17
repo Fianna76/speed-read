@@ -16,6 +16,7 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import io.github.fianna76.speedread.ui.library.LibraryScreen
+import io.github.fianna76.speedread.ui.news.BriefingRequest
 import io.github.fianna76.speedread.ui.news.NewsstandScreen
 import io.github.fianna76.speedread.ui.reader.ReaderScreen
 import io.github.fianna76.speedread.ui.settings.SettingsScreen
@@ -38,8 +39,11 @@ data object SettingsRoute : NavKey
 
 /** A destination requested from outside the navigation (widget taps, notifications). */
 sealed interface NavigationRequest {
-    /** The Newsstand, optionally previewing the story at [previewUrl] (canonical URL). */
-    data class OpenNews(val previewUrl: String? = null) : NavigationRequest
+    /**
+     * The Newsstand, optionally previewing the story at [previewUrl] (canonical URL), or
+     * showing or playing the [briefing].
+     */
+    data class OpenNews(val previewUrl: String? = null, val briefing: BriefingRequest? = null) : NavigationRequest
 }
 
 /**
@@ -55,11 +59,13 @@ fun SpeedReadNavigation(
     val backStack = rememberNavBackStack(LibraryRoute)
     // A story to preview once the Newsstand shows (from a widget tap).
     var newsPreview by rememberSaveable { mutableStateOf<String?>(null) }
+    var newsBriefing by rememberSaveable { mutableStateOf<BriefingRequest?>(null) }
     LaunchedEffect(request) {
         when (request) {
             is NavigationRequest.OpenNews -> {
                 backStack.navigateTopLevel(TopLevelDestination.NEWS)
                 newsPreview = request.previewUrl
+                newsBriefing = request.briefing
             }
             null -> return@LaunchedEffect
         }
@@ -86,7 +92,7 @@ fun SpeedReadNavigation(
             }
             entry<NewsstandRoute> {
                 NewsstandScreen(
-                    onOpenBook = { bookId -> backStack.navigate(ReaderRoute(bookId)) },
+                    onOpenBook = { bookId, autoPlay -> backStack.navigate(ReaderRoute(bookId, autoPlay)) },
                     onOpenSettings = { backStack.navigate(SettingsRoute) },
                     bottomBar = {
                         TopLevelNavigationBar(TopLevelDestination.NEWS) { destination ->
@@ -96,6 +102,8 @@ fun SpeedReadNavigation(
                     scrollToTop = newsReselected,
                     previewRequest = newsPreview,
                     onPreviewRequestHandled = { newsPreview = null },
+                    briefingRequest = newsBriefing,
+                    onBriefingRequestHandled = { newsBriefing = null },
                 )
             }
             entry<ReaderRoute> { route ->

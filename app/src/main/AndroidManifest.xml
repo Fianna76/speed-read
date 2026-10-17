@@ -10,6 +10,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Data saver (news images on Wi-Fi only) and background downloads on unmetered networks. -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Opt-in only: breaking-news alerts and the morning briefing. Asked for when switched on. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:name=".SpeedReadApplication"

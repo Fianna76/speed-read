@@ -107,17 +107,39 @@ the existing upgrade test from version 1.
   progress dialog can be cancelled. Failures (offline, no article text, subscriber-only)
   offer **Open online**. Shared text without a link gets a short message.
 
+### Phase 4: implemented in v1.7 ✅
+
+- **Breaking Irish news alerts** (Settings, off by default). With alerts on, the background
+  sync runs hourly on any network (downloads still wait for Wi-Fi) and checks the top 5
+  stories of each enabled Irish outlet. A story is breaking when it is fresh (under 3 hours
+  old) and either at least two outlets lead with it, or one labels it "Breaking:". That
+  rule is chosen so a single feed reshuffling never alerts. A story alerts once: later
+  versions from other outlets match it by headline. The first check after switching on
+  only records what is already leading. At most two alerts are posted per check. Tapping an
+  alert opens the story's preview in the Newsstand. Android 13+ asks for the notification
+  permission when the switch is turned on; if it is refused, the setting stays off.
+- **Morning briefing.** A **Your briefing** card at the top of the unfiltered feed holds
+  each region's biggest unread stories: up to two each from Ireland, Europe and the world.
+  "Biggest" means covered by the most outlets among the region's first 12 stories.
+  **Play briefing** opens the first readable story, playing at once, and the rest follow
+  through Up next. Subscriber-only stories are skipped. **Show stories** lists the
+  headlines, each tappable to preview. In Settings, **Morning briefing** adds a daily
+  notification at a chosen time (5:30–10:00, default 7:00). The briefing's articles are
+  downloaded first, so it reads offline. The notification's **Speed-read** action starts
+  it directly.
+
 ### Later ideas
 
-- Notifications for breaking Irish headlines (opt-in), building on the background sync.
-- A morning "briefing" playlist: the top story of each enabled region, read back to back.
+The complete list of future concepts, for the Newsstand and the rest of the app, is in
+[`FUTURE_CONCEPTS.md`](FUTURE_CONCEPTS.md).
 
 ## 3. Quality bar
 
 - Every new action has a visible label or content description, and works with TalkBack
   and 200 % font scale.
 - No new network traffic happens without a user action, except downloading articles the
-  user explicitly saved.
+  user explicitly saved and the background features the user switched on (background
+  downloads, alerts, briefing).
 - Unit and Robolectric tests cover:
   - grouping (positive and negative examples taken from real headlines);
   - history (read, save, prune);

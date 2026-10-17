@@ -52,6 +52,10 @@ so your eyes stay still while you read.
     downloads on Wi-Fi;
   - a home-screen widget with the latest Irish headlines;
   - **Share → SpeedRead** from any browser or app to speed-read any web article.
+  - **Your briefing**: each region's biggest unread stories, played back to back, with an
+    optional daily notification at a time you choose (downloaded first, so it reads offline);
+  - optional **breaking Irish news** alerts when several Irish outlets lead with the same
+    new story.
   Subscriber-only articles always open on the outlet's site. Paywalled outlets (The Irish
   Times, Irish Examiner, NYT, FT…) and Reuters and AP (no public feeds) aren't included.
 - **Library.** A cover grid with progress, four sort orders, tap to read, and long-press to
@@ -72,12 +76,14 @@ so your eyes stay still while you read.
 - Material You theming with light, dark or system theme. Adjustable text size and font.
   TalkBack support throughout.
 
+Ideas for future versions are collected in [`docs/FUTURE_CONCEPTS.md`](docs/FUTURE_CONCEPTS.md).
+
 The full design (goals, architecture, data model, testing strategy, roadmap and risks) is in
 [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md).
 
 ## Install the APK
 
-1. Copy `SpeedRead-1.6.0-release.apk` to your phone (Android 8.0 or newer). The APK comes
+1. Copy `SpeedRead-1.7.0-release.apk` to your phone (Android 8.0 or newer). The APK comes
    from a [CI run's](../../actions) artifacts or from a local build (below).
 2. Open it and allow installs from that source when prompted.
 3. Tap **Import book** and pick an EPUB or PDF, or open the **News** tab. Public-domain EPUBs are available from
@@ -93,7 +99,7 @@ Requirements: JDK 17+ (JDK 21 recommended) and the Android SDK with platform 37
 (`ANDROID_HOME` or `local.properties`). The Gradle wrapper downloads everything else.
 
 ```bash
-./gradlew assembleRelease   # → app/build/outputs/apk/release/SpeedRead-1.6.0-release.apk
+./gradlew assembleRelease   # → app/build/outputs/apk/release/SpeedRead-1.7.0-release.apk
 ./gradlew assembleDebug     # → debug build (installs alongside release as "…speedread.debug")
 ./gradlew lint test         # static analysis + all unit, Robolectric and Compose UI tests
 ```

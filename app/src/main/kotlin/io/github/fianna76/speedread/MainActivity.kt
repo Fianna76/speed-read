@@ -19,6 +19,7 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.fianna76.speedread.data.settings.ThemeMode
 import io.github.fianna76.speedread.ui.navigation.NavigationRequest
+import io.github.fianna76.speedread.ui.news.BriefingRequest
 import io.github.fianna76.speedread.ui.navigation.SpeedReadNavigation
 import io.github.fianna76.speedread.ui.theme.SpeedReadTheme
 import io.github.fianna76.speedread.ui.theme.isDark
@@ -65,6 +66,8 @@ class MainActivity : ComponentActivity() {
     private fun handle(intent: Intent?) {
         when (intent?.action) {
             ACTION_OPEN_NEWS -> navigationRequest = NavigationRequest.OpenNews(previewUrl = intent.dataString)
+            ACTION_OPEN_BRIEFING -> navigationRequest = NavigationRequest.OpenNews(briefing = BriefingRequest.SHOW)
+            ACTION_PLAY_BRIEFING -> navigationRequest = NavigationRequest.OpenNews(briefing = BriefingRequest.PLAY)
             Intent.ACTION_SEND if intent.type == "text/plain" -> readSharedLink(intent)
             else -> importFrom(intent)
         }
@@ -95,6 +98,12 @@ class MainActivity : ComponentActivity() {
     companion object {
         /** Opens the Newsstand; the intent's data, if any, is a story to preview. */
         const val ACTION_OPEN_NEWS = "io.github.fianna76.speedread.action.OPEN_NEWS"
+
+        /** Opens the Newsstand with the briefing's headlines shown. */
+        const val ACTION_OPEN_BRIEFING = "io.github.fianna76.speedread.action.OPEN_BRIEFING"
+
+        /** Starts reading the briefing. */
+        const val ACTION_PLAY_BRIEFING = "io.github.fianna76.speedread.action.PLAY_BRIEFING"
 
         // Same scrims enableEdgeToEdge() uses for 3-button navigation by default.
         private val LIGHT_SCRIM = Color.argb(0xe6, 0xFF, 0xFF, 0xFF)
