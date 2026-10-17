@@ -6,7 +6,11 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 
-/** An imported book plus its reading position (one row per book). */
+/**
+ * An imported book, or a saved news article, plus its reading position (one row per book).
+ * Articles have format `ARTICLE` and a [sourceUrl]; they are read like books but listed only
+ * in the Newsstand.
+ */
 @Entity(
     tableName = "books",
     indices = [Index(value = ["content_hash"], unique = true)],
@@ -31,6 +35,8 @@ data class BookEntity(
     @ColumnInfo(name = "word_index") val wordIndex: Int = 0,
     /** Absolute position in the book in words; drives the progress shown in the library. */
     @ColumnInfo(name = "words_read") val wordsRead: Int = 0,
+    /** Web address of a news article (canonical form); `null` for books. Added in schema version 3. */
+    @ColumnInfo(name = "source_url") val sourceUrl: String? = null,
 )
 
 /** A readable section of a book (one spine document with text), in reading order. */

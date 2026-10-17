@@ -38,6 +38,8 @@ class SettingsViewModel(private val preferences: UserPreferencesRepository) : Vi
 
     fun setThemeMode(mode: ThemeMode) = launch { preferences.setThemeMode(mode) }
 
+    fun setNewsSourceEnabled(sourceId: String, enabled: Boolean) = launch { preferences.setNewsSourceEnabled(sourceId, enabled) }
+
     private fun launch(block: suspend () -> Unit) {
         viewModelScope.launch { block() }
     }

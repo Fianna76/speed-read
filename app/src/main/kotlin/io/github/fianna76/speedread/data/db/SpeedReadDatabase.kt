@@ -12,11 +12,13 @@ import androidx.room.RoomDatabase
  */
 @Database(
     entities = [BookEntity::class, ChapterEntity::class],
-    version = 2,
+    version = 3,
     exportSchema = true,
     autoMigrations = [
         // 1 → 2: books.format column (PDF support); existing rows default to EPUB.
         AutoMigration(from = 1, to = 2),
+        // 2 → 3: books.source_url column (Newsstand articles); existing rows are books (NULL).
+        AutoMigration(from = 2, to = 3),
     ],
 )
 abstract class SpeedReadDatabase : RoomDatabase() {

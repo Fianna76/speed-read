@@ -1,5 +1,7 @@
 package io.github.fianna76.speedread.data.settings
 
+import io.github.fianna76.speedread.news.NewsSource
+import io.github.fianna76.speedread.news.NewsSources
 import io.github.fianna76.speedread.rsvp.PlaybackSettings
 
 /** Everything the user can configure, with defaults for a fresh install. */
@@ -8,7 +10,11 @@ data class UserPreferences(
     val display: ReaderDisplay = ReaderDisplay(),
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val librarySort: LibrarySort = LibrarySort.RECENT,
-)
+    /** Ids of [NewsSources] the user switched off; new sources are on by default. */
+    val disabledNewsSources: Set<String> = emptySet(),
+) {
+    val enabledNewsSources: List<NewsSource> get() = NewsSources.ALL.filterNot { it.id in disabledNewsSources }
+}
 
 /** How words are rendered on the reading screen. */
 data class ReaderDisplay(

@@ -1,16 +1,35 @@
 package io.github.fianna76.speedread.data.db
 
+import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Transaction
 import kotlinx.coroutines.flow.Flow
 
+data class ArticleProgressRow(
+    @ColumnInfo(name = "source_url") val sourceUrl: String,
+    @ColumnInfo(name = "words_read") val wordsRead: Int,
+    @ColumnInfo(name = "total_words") val totalWords: Int,
+)
+
 @Dao
 interface BookDao {
 
-    @Query("SELECT * FROM books")
-    fun observeAll(): Flow<List<BookEntity>>
+    /** The library: imported books, without saved news articles. */
+    @Query("SELECT * FROM books WHERE format != 'ARTICLE'")
+    fun observeBooks(): Flow<List<BookEntity>>
+
+    /** Reading progress of saved news articles. */
+    @Query("SELECT source_url, words_read, total_words FROM books WHERE format = 'ARTICLE' AND source_url IS NOT NULL")
+    fun observeArticleProgress(): Flow<List<ArticleProgressRow>>
+
+    @Query("SELECT * FROM books WHERE format = 'ARTICLE' AND source_url = :url LIMIT 1")
+    suspend fun findArticle(url: String): BookEntity?
+
+    /** Saved articles not opened since [cutoff] (epoch millis). */
+    @Query("SELECT * FROM books WHERE format = 'ARTICLE' AND COALESCE(last_opened_at, added_at) < :cutoff")
+    suspend fun findArticlesOlderThan(cutoff: Long): List<BookEntity>
 
     @Query("SELECT * FROM books WHERE id = :id")
     suspend fun findById(id: Long): BookEntity?

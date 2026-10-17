@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import io.github.fianna76.speedread.rsvp.PlaybackSettings
 import io.github.fianna76.speedread.rsvp.WordsPerMinute
 import kotlinx.coroutines.flow.Flow
@@ -53,6 +54,11 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
 
     suspend fun setLibrarySort(sort: LibrarySort) = update { it[Keys.LIBRARY_SORT] = sort.name }
 
+    suspend fun setNewsSourceEnabled(sourceId: String, enabled: Boolean) = update {
+        val disabled = it[Keys.DISABLED_NEWS_SOURCES].orEmpty()
+        it[Keys.DISABLED_NEWS_SOURCES] = if (enabled) disabled - sourceId else disabled + sourceId
+    }
+
     private suspend fun update(block: (MutablePreferences) -> Unit) {
         dataStore.edit { block(it) }
     }
@@ -74,6 +80,7 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
             ),
             themeMode = enumOrDefault(this[Keys.THEME], defaults.themeMode),
             librarySort = enumOrDefault(this[Keys.LIBRARY_SORT], defaults.librarySort),
+            disabledNewsSources = this[Keys.DISABLED_NEWS_SOURCES] ?: defaults.disabledNewsSources,
         )
     }
 
@@ -90,6 +97,7 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
         val SHOW_CONTEXT = booleanPreferencesKey("show_context_when_paused")
         val THEME = stringPreferencesKey("theme_mode")
         val LIBRARY_SORT = stringPreferencesKey("library_sort")
+        val DISABLED_NEWS_SOURCES = stringSetPreferencesKey("disabled_news_sources")
     }
 
     private companion object {

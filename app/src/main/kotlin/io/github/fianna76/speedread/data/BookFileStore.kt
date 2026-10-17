@@ -29,16 +29,17 @@ class BookFileStore(filesDir: File) {
         chapterTextFile(bookFileName, href).takeIf { it.isFile }?.readLines()
     }.getOrNull()
 
-    /** Best effort: a failed write just means the text is extracted again next time. */
-    fun writeChapterText(bookFileName: String, href: String, paragraphs: List<String>) {
-        runCatching {
-            val file = chapterTextFile(bookFileName, href)
-            file.parentFile?.mkdirs()
-            val temp = File(file.parentFile, "${file.name}.tmp")
-            temp.writeText(paragraphs.joinToString("\n")) // Paragraphs never contain newlines.
-            if (!temp.renameTo(file)) temp.delete()
-        }
-    }
+    /**
+     * Returns whether the text was stored. For books a failed write just means the text is
+     * extracted again next time; articles have no other copy, so their callers check.
+     */
+    fun writeChapterText(bookFileName: String, href: String, paragraphs: List<String>): Boolean = runCatching {
+        val file = chapterTextFile(bookFileName, href)
+        file.parentFile?.mkdirs()
+        val temp = File(file.parentFile, "${file.name}.tmp")
+        temp.writeText(paragraphs.joinToString("\n")) // Paragraphs never contain newlines.
+        temp.renameTo(file).also { renamed -> if (!renamed) temp.delete() }
+    }.getOrDefault(false)
 
     private fun chapterTextFile(bookFileName: String, href: String): File =
         File(File(textCacheDir, bookFileName), href.replace(UNSAFE_FILE_CHARS, "_") + ".txt")

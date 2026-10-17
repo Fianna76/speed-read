@@ -37,6 +37,10 @@ data class ReaderUiState(
     val isLoading: Boolean = true,
     val error: ReaderError? = null,
     val title: String = "",
+    /** Web address of a news article, for "Open online"; `null` for books. */
+    val sourceUrl: String? = null,
+    /** Outlet of a news article (shown instead of the chapter title). */
+    val sourceName: String? = null,
     val chapters: List<Chapter> = emptyList(),
     /** Chapter whose text is loaded in the player. */
     val chapterIndex: Int = 0,
@@ -206,7 +210,14 @@ class ReaderViewModel(
             return
         }
         _uiState.update {
-            it.copy(title = book.title, chapters = chapters, totalWords = book.totalWords, showTapHint = book.wordsRead == 0)
+            it.copy(
+                title = book.title,
+                sourceUrl = book.sourceUrl,
+                sourceName = book.author.takeIf { book.sourceUrl != null },
+                chapters = chapters,
+                totalWords = book.totalWords,
+                showTapHint = book.wordsRead == 0,
+            )
         }
         books.markOpened(bookId)
         val chapterIndex = book.position.chapterIndex.coerceIn(0, chapters.lastIndex)

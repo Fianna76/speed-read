@@ -2,7 +2,7 @@ package io.github.fianna76.speedread.data
 
 import io.github.fianna76.speedread.data.pdf.PdfPageRange
 
-/** A book in the library, as presented to the UI. */
+/** A book in the library (or a saved news article), as presented to the UI. */
 data class Book(
     val id: Long,
     val title: String,
@@ -16,6 +16,8 @@ data class Book(
     /** Words before the reading position, across all chapters. */
     val wordsRead: Int,
     val format: BookFormat = BookFormat.EPUB,
+    /** Web address of a news article; `null` for books. */
+    val sourceUrl: String? = null,
 ) {
     /** Reading progress in `[0, 1]`. */
     val progress: Float

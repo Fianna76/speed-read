@@ -57,6 +57,8 @@ import io.github.fianna76.speedread.data.settings.UserPreferences
 import io.github.fianna76.speedread.rsvp.Tokenizer
 import io.github.fianna76.speedread.rsvp.WordsPerMinute
 import io.github.fianna76.speedread.ui.reader.RsvpWordView
+import io.github.fianna76.speedread.news.ArticleUrls
+import io.github.fianna76.speedread.news.NewsSources
 import io.github.fianna76.speedread.ui.theme.SpeedReadTheme
 import kotlin.math.roundToInt
 
@@ -77,6 +79,7 @@ fun SettingsScreen(
         onHighlightChange = viewModel::setHighlightFocusLetter,
         onShowContextChange = viewModel::setShowContextWhenPaused,
         onThemeModeChange = viewModel::setThemeMode,
+        onNewsSourceChange = viewModel::setNewsSourceEnabled,
     )
 }
 
@@ -94,6 +97,7 @@ fun SettingsContent(
     onShowContextChange: (Boolean) -> Unit,
     onThemeModeChange: (ThemeMode) -> Unit,
     modifier: Modifier = Modifier,
+    onNewsSourceChange: (sourceId: String, enabled: Boolean) -> Unit = { _, _ -> },
 ) {
     Scaffold(
         modifier = modifier,
@@ -175,6 +179,18 @@ fun SettingsContent(
                 label = { stringResource(it.labelRes()) },
                 onSelect = onThemeModeChange,
             )
+
+            SectionDivider()
+            SectionHeader(stringResource(R.string.settings_section_news))
+            AboutText(stringResource(R.string.settings_news_body))
+            NewsSources.ALL.forEach { source ->
+                SwitchSetting(
+                    title = source.name,
+                    summary = ArticleUrls.displayHost(source.homepage),
+                    checked = source.id !in preferences.disabledNewsSources,
+                    onCheckedChange = { enabled -> onNewsSourceChange(source.id, enabled) },
+                )
+            }
 
             SectionDivider()
             SectionHeader(stringResource(R.string.settings_section_about))

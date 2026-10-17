@@ -3,9 +3,11 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <!--
-        No permissions are required: books are picked through the Storage Access Framework
-        (or received via "Open with"/"Share") and copied into app-private storage.
+        Books need no permissions: they are picked through the Storage Access Framework (or
+        received via "Open with"/"Share") and copied into app-private storage. Internet access is
+        used only by the Newsstand, to fetch headline feeds and the articles the user opens.
     -->
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:name=".SpeedReadApplication"

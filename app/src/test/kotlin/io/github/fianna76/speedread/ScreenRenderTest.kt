@@ -12,17 +12,24 @@ import androidx.compose.ui.test.onRoot
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.github.fianna76.speedread.data.Chapter
 import io.github.fianna76.speedread.data.settings.UserPreferences
+import io.github.fianna76.speedread.news.NewsSources
 import io.github.fianna76.speedread.rsvp.PlayerState
 import io.github.fianna76.speedread.rsvp.Tokenizer
+import io.github.fianna76.speedread.testing.PHONE
+import io.github.fianna76.speedread.testing.TestNews
 import io.github.fianna76.speedread.testing.testBook
 import io.github.fianna76.speedread.ui.library.LibraryContent
 import io.github.fianna76.speedread.ui.library.LibraryUiState
+import io.github.fianna76.speedread.ui.navigation.TopLevelDestination
+import io.github.fianna76.speedread.ui.navigation.TopLevelNavigationBar
+import io.github.fianna76.speedread.ui.news.NewsstandActions
+import io.github.fianna76.speedread.ui.news.NewsstandContent
+import io.github.fianna76.speedread.ui.news.NewsstandUiState
 import io.github.fianna76.speedread.ui.reader.ReaderActions
 import io.github.fianna76.speedread.ui.reader.ReaderContent
 import io.github.fianna76.speedread.ui.reader.ReaderUiState
 import io.github.fianna76.speedread.ui.settings.SettingsContent
 import io.github.fianna76.speedread.ui.theme.SpeedReadTheme
-import io.github.fianna76.speedread.testing.PHONE
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -70,6 +77,7 @@ class ScreenRenderTest {
             state = LibraryUiState(isLoading = false, books = books),
             onImport = {}, onOpenBook = {}, onOpenSettings = {}, onSortChange = {}, onToggleSelection = {},
             onSelectAll = {}, onClearSelection = {}, onDeleteSelected = {}, onMessageShown = {},
+            bottomBar = { TopLevelNavigationBar(TopLevelDestination.LIBRARY) {} },
         )
     }
 
@@ -88,6 +96,63 @@ class ScreenRenderTest {
             state = LibraryUiState(isLoading = false),
             onImport = {}, onOpenBook = {}, onOpenSettings = {}, onSortChange = {}, onToggleSelection = {},
             onSelectAll = {}, onClearSelection = {}, onDeleteSelected = {}, onMessageShown = {},
+        )
+    }
+
+    private val now = 1_792_252_800_000L
+    private val newsUi = NewsstandUiState(
+        hasLoaded = true,
+        sources = NewsSources.ALL,
+        articles = TestNews.sampleArticles(now),
+        lastUpdated = now - 30_000,
+    )
+
+    @Test
+    fun newsstand() = capture("newsstand") {
+        NewsstandContent(
+            state = newsUi,
+            now = now,
+            actions = NewsstandActions(),
+            bottomBar = { TopLevelNavigationBar(TopLevelDestination.NEWS) {} },
+        )
+    }
+
+    @Test
+    fun newsstandFilteredAndPreparing() = capture("newsstand_filtered") {
+        NewsstandContent(
+            state = newsUi.copy(
+                selectedSourceId = "bbc",
+                articles = newsUi.articles.take(1),
+                failedSources = listOf(NewsSources.byId("bbc")!!),
+                preparingUrl = newsUi.articles.first().item.canonicalUrl,
+            ),
+            now = now,
+            actions = NewsstandActions(),
+        )
+    }
+
+    @Test
+    fun newsstandOffline() = capture("newsstand_offline") {
+        NewsstandContent(
+            state = NewsstandUiState(hasLoaded = true, sources = NewsSources.ALL, failedSources = NewsSources.ALL),
+            now = now,
+            actions = NewsstandActions(),
+        )
+    }
+
+    @Test
+    fun readerArticle() = capture("reader_article") {
+        ReaderContent(
+            readerUi.copy(
+                title = "Pope discharged from hospital days after lung cancer surgery",
+                sourceUrl = "https://www.bbc.co.uk/news/articles/c5x2vkddrkrko",
+                sourceName = "BBC News",
+                chapters = listOf(Chapter(0, null, "article", 412, 0)),
+                chapterIndex = 0,
+                totalWords = 412,
+            ),
+            PlayerState(text = paragraph, index = 13),
+            ReaderActions(),
         )
     }
 

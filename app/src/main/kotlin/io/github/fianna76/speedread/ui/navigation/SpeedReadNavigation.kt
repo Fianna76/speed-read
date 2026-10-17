@@ -10,6 +10,7 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import io.github.fianna76.speedread.ui.library.LibraryScreen
+import io.github.fianna76.speedread.ui.news.NewsstandScreen
 import io.github.fianna76.speedread.ui.reader.ReaderScreen
 import io.github.fianna76.speedread.ui.settings.SettingsScreen
 import kotlinx.serialization.Serializable
@@ -18,7 +19,11 @@ import kotlinx.serialization.Serializable
 @Serializable
 data object LibraryRoute : NavKey
 
-/** RSVP reader for one book. */
+/** Headlines from news outlets, to read online or with RSVP. */
+@Serializable
+data object NewsstandRoute : NavKey
+
+/** RSVP reader for one book (or saved news article). */
 @Serializable
 data class ReaderRoute(val bookId: Long) : NavKey
 
@@ -45,6 +50,14 @@ fun SpeedReadNavigation(modifier: Modifier = Modifier) {
                 LibraryScreen(
                     onOpenBook = { bookId -> backStack.navigate(ReaderRoute(bookId)) },
                     onOpenSettings = { backStack.navigate(SettingsRoute) },
+                    bottomBar = { TopLevelNavigationBar(TopLevelDestination.LIBRARY, backStack::navigateTopLevel) },
+                )
+            }
+            entry<NewsstandRoute> {
+                NewsstandScreen(
+                    onOpenBook = { bookId -> backStack.navigate(ReaderRoute(bookId)) },
+                    onOpenSettings = { backStack.navigate(SettingsRoute) },
+                    bottomBar = { TopLevelNavigationBar(TopLevelDestination.NEWS, backStack::navigateTopLevel) },
                 )
             }
             entry<ReaderRoute> { route ->
@@ -55,6 +68,18 @@ fun SpeedReadNavigation(modifier: Modifier = Modifier) {
             }
         },
     )
+}
+
+/**
+ * Switches section. The library always stays at the bottom of the stack, so Back from the
+ * Newsstand returns to it (and keeps its state) before leaving the app.
+ */
+private fun NavBackStack<NavKey>.navigateTopLevel(destination: TopLevelDestination) {
+    while (size > 1) removeAt(lastIndex)
+    when (destination) {
+        TopLevelDestination.LIBRARY -> Unit
+        TopLevelDestination.NEWS -> add(NewsstandRoute)
+    }
 }
 
 /** Pushes [route] unless it is already on top (guards against double taps). */

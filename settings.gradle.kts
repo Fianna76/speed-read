@@ -30,4 +30,5 @@ rootProject.name = "SpeedRead"
 
 include(":app")
 include(":core:epub")
+include(":core:news")
 include(":core:rsvp")

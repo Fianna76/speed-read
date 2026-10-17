@@ -2,10 +2,13 @@ package io.github.fianna76.speedread.data
 
 import java.io.File
 
-/** Supported book file formats. */
+/** Supported book file formats, plus web articles saved from the Newsstand. */
 enum class BookFormat(val extension: String) {
     EPUB("epub"),
     PDF("pdf"),
+
+    /** A news article; its text lives in the chapter text cache, not in a book file. */
+    ARTICLE("txt"),
     ;
 
     companion object {
@@ -18,6 +21,7 @@ enum class BookFormat(val extension: String) {
         /**
          * Identifies a file by its content rather than its name or MIME type, which document
          * providers often get wrong (e.g. reporting EPUBs as `application/octet-stream`).
+         * Returns [EPUB], [PDF] or `null`; never [ARTICLE].
          */
         fun sniff(file: File): BookFormat? {
             val header = ByteArray(PDF_HEADER_WINDOW)

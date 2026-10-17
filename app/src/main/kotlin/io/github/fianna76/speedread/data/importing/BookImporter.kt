@@ -69,6 +69,7 @@ class BookImporter(
             val analysis = when (format) {
                 BookFormat.EPUB -> EpubArchive.open(temp).use { archive -> analyzeEpub(archive) }
                 BookFormat.PDF -> openPdf(temp).use { pdf -> analyzePdf(pdf, bookFileName) }
+                BookFormat.ARTICLE -> error("Files are never identified as articles")
             }
             if (analysis.chapters.isEmpty()) return@withContext ImportResult.Failed(displayName, ImportError.NO_TEXT)
 
@@ -79,6 +80,7 @@ class BookImporter(
             val coverSaved = when (format) {
                 BookFormat.EPUB -> analysis.coverBytes?.let { saveCover(it, files.coverFile(coverFileName)) } == true
                 BookFormat.PDF -> renderPdfCover(target, files.coverFile(coverFileName))
+                BookFormat.ARTICLE -> false
             }
             storedCover = coverFileName.takeIf { coverSaved }
 

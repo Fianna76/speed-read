@@ -16,8 +16,8 @@ import io.github.fianna76.speedread.data.Chapter
 import io.github.fianna76.speedread.rsvp.PlayerState
 import io.github.fianna76.speedread.rsvp.Tokenizer
 import io.github.fianna76.speedread.ui.theme.SpeedReadTheme
-import org.junit.Assert.assertEquals
 import io.github.fianna76.speedread.testing.PHONE
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -35,8 +35,8 @@ class ReaderContentTest {
     private val ui = ReaderUiState(
         isLoading = false,
         title = "A Book",
-        chapters = listOf(Chapter(0, "Opening", "c0.xhtml", text.size, 0)),
-        totalWords = text.size,
+        chapters = listOf(Chapter(0, "Opening", "c0.xhtml", text.size, 0), Chapter(1, "Closing", "c1.xhtml", 10, text.size)),
+        totalWords = text.size + 10,
     )
 
     private fun setContent(ui: ReaderUiState, player: PlayerState, actions: ReaderActions = ReaderActions()) =
@@ -54,7 +54,26 @@ class ReaderContentTest {
 
         compose.onNodeWithContentDescription("brave").assertExists()
         compose.onNodeWithText("Opening").assertIsDisplayed()
-        compose.onNodeWithText(context.getString(R.string.reader_chapter_position, 1, 1)).assertIsDisplayed()
+        compose.onNodeWithText(context.getString(R.string.reader_chapter_position, 1, 2)).assertIsDisplayed()
+    }
+
+    @Test
+    fun articlesShowTheirOutletAndLinkToTheOriginal() {
+        var opened: String? = null
+        val article = ui.copy(
+            title = "Big story",
+            sourceUrl = "https://news.example/story",
+            sourceName = "Example News",
+            chapters = listOf(Chapter(0, null, "article", text.size, 0)),
+            totalWords = text.size,
+        )
+        setContent(article, PlayerState(text = text, index = 1), ReaderActions(onOpenOnline = { opened = it }))
+
+        compose.onNodeWithText("Example News").assertIsDisplayed()
+        compose.onNodeWithText(context.resources.getQuantityString(R.plurals.reader_article_words, 4, 4)).assertIsDisplayed()
+        compose.onNodeWithContentDescription(context.getString(R.string.reader_chapters)).assertDoesNotExist()
+        compose.onNodeWithContentDescription(context.getString(R.string.news_open_online)).performClick()
+        assertEquals("https://news.example/story", opened)
     }
 
     @Test

@@ -5,7 +5,7 @@ SpeedRead is an Android e-reader for EPUB and PDF books that uses **Rapid Serial
 *optimal recognition point* (ORP), so the eyes don't have to travel across lines and pages.
 
 This document is the plan for the app. The repository already contains a working
-first release (v1.0.0) built from it, plus PDF support added in v1.1.0. §6 marks what is done and what comes next.
+first release (v1.0.0) built from it, plus PDF support added in v1.1.0 and the Newsstand in v1.2.0. §6 marks what is done and what comes next.
 
 ---
 
@@ -19,12 +19,15 @@ first release (v1.0.0) built from it, plus PDF support added in v1.1.0. §6 mark
 | R4 | Easy single-tap controls: pause, skip forward and back | Three invisible tap zones over the text: left = previous sentence, centre = play/pause, right = next sentence. A transport bar repeats them and adds previous/next chapter. | ✅ |
 | R5 | Best practices | Modular architecture, unidirectional data flow, tests at every layer, lint-clean, CI, R8, privacy by default. See §4–§5. | ✅ |
 | R7 | PDF support (added after v1.0) | Text-based PDFs import through the same paths. Chapters come from the PDF outline (bookmarks), or from 10-page sections. Line wrapping, hyphenation and page numbers are cleaned up. Password-protected and scanned (image-only) PDFs are rejected with a clear reason. The cover is the rendered first page. | ✅ |
+| R8 | Newsstand (added after v1.1) | Top stories from Al Jazeera, BBC News, DW, The Guardian, France 24, NPR, ABC News (Australia), CBC News and PBS NewsHour, using each outlet's free public RSS feed. Each story shows a preview (outlet, age, headline, teaser, thumbnail, plus a detail sheet). Every story can be opened online (Custom Tab) or read in the app with RSVP: the page's story text is extracted reader-mode style. Sources can be switched on and off. Reuters and AP are not included because neither offers a public feed and both block automated access (§7). | ✅ |
 | R6 | Deliverable: one packaged `.apk` | A signed, R8-minified release APK built with `./gradlew assembleRelease`. | ✅ |
 
 ### Non-functional goals
 
-- **Privacy.** No `INTERNET` permission, no analytics. Books are copied into app-private
-  storage, and cloud backups include preferences only.
+- **Privacy.** No analytics or tracking. Books never leave the device: they are copied into
+  app-private storage, and cloud backups include preferences only. The `INTERNET`
+  permission (added in v1.2) is used only by the Newsstand to fetch feeds, thumbnails and
+  the articles the user opens.
 - **Reading quality.** Accurate timing: a deadline-based scheduler, so speed doesn't drift.
   Words draw without jitter, in one draw pass with no layout pass. Pacing adapts to
   punctuation, long words and numbers.
@@ -38,7 +41,8 @@ first release (v1.0.0) built from it, plus PDF support added in v1.1.0. §6 mark
 ### Out of scope for v1
 
 DRM-protected books (Adobe ADEPT, Readium LCP), OCR for scanned PDFs, MOBI/AZW3, cloud sync, text-to-speech,
-annotations, CJK word segmentation, right-to-left ORP tuning.
+annotations, CJK word segmentation, right-to-left ORP tuning, paywalled or sign-in-only news,
+user-added feeds.
 
 ---
 
@@ -47,10 +51,16 @@ annotations, CJK word segmentation, right-to-left ORP tuning.
 ### 2.1 Screens and flows
 
 ```
+   bottom bar: Library | News
  ┌──────────────┐  tap book   ┌──────────────┐  ☰   ┌───────────────┐
  │   Library    │ ──────────▶ │    Reader    │ ───▶ │ Chapter sheet │
  │  (grid)      │ ◀────────── │   (RSVP)     │      └───────────────┘
- └──────┬───────┘    back     └──────────────┘
+ └──────┬───────┘    back     └──────▲───────┘
+        │                  Speed-read │        ↗ Open online (Custom Tab)
+ ┌──────┴───────┐  tap card  ┌───────┴──────┐ ─┘
+ │  Newsstand   │ ─────────▶ │ Preview sheet│
+ │ (headlines)  │            └──────────────┘
+ └──────┬───────┘
         │ ⚙
         ▼
  ┌──────────────┐     Other apps ──"Open with"/"Share"──▶ import queue ──▶ Library
@@ -63,6 +73,13 @@ annotations, CJK word segmentation, right-to-left ORP tuning.
   ("2 selected", select all, delete). The import FAB opens the system picker. Import
   progress and results show as a banner and snackbars, and a successful import's snackbar
   has a **Read** action.
+- **Newsstand.** Source filter chips ("All" plus each enabled outlet), "Updated 5 min. ago"
+  or a note naming unreachable outlets, then headline cards: outlet and age, headline,
+  teaser, thumbnail, reading progress for started articles, and two buttons, **Speed-read**
+  ("Continue" once started) and **Open online**. Tapping a card opens a preview sheet with
+  a large image, byline, full teaser and the same two actions. Pull to refresh. Empty,
+  offline and all-sources-off states each say what to do. Articles that can't be read in
+  the app (video or live pages, network errors) get a snackbar with an **Open online** action.
 - **Reader.** The word strip sits in the middle, with tap zones over the whole reading
   area. While paused, the surrounding sentence is shown with the current word highlighted.
   The bottom panel holds chapter progress, "43% · 4 hr, 40 min left", the speed slider and
@@ -122,8 +139,11 @@ annotations, CJK word segmentation, right-to-left ORP tuning.
 | State | ViewModel + `StateFlow`, UI state as immutable data classes, one-off messages modelled as state | Unidirectional data flow, survives configuration changes |
 | Persistence | Room 2.8 (exported schemas) for the library; DataStore Preferences for settings | Transactional, observable storage; schemas ready for migrations |
 | EPUB parsing | Own parser on `java.util.zip` + jsoup 1.23 (lenient XML/HTML) | Small, testable on the JVM; full libraries such as Readium are overkill for text extraction |
-| PDF text | PdfBox-Android 2.0.27 (text extraction, outline); platform `PdfRenderer` for covers | Android has no built-in PDF text API; PdfBox is the established open-source extractor. Unused Bouncy Castle data tables are stripped from the APK (3.8 MB total) |
-| Images | Coil 3 | Async, cached cover thumbnails in Compose |
+| PDF text | PdfBox-Android 2.0.27 (text extraction, outline); platform `PdfRenderer` for covers | Android has no built-in PDF text API; PdfBox is the established open-source extractor. Unused Bouncy Castle data tables are stripped from the APK (4.1 MB total with the Newsstand) |
+| Images | Coil 3 (OkHttp network fetcher) | Async, cached cover and news thumbnails in Compose |
+| Networking | OkHttp 5 (shared client, disk cache, timeouts, 5 MB response cap) | The standard Android HTTP client; one connection pool for feeds, articles and images |
+| News parsing | jsoup (XML parser for RSS 2.0 / RDF / Atom; HTML for articles) | Already a dependency; lenient with real-world feeds and pages |
+| Open online | AndroidX Browser (Custom Tabs) | The user's own browser with their sign-ins and settings, on top of the app |
 | DI | Manual `AppContainer` | No codegen for a graph this small; the constructor-injected classes can move to Hilt unchanged |
 | Testing | JUnit 4, kotlinx-coroutines-test (virtual time), Robolectric 4.17, Compose UI test | Fast tests on the JVM at every layer, including UI, with no device required |
 | Release | R8 full-mode shrinking, resource shrinking, optimized ProGuard defaults | Smaller APK, obfuscated code |
@@ -135,8 +155,9 @@ annotations, CJK word segmentation, right-to-left ORP tuning.
 ### 4.1 Modules
 
 ```
-:app         Android application: UI (Compose), ViewModels, data layer (Room, DataStore, files), DI
+:app         Android application: UI (Compose), ViewModels, data layer (Room, DataStore, files, HTTP), DI
 :core:epub   Pure Kotlin/JVM: EPUB container/package/TOC parsing, XHTML → paragraphs
+:core:news   Pure Kotlin/JVM: news source catalogue, RSS/Atom parsing, article text extraction
 :core:rsvp   Pure Kotlin/JVM: tokenizer, ORP, pacing, coroutine-driven RsvpPlayer
 ```
 
@@ -214,6 +235,41 @@ Steps 1, 2 and 7 are shared with EPUB. The format is identified from the file's 
   defaults existing rows to `EPUB`, and a test upgrades a real version-1 database built
   from the exported schema.
 
+### 4.3.2 Newsstand pipeline
+
+- **Sources.** `NewsSources.ALL` (`:core:news`) lists each outlet's top-stories RSS feed,
+  homepage and an optional CSS hint for its article body. Every source must publish a free
+  public feed and serve articles without a paywall. Feed URLs are verified to answer an
+  app user agent.
+- **Headlines.** `NewsRepository` fetches enabled sources in parallel. Each source fails
+  independently: its older headlines are kept and it is named in the status line. Items
+  that are video, audio, galleries or live blogs (by URL path) are dropped, because there
+  is nothing to speed-read. Up to 20 items per source are kept. "All" interleaves outlets
+  by feed position (every outlet's lead story first), so one busy feed can't crowd out the
+  rest. Headlines are cached as JSON, so the screen opens instantly and offline. Feeds
+  refresh when older than 15 minutes, on pull, or on demand.
+- **Article text.** `ArticleExtractor` works like a reader mode:
+  1. Strip page chrome: navigation, figures and captions, sharing, related links,
+     screen-reader-only labels, timestamps, video players and promos.
+  2. Choose the body. The source's selector is used if it yields ≥ 60 words. Otherwise
+     paragraphs are scored (length and commas) towards their parent and, at half weight,
+     their grandparent, and the winner widens to an ancestor holding ≥ 1.25× more story
+     text (for sites that wrap each paragraph separately).
+  3. Collect the innermost `p`/`h2–h4`/`blockquote`/`li`, minus link-heavy blocks and
+     known boilerplate ("Edited by", newsletter or donation pleas).
+  4. Pages under 60 words are rejected as "no article text".
+
+  On the nine launch sources, the generic path and the hinted path produce identical text.
+- **Reading.** A story opened in the app is saved as a hidden `ARTICLE` row in `books`.
+  It has one chapter, its text sits in the chapter text cache, and `source_url` holds the
+  canonical URL with tracking parameters stripped. The existing reader, position saving and
+  progress therefore work unchanged. The library query excludes articles, the Newsstand
+  shows their progress by URL, and articles not opened for 30 days are pruned.
+- **Network etiquette.** The User-Agent is browser-compatible but names the app
+  (`Mozilla/5.0 (Linux; Android …) SpeedRead/1.2.0`); one firewall rejects anything else.
+  Pages are fetched only when the user asks to read them. Requests use 15 s connect /
+  45 s call timeouts and a 5 MB response cap, and are cancelled with their screen.
+
 ### 4.4 RSVP engine (`:core:rsvp`)
 
 - **`Tokenizer`.** Splits on Unicode whitespace and after em/en dashes inside tokens, and
@@ -234,20 +290,25 @@ Steps 1, 2 and 7 are shared with EPUB. The format is identified from the file's 
 | Table `books` | | Table `chapters` | |
 |---|---|---|---|
 | `id` PK | autoincrement | `book_id` FK → books (cascade) | composite PK with `chapter_index` |
-| `title`, `author`, `language`, `format` | metadata; `format` = `EPUB`/`PDF` (v2) | `chapter_index` | reading order |
+| `title`, `author`, `language`, `format` | metadata; `format` = `EPUB`/`PDF` (v2)/`ARTICLE` (v3) | `chapter_index` | reading order |
 | `file_name`, `cover_file_name` | app-private files | `title` | from TOC/heading, nullable |
 | `content_hash` | unique, dedupe | `href` | EPUB document path, or PDF `pages:<start>-<end>` |
 | `total_words` | | `word_count`, `start_word` | for book-level progress |
 | `added_at`, `last_opened_at` | sorting | | |
 | `chapter_index`, `word_index`, `words_read` | reading position | | |
+| `source_url` | news article's canonical URL (v3), `NULL` for books | | |
 
 Settings live in DataStore Preferences (`files/datastore/settings.preferences_pb`): wpm,
-smart pacing, gentle start, font size, font, highlight, context, theme, library sort.
+smart pacing, gentle start, font size, font, highlight, context, theme, library sort,
+disabled news sources. Headlines are cached in `cache/news/headlines.json`, and HTTP
+responses in `cache/http/`.
 
 ### 4.6 Security and privacy
 
 - No runtime permissions. Files come in only through the Storage Access Framework or
-  intents with temporary URI grants.
+  intents with temporary URI grants. `INTERNET` (install-time) serves the Newsstand only.
+  Traffic is HTTPS (cleartext is disabled by default at this target SDK), and no
+  identifiers, cookies or analytics are sent.
 - Archive entries are read into memory by name and never extracted, so zip-slip can't
   happen. Entry count and inflated sizes are capped against decompression bombs.
 - jsoup never resolves DTDs or external entities, so parsing is safe from XXE.
@@ -264,7 +325,9 @@ smart pacing, gentle start, font size, font, highlight, context, theme, library 
 |---|---|---|
 | Core logic (JVM) | JUnit 4 | EPUB 2/3 parsing, fallbacks, DRM detection, size limits, XHTML extraction (entities, footnotes, ruby, soft hyphens), tokenizer, ORP (Unicode), pacing, PDF text clean-up, format sniffing |
 | PDF import | Robolectric + PDFs generated with PdfBox | Outline chapters with front matter, 10-page sections, password-protected, scanned and damaged files, chapter text by page range |
-| Migrations | Robolectric + real SQLite | A version-1 database built from `app/schemas/…/1.json` opens with the v2 code |
+| Migrations | Robolectric + real SQLite | A version-1 database built from `app/schemas/…/1.json` opens with the current code (1→2→3) |
+| News (JVM) | JUnit 4 | RSS 2.0/Atom parsing (media images, HTML teasers, zone-name dates, non-article links, limits), URL canonicalisation, article extraction (chrome removal, block-wrapped stories, source hints, title suffixes, rejection) |
+| News (app) | Robolectric + MockWebServer + fakes | HTTP client (UA, errors, size cap); feed refresh, failure isolation, staleness, cache restart; saving articles, re-use, progress, failures, pruning; Newsstand ViewModel and UI (cards, preview sheet, filters, preparing, snackbar, empty/offline states) |
 | Playback timing | kotlinx-coroutines-test (virtual time) | Exact word timing, pause, speed changes, ramp-up, sentence skips, end-of-text |
 | Data layer | Robolectric + in-memory Room + real files | Import (success, duplicate, invalid, DRM, no text, unreadable, cover thumbnail), repository, preferences |
 | ViewModels | Robolectric + fakes + virtual time | Library sorting, selection, deletion, import messages; reader position restore, chapter auto-advance, skips across chapters, finishing, speed persistence, error and retry |
@@ -273,7 +336,7 @@ smart pacing, gentle start, font size, font, highlight, context, theme, library 
 | Rendering | Robolectric native graphics | Every screen renders in light and dark themes; PNGs saved for review |
 | Static analysis | Android Lint (`abortOnError`, dependencies checked) | Currently zero warnings |
 | CI | GitHub Actions | Lint + all tests + release APK uploaded as a build artifact on every push and PR |
-| Release smoke test | R8-minified APK on an Android 9 (API 28) emulator, with real Project Gutenberg EPUBs | Picker multi-import (including an invalid file), "Open with", duplicate detection, real covers, reading with tap zones, chapter jumps, speed changes, delete, live theme switch, restore after process death, upgrade install keeping data |
+| Release smoke test | R8-minified APK on an Android 9 (API 28) emulator, with real Project Gutenberg EPUBs and live news feeds | Picker multi-import (including an invalid file), "Open with", duplicate detection, real covers, reading with tap zones, chapter jumps, speed changes, delete, live theme switch, restore after process death, upgrade install keeping data (1.1 → 1.2); Newsstand with live feeds and thumbnails, filters, preview sheet, Open online, speed-reading a live BBC article |
 
 **Manual QA matrix before a store release.** API 26, 30, 34 and 37. A small phone, a large
 phone and a tablet. Light and dark themes. TalkBack. 200% font scale. A corpus of
@@ -306,7 +369,10 @@ without covers, large books).
 8. Hardware controls: volume keys, Bluetooth page turners. Optional haptics.
 9. CJK segmentation (ICU `BreakIterator`), RTL ORP mirroring, more languages
    (strings are already externalised).
-10. Platform: Hilt if the graph grows, convention plugins in `build-logic`, Roborazzi screenshot diffs.
+10. News: share any web link to SpeedRead to speed-read it, user-added RSS feeds, per-topic
+    feeds (world, business, science), offline pre-download of top stories, Reuters/AP if
+    they ever offer a licensed feed.
+11. Platform: Hilt if the graph grows, convention plugins in `build-logic`, Roborazzi screenshot diffs.
 
 ---
 
@@ -322,6 +388,9 @@ without covers, large books).
 | Large books, memory pressure | Slow chapter loads, OOM | Lazy per-chapter extraction; bounded reads; down-sampled covers |
 | R8 breaking reflection (Navigation 3 restores keys by class name) | Crash after process death in release builds | Explicit keep rule for `NavKey` routes; restore verified on an emulator with the minified APK; repeat on physical devices in phase 3 |
 | Yearly target-API policy changes | Store delisting | Bump `targetSdk` each year; catalog-managed versions |
+| News sites change their layouts or feeds | A source shows no headlines, or articles extract badly | Generic extraction doesn't depend on site hints; per-source failures are isolated and shown; "Open online" always works; a fixture-free probe against live pages is part of release QA |
+| Outlets' terms on automated access | A source asks not to be fetched | Only public RSS feeds are used; pages are fetched once per user request, like a browser's reader mode; sources can be removed from the catalogue (or switched off by users) |
+| Reuters and AP have no free feeds | Users ask for them | Documented in-app (source list) and here; they can be added if a licensed feed becomes available |
 
 ---
 
@@ -329,11 +398,11 @@ without covers, large books).
 
 ```bash
 ./gradlew lint test        # static analysis + all JVM/Robolectric tests
-./gradlew assembleDebug    # app/build/outputs/apk/debug/SpeedRead-1.0.0-debug.apk
-./gradlew assembleRelease  # app/build/outputs/apk/release/SpeedRead-1.0.0-release.apk
+./gradlew assembleDebug    # app/build/outputs/apk/debug/SpeedRead-1.2.0-debug.apk
+./gradlew assembleRelease  # app/build/outputs/apk/release/SpeedRead-1.2.0-release.apk
 ```
 
-- **Versioning.** Semantic `versionName` (`1.0.0`) and a monotonically increasing
+- **Versioning.** Semantic `versionName` (`1.2.0`) and a monotonically increasing
   `versionCode`.
 - **Signing.** Put `storeFile`, `storePassword`, `keyAlias` and `keyPassword` in
   `keystore.properties`, or set the `SPEEDREAD_KEYSTORE_*` / `SPEEDREAD_KEY_*` environment

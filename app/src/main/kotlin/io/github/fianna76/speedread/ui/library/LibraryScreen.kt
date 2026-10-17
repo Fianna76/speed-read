@@ -75,6 +75,7 @@ private val BOOK_MIME_TYPES = arrayOf("application/epub+zip", "application/pdf",
 fun LibraryScreen(
     onOpenBook: (Long) -> Unit,
     onOpenSettings: () -> Unit,
+    bottomBar: @Composable () -> Unit = {},
     viewModel: LibraryViewModel = viewModel(factory = LibraryViewModel.Factory),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -92,6 +93,7 @@ fun LibraryScreen(
         onClearSelection = viewModel::clearSelection,
         onDeleteSelected = viewModel::deleteSelected,
         onMessageShown = viewModel::onMessageShown,
+        bottomBar = bottomBar,
     )
 }
 
@@ -108,6 +110,7 @@ fun LibraryContent(
     onDeleteSelected: () -> Unit,
     onMessageShown: (Long) -> Unit,
     modifier: Modifier = Modifier,
+    bottomBar: @Composable () -> Unit = {},
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
@@ -148,6 +151,7 @@ fun LibraryContent(
                 )
             }
         },
+        bottomBar = bottomBar,
         snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize()) {

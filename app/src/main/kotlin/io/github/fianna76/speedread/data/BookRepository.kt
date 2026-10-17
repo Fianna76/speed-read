@@ -45,7 +45,7 @@ class OfflineBookRepository(
 ) : BookRepository {
 
     override fun observeBooks(): Flow<List<Book>> =
-        dao.observeAll().map { entities -> entities.map { it.toBook() } }
+        dao.observeBooks().map { entities -> entities.map { it.toBook() } }
 
     override suspend fun getBook(id: Long): Book? = dao.findById(id)?.toBook()
 
@@ -58,6 +58,8 @@ class OfflineBookRepository(
             BookFormat.EPUB -> EpubArchive.open(file).use { archive ->
                 XhtmlTextExtractor.extract(archive.readBytes(chapter.href)).paragraphs
             }
+            BookFormat.ARTICLE -> files.readChapterText(entity.fileName, chapter.href)
+                ?: throw IOException("Text of article $bookId is missing")
             BookFormat.PDF -> files.readChapterText(entity.fileName, chapter.href) ?: run {
                 val pages = PdfPageRange.fromHref(chapter.href) ?: throw IOException("Bad page range ${chapter.href}")
                 pdfBooks.open(file).use { it.paragraphs(pages) }
@@ -95,6 +97,7 @@ class OfflineBookRepository(
         position = ReadingPosition(chapterIndex, wordIndex),
         wordsRead = wordsRead,
         format = BookFormat.fromStored(format),
+        sourceUrl = sourceUrl,
     )
 
     private fun ChapterEntity.toChapter() = Chapter(

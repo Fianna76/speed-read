@@ -1,5 +1,6 @@
 package io.github.fianna76.speedread.data.settings
 
+import io.github.fianna76.speedread.news.NewsSources
 import io.github.fianna76.speedread.rsvp.PlaybackSettings
 import io.github.fianna76.speedread.testing.testPreferences
 import kotlinx.coroutines.flow.first
@@ -48,6 +49,20 @@ class UserPreferencesRepositoryTest {
             ),
             repository.preferences.first(),
         )
+    }
+
+    @Test
+    fun `news sources can be switched off and on`() = runTest {
+        val repository = testPreferences(tmp.root, backgroundScope)
+        assertEquals(NewsSources.ALL, repository.preferences.first().enabledNewsSources)
+
+        repository.setNewsSourceEnabled("bbc", false)
+        repository.setNewsSourceEnabled("dw", false)
+        repository.setNewsSourceEnabled("bbc", true)
+
+        val prefs = repository.preferences.first()
+        assertEquals(setOf("dw"), prefs.disabledNewsSources)
+        assertEquals(NewsSources.ALL.filterNot { it.id == "dw" }, prefs.enabledNewsSources)
     }
 
     @Test

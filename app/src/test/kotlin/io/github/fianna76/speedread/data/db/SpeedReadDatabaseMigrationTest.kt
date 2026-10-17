@@ -9,13 +9,15 @@ import kotlinx.coroutines.test.runTest
 import org.json.JSONObject
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
 
 /**
  * Upgrades a database created from the exported version 1 schema (`app/schemas/`) with the
- * current code, proving existing libraries survive the update to PDF support.
+ * current code (through every migration), proving existing libraries survive the updates for
+ * PDF support and the Newsstand.
  */
 @RunWith(AndroidJUnit4::class)
 class SpeedReadDatabaseMigrationTest {
@@ -29,7 +31,7 @@ class SpeedReadDatabaseMigrationTest {
     }
 
     @Test
-    fun `version 1 libraries upgrade with books marked as EPUB`() = runTest {
+    fun `version 1 libraries upgrade with books marked as EPUB and no source URL`() = runTest {
         createVersion1Database()
 
         val database = Room.databaseBuilder(context, SpeedReadDatabase::class.java, name).build()
@@ -37,6 +39,7 @@ class SpeedReadDatabaseMigrationTest {
             val book = database.bookDao().findById(1)!!
             assertEquals("Old Book", book.title)
             assertEquals("EPUB", book.format)
+            assertNull(book.sourceUrl)
             assertEquals(42, book.wordsRead)
             assertEquals(1, database.bookDao().chaptersOf(1).size)
         } finally {

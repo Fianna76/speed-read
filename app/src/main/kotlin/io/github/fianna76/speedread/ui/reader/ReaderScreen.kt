@@ -34,8 +34,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -54,6 +56,7 @@ import io.github.fianna76.speedread.data.Chapter
 import io.github.fianna76.speedread.rsvp.ContextWindow
 import io.github.fianna76.speedread.rsvp.PlayerState
 import io.github.fianna76.speedread.rsvp.Tokenizer
+import io.github.fianna76.speedread.ui.news.openInBrowser
 import io.github.fianna76.speedread.ui.theme.SpeedReadTheme
 import java.text.NumberFormat
 import kotlin.math.roundToInt
@@ -66,6 +69,7 @@ fun ReaderScreen(
 ) {
     val ui by viewModel.uiState.collectAsStateWithLifecycle()
     val player by viewModel.playerState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.onBackgrounded() }
     KeepScreenOn(player.isPlaying)
@@ -86,6 +90,10 @@ fun ReaderScreen(
             onChangeWordsPerMinuteBy = viewModel::changeWordsPerMinuteBy,
             onRestart = viewModel::restartBook,
             onRetry = viewModel::retry,
+            onOpenOnline = { url ->
+                viewModel.onBackgrounded() // Pause and save before leaving for the browser.
+                context.openInBrowser(url)
+            },
         ),
     )
 }
@@ -104,6 +112,7 @@ class ReaderActions(
     val onChangeWordsPerMinuteBy: (Int) -> Unit = {},
     val onRestart: () -> Unit = {},
     val onRetry: () -> Unit = {},
+    val onOpenOnline: (String) -> Unit = {},
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -127,9 +136,9 @@ fun ReaderContent(ui: ReaderUiState, player: PlayerState, actions: ReaderActions
                 title = {
                     Column {
                         Text(ui.title, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        ui.chapter?.let { chapter ->
+                        (ui.sourceName ?: ui.chapter?.displayTitle())?.let { subtitle ->
                             Text(
-                                text = chapter.displayTitle(),
+                                text = subtitle,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
@@ -139,8 +148,16 @@ fun ReaderContent(ui: ReaderUiState, player: PlayerState, actions: ReaderActions
                     }
                 },
                 actions = {
-                    IconButton(onClick = { showChapters = true }, enabled = ui.chapters.isNotEmpty()) {
-                        Icon(painterResource(R.drawable.ic_toc), stringResource(R.string.reader_chapters))
+                    val sourceUrl = ui.sourceUrl
+                    if (sourceUrl != null) {
+                        // Articles are a single section: offer the original page instead of a contents list.
+                        IconButton(onClick = { actions.onOpenOnline(sourceUrl) }) {
+                            Icon(painterResource(R.drawable.ic_open_in_new), stringResource(R.string.news_open_online))
+                        }
+                    } else {
+                        IconButton(onClick = { showChapters = true }, enabled = ui.chapters.isNotEmpty()) {
+                            Icon(painterResource(R.drawable.ic_toc), stringResource(R.string.reader_chapters))
+                        }
                     }
                 },
             )
@@ -196,11 +213,11 @@ fun ReaderContent(ui: ReaderUiState, player: PlayerState, actions: ReaderActions
                 val percent = (progress.bookFraction * 100).roundToInt()
                 val timeLeft = formatDuration(progress.bookMillisLeft) ?: stringResource(R.string.reader_less_than_a_minute)
                 ReaderControls(
-                    chapterLabel = if (ui.chapters.isEmpty()) "" else stringResource(
-                        R.string.reader_chapter_position,
-                        ui.chapterIndex + 1,
-                        ui.chapters.size,
-                    ),
+                    chapterLabel = when {
+                        ui.sourceUrl != null -> pluralStringResource(R.plurals.reader_article_words, ui.totalWords, ui.totalWords)
+                        ui.chapters.size <= 1 -> ""
+                        else -> stringResource(R.string.reader_chapter_position, ui.chapterIndex + 1, ui.chapters.size)
+                    },
                     progressLabel = if (ui.isFinished) {
                         stringResource(R.string.book_finished)
                     } else {
