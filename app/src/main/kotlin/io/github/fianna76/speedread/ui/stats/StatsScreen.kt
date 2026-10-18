@@ -35,6 +35,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -65,7 +66,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import java.text.NumberFormat
 import java.time.format.TextStyle
-import java.util.Locale
 
 class StatsViewModel(stats: ReadingStats) : ViewModel() {
     /** `null` until loaded. */
@@ -211,7 +211,7 @@ private fun WeekChart(week: List<ReadingDay>) {
     val baseline = MaterialTheme.colorScheme.outlineVariant
     val labelStyle = MaterialTheme.typography.labelMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
     val valueStyle = MaterialTheme.typography.labelLarge.copy(color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
-    val locale = Locale.getDefault()
+    val locale = LocalConfiguration.current.locales[0]
     val days = week.map { it.date.dayOfWeek.getDisplayName(TextStyle.SHORT, locale) }
     val description = stringResource(R.string.stats_week_chart) + ": " +
         week.indices.joinToString(", ") { "${days[it]} ${numbers.format(week[it].words)}" }

@@ -1,0 +1,3 @@
+• Reading statistics: streaks, a 7-day chart, average speed and time saved.
+• Highlights and notes: highlight a sentence while paused, add notes, share them as text.
+• Accessibility fixes, and faster start-up from an ahead-of-time compiled profile.

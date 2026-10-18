@@ -70,6 +70,9 @@ so your eyes stay still while you read.
   to add to a collection or delete.
 - **Page view.** Switch the reader to ordinary text to skim or find a place; tap a word to
   continue speed reading from there.
+- **Statistics.** Streaks, a 7-day chart, average speed and time saved.
+- **Highlights and notes.** Highlight a sentence while paused, add notes, and share them as
+  Markdown.
 - **Backup and restore.** Books, positions, bookmarks, collections, feeds and settings in one
   file, for a new phone.
 - **Speed control.** A 100–1000 wpm slider with −/+ buttons right on the reading screen.
@@ -95,7 +98,7 @@ The full design (goals, architecture, data model, testing strategy, roadmap and 
 
 ## Install the APK
 
-1. Copy `SpeedRead-1.9.0-release.apk` to your phone (Android 8.0 or newer). The APK comes
+1. Copy `SpeedRead-1.10.0-release.apk` to your phone (Android 8.0 or newer). The APK comes
    from a [CI run's](../../actions) artifacts or from a local build (below).
 2. Open it and allow installs from that source when prompted.
 3. Tap **Import book** and pick an EPUB or PDF, or open the **News** tab. Public-domain EPUBs are available from
@@ -111,7 +114,7 @@ Requirements: JDK 17+ (JDK 21 recommended) and the Android SDK with platform 37
 (`ANDROID_HOME` or `local.properties`). The Gradle wrapper downloads everything else.
 
 ```bash
-./gradlew assembleRelease   # → app/build/outputs/apk/release/SpeedRead-1.9.0-release.apk
+./gradlew assembleRelease   # → app/build/outputs/apk/release/SpeedRead-1.10.0-release.apk
 ./gradlew assembleDebug     # → debug build (installs alongside release as "…speedread.debug")
 ./gradlew lint test         # static analysis + all unit, Robolectric and Compose UI tests
 ```
@@ -153,6 +156,14 @@ docs/         Project plan and screenshots
 | Build | Gradle 9.8, AGP 9.4, version catalog, R8 |
 | SDK | min 26 (Android 8.0), target/compile 37 (Android 17) |
 | Tests | JUnit 4, coroutines-test, Robolectric, Compose UI test, MockWebServer |
+
+## Publishing
+
+Store listings are ready in [`fastlane/metadata/android/en-US/`](fastlane/metadata/android/en-US):
+title, short and full description, a changelog per version code and phone screenshots. That
+layout is read by F-Droid and by fastlane `supply` for Google Play. The privacy policy, which
+also answers Play's Data safety form ("no data collected"), is in [`PRIVACY.md`](PRIVACY.md).
+Publishing itself needs your own upload key and store accounts (see Release signing above).
 
 ## Continuous integration
 

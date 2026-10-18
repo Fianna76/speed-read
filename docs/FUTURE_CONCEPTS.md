@@ -1,6 +1,6 @@
 # SpeedRead: future concepts
 
-This is the full list of ideas for SpeedRead, gathered in one place. ✅ marks concepts already shipped (v1.8 and v1.9). It covers
+This is the full list of ideas for SpeedRead, gathered in one place. ✅ marks concepts already shipped (v1.8–v1.10). It covers
 the reader, the library, the Newsstand, the platform and the project itself. Nothing here
 is committed work. [`PROJECT_PLAN.md`](PROJECT_PLAN.md) §6 holds the prioritised backlog,
 and items move there when they are scheduled.
@@ -35,7 +35,7 @@ control works with TalkBack and at 200 % font scale.
 |---|---|---|---|
 | ✅ Scrubber and bookmarks | **Done in v1.8:** the chapter scrubber previews the word under the thumb. Bookmarks are added from the top bar and listed beside the chapters. Still to come: named bookmarks. | High | M |
 | ✅ Hardware controls | **Done in v1.8:** keyboards, page turners, headset buttons and (optionally) volume keys. Still to come: haptic ticks. | High | S |
-| Highlights and notes | Long-press while paused to highlight the current sentence and add a note. Export as Markdown. | Medium | M |
+| ✅ Highlights and notes | **Done in v1.10:** highlight the current sentence while paused, notes on highlights and bookmarks, and Markdown export through the share sheet. | Medium | M |
 | Landscape and large screens | A landscape reader layout, plus tablet and foldable list-detail via Material 3 adaptive. Tabletop posture on foldables puts the word on top and controls below. | Medium | M |
 | Sleep timer | Stop after N minutes or at the end of the chapter, for bedtime reading. | Medium | S |
 | Reading themes | Sepia and true-black OLED themes, letter spacing, line height for context view, and custom ORP colour. | Medium | S |
@@ -53,7 +53,7 @@ control works with TalkBack and at 200 % font scale.
 | More formats | Plain text, Markdown, HTML files, FB2, DOCX (via ZIP + XML), and DRM-free MOBI/AZW3. | Medium | L |
 | ✅ Clipboard reading | **Done in v1.8:** a copied link opens its article, and copied or shared text is read as it is. | High | S |
 | Read-later integrations | Import from Pocket-style exports and Instapaper CSV, and "Share → SpeedRead" for Wallabag and other self-hosted services. | Medium | M |
-| Reading statistics | Words read, time saved versus 250 wpm, effective wpm, streaks and a weekly chart, all on device. | Medium | M |
+| ✅ Reading statistics | **Done in v1.10:** words and time per day, streaks, a 7-day chart, average speed and time saved vs. 250 wpm. | Medium | M |
 | Goals | Optional daily minutes or words goal, with a gentle streak (never guilt notifications). | Low | S |
 | ✅ Backup and restore | **Done in v1.9:** one ZIP file through the system picker, holding books, covers, positions, bookmarks, collections, feeds and settings. Restoring merges. | High | M |
 | Optional sync | End-to-end-encrypted progress sync through the user's own storage (WebDAV, or a file in their cloud drive). It is opt-in and has no SpeedRead server. | Medium | L |
@@ -113,7 +113,7 @@ share-a-link (v1.6); breaking Irish news alerts and the morning briefing (v1.7).
 
 | Concept | What it is | Value | Effort |
 |---|---|---|---|
-| Accessibility audit | A TalkBack, Switch Access and Voice Access pass, contrast checks, and Compose accessibility-test-framework checks in CI. | High | S |
+| ✅ Accessibility audit | **Done in v1.10:** an automated audit (labels, 48 dp targets) of the main screens at 100% and 200% font size runs with the unit tests. Still to come: a manual TalkBack pass on a device. | High | S |
 | Reduced-motion mode | No animated countdowns or transitions when the system setting is on. | Medium | S |
 | Seizure-safe limits | A cap on flash rate and contrast flicker at extreme speeds, as an optional safety limit. | Medium | S |
 | Dyslexia profile | A one-tap profile: font, spacing, slower start, and peripheral context on. | Medium | S |
@@ -122,7 +122,7 @@ share-a-link (v1.6); breaking Irish news alerts and the morning briefing (v1.7).
 
 | Concept | What it is | Value | Effort |
 |---|---|---|---|
-| ★ Baseline profile and macrobenchmarks | Faster cold start and smoother reader frames. Measure startup and reader jank in CI. | High | S |
+| ✅ Baseline profile and macrobenchmarks | **Done in v1.10 (in part):** the app's code is in the shipped ART profile. Still to come: macrobenchmarks on a real device to measure start-up. | High | S |
 | Instrumented tests on Gradle Managed Devices | Run the Robolectric UI tests on real emulators (API 26, 30, 36) in CI. | High | M |
 | Roborazzi screenshot diffs | Turn today's screenshot renders into reviewed visual regression tests. | Medium | S |
 | EPUB and PDF corpus test | Import ~200 public-domain books in CI and check for crashes, empty chapters and timing. | Medium | M |
@@ -138,12 +138,12 @@ share-a-link (v1.6); breaking Irish news alerts and the morning briefing (v1.7).
 
 v1.8 shipped shortcuts and the clipboard tile, custom feeds, the scrubber, bookmarks, hardware
 controls, chunk mode and speed training. v1.9 added library search and collections, briefing
-and alert options, backup and restore, and page view. Next:
+and alert options, backup and restore, and page view. v1.10 added statistics, highlights and
+notes, an accessibility audit, a baseline profile and store-ready metadata. Next:
 
-1. **Baseline profile and an accessibility audit.** Faster start-up and a TalkBack pass, before
-   wider release.
-2. **Reading statistics.** Words read, time saved and streaks, now that there's history worth
-   showing.
-3. **Highlights and notes.** They build on bookmarks.
-4. **Play Store and F-Droid release.**
-5. **Podcast-style reading queue.** It generalises the briefing.
+1. **Play Store and F-Droid release.** The listing, screenshots and privacy policy are ready;
+   this needs an upload key and the store accounts.
+2. **Podcast-style reading queue.** It generalises the briefing.
+3. **Per-app language and translations**, starting with Irish.
+4. **Lock-screen and headset media controls** for hands-free news.
+5. **Macrobenchmarks on a real device** to measure start-up and reader smoothness.

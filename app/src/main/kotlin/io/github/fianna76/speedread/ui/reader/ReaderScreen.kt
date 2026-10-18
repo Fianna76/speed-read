@@ -103,6 +103,7 @@ fun ReaderScreen(
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.onBackgrounded() }
     KeepScreenOn(player.isPlaying)
 
+    val shareNotesTitle = stringResource(R.string.reader_notes_export)
     ReaderContent(
         ui = ui,
         player = player,
@@ -127,7 +128,7 @@ fun ReaderScreen(
                     .setType("text/plain")
                     .putExtra(Intent.EXTRA_SUBJECT, ui.title)
                     .putExtra(Intent.EXTRA_TEXT, markdown)
-                context.startActivity(Intent.createChooser(send, context.getString(R.string.reader_notes_export)))
+                context.startActivity(Intent.createChooser(send, shareNotesTitle))
             },
             onWordsPerMinuteChange = viewModel::setWordsPerMinute,
             onWordsPerMinuteChangeFinished = viewModel::commitWordsPerMinute,

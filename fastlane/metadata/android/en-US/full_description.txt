@@ -1,0 +1,24 @@
+SpeedRead shows text one word at a time at a fixed point on the screen (Rapid Serial Visual Presentation), so your eyes stop travelling across the page and you can read comfortably at 300, 500 or more words per minute.
+
+<b>Your books</b>
+• Import EPUB books and text-based PDFs from your phone, or use "Open with" and "Share".
+• A library with covers, progress, search, Reading / Not started / Finished filters and collections.
+• Never lose your place: progress is saved as you read.
+
+<b>The reader</b>
+• Tap the middle to pause, left or right to jump a sentence; a slider sets the speed from 100 to 1,000 wpm.
+• Smart pacing pauses a little longer at punctuation and long words; a gentle start eases you in.
+• See the surrounding sentence while paused, or switch to page view to skim and tap a word to continue from there.
+• Chunk mode shows short words together; optional speed training raises your speed as you read.
+• Bookmarks, highlights and notes, shareable as text.
+• Keyboards, Bluetooth page turners, headset buttons and (optionally) volume keys.
+
+<b>The Newsstand</b>
+• Top stories from about 70 outlets with free feeds: Irish first, then European and world news. Add your own feeds too.
+• Previews, the same story grouped across outlets, topics, search, a reading list and offline reading.
+• "Your briefing": each region's biggest stories read back to back, with an optional morning notification.
+• Optional breaking-news alerts, with quiet hours and a daily limit.
+• Share any web link or text to SpeedRead to speed-read it.
+
+<b>Private by design</b>
+No accounts, no ads, no analytics, no tracking. Your books stay on your device. The internet is used only for the news you choose to load. Back up everything to a single file whenever you like.
