@@ -45,6 +45,7 @@ class ReadingStatsTest {
         assertEquals(600, summary.weekWords)
         assertEquals(3_600, summary.totalWords)
         assertEquals(300, summary.averageWpm) // 3,600 words in 12 minutes.
+        assertEquals(null, ReadingSummary.of(listOf(ReadingDay(today, 30, 5_000)), today).averageWpm) // Too little to tell.
         // 3,600 words at 250 wpm is 14.4 minutes: 2.4 minutes saved.
         assertEquals(144_000, summary.millisSaved)
     }

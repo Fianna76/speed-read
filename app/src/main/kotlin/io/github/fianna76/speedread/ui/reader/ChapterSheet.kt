@@ -163,7 +163,7 @@ private fun BookmarkList(
                 supportingContent = bookmark.note?.let { note -> { Text(note, color = MaterialTheme.colorScheme.primary) } },
                 leadingContent = {
                     Icon(
-                        painterResource(if (bookmark.isHighlight) R.drawable.ic_edit else R.drawable.ic_bookmark_filled),
+                        painterResource(if (bookmark.isHighlight) R.drawable.ic_format_quote else R.drawable.ic_bookmark_filled),
                         contentDescription = stringResource(if (bookmark.isHighlight) R.string.reader_highlight else R.string.reader_bookmark),
                     )
                 },

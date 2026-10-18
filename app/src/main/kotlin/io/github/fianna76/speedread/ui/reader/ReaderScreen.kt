@@ -441,7 +441,7 @@ private fun HighlightButton(ui: ReaderUiState, player: PlayerState, onToggle: ()
     if (ui.sourceUrl != null || player.text.isEmpty()) return
     val highlighted = ui.highlightAt(player.text.sentenceStartOf(player.index)) != null
     TextButton(onClick = onToggle, modifier = modifier) {
-        Icon(painterResource(R.drawable.ic_edit), contentDescription = null, modifier = Modifier.size(18.dp))
+        Icon(painterResource(R.drawable.ic_format_quote), contentDescription = null, modifier = Modifier.size(18.dp))
         Spacer(Modifier.size(8.dp))
         Text(stringResource(if (highlighted) R.string.reader_remove_highlight else R.string.reader_highlight_sentence))
     }

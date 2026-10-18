@@ -22,8 +22,8 @@ data class ReadingSummary(
     val streak: Int,
     val longestStreak: Int,
 ) {
-    /** Average reading speed, words per minute; 0 before any reading. */
-    val averageWpm: Int get() = if (totalMillis < 60_000) 0 else (totalWords * 60_000.0 / totalMillis).roundToLong().toInt()
+    /** Average reading speed, words per minute; `null` until there are [MIN_MILLIS_FOR_AVERAGE] of reading. */
+    val averageWpm: Int? get() = if (totalMillis < MIN_MILLIS_FOR_AVERAGE) null else (totalWords * 60_000.0 / totalMillis).roundToLong().toInt()
 
     /** Time saved compared with reading the same words at [TYPICAL_WPM]. */
     val millisSaved: Long get() = (totalWords * 60_000.0 / TYPICAL_WPM).roundToLong() - totalMillis
@@ -33,6 +33,8 @@ data class ReadingSummary(
     companion object {
         /** A typical silent reading speed for adults. */
         const val TYPICAL_WPM = 250
+
+        const val MIN_MILLIS_FOR_AVERAGE = 10_000L
 
         fun of(days: List<ReadingDay>, today: LocalDate): ReadingSummary {
             val byDate = days.associateBy { it.date }

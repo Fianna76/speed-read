@@ -119,7 +119,7 @@ fun StatsContent(summary: ReadingSummary?, onBack: () -> Unit) {
             StreakCard(summary)
             WeekChart(summary.week)
             val numbers = remember { NumberFormat.getIntegerInstance() }
-            val lessThanAMinute = stringResource(R.string.reader_less_than_a_minute)
+            val lessThanAMinute = stringResource(R.string.stats_less_than_a_minute)
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 StatTile(
                     label = stringResource(R.string.stats_today),
@@ -137,7 +137,7 @@ fun StatsContent(summary: ReadingSummary?, onBack: () -> Unit) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 StatTile(
                     label = stringResource(R.string.stats_average_speed),
-                    value = numbers.format(summary.averageWpm),
+                    value = summary.averageWpm?.let(numbers::format) ?: "\u2014",
                     detail = stringResource(R.string.stats_wpm_label),
                     modifier = Modifier.weight(1f),
                 )
