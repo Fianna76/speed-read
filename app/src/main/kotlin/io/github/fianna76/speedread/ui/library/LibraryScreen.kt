@@ -52,6 +52,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -188,10 +190,13 @@ fun LibraryContent(
         },
         floatingActionButton = {
             if (!state.isSelecting && state.books.isNotEmpty()) {
+                val importLabel = stringResource(R.string.library_import)
                 ExtendedFloatingActionButton(
                     onClick = onImport,
                     icon = { Icon(painterResource(R.drawable.ic_library_add), contentDescription = null) },
-                    text = { Text(stringResource(R.string.library_import)) },
+                    text = { Text(importLabel) },
+                    // Labelled even while the text is animating in (or collapsed).
+                    modifier = Modifier.semantics { contentDescription = importLabel },
                 )
             }
         },

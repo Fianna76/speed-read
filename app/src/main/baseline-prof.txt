@@ -1,0 +1,5 @@
+# Baseline profile for SpeedRead's own code: compiled ahead of time at install, so start-up,
+# the library grid and the reader's word loop don't wait for the JIT. Library profiles
+# (Compose, Room, Coroutines…) are merged in by the build automatically.
+HSPLio/github/fianna76/speedread/**->**(**)**
+Lio/github/fianna76/speedread/**;
