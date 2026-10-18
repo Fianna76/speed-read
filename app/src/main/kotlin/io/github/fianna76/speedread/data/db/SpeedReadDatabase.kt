@@ -12,7 +12,7 @@ import androidx.room.RoomDatabase
  */
 @Database(
     entities = [BookEntity::class, ChapterEntity::class, NewsHistoryEntity::class, BookmarkEntity::class, CollectionEntity::class, BookCollectionEntity::class, ReadingDayEntity::class],
-    version = 7,
+    version = 8,
     exportSchema = true,
     autoMigrations = [
         // 1 → 2: books.format column (PDF support); existing rows default to EPUB.
@@ -27,6 +27,8 @@ import androidx.room.RoomDatabase
         AutoMigration(from = 5, to = 6),
         // 6 → 7: reading_days table (statistics).
         AutoMigration(from = 6, to = 7),
+        // 7 → 8: bookmarks.highlight and bookmarks.note (highlights and notes).
+        AutoMigration(from = 7, to = 8),
     ],
 )
 abstract class SpeedReadDatabase : RoomDatabase() {

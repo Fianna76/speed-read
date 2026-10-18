@@ -189,6 +189,28 @@ class ReaderContentTest {
     }
 
     @Test
+    fun pausedReadersCanHighlightAndListNotes() {
+        var toggles = 0
+        var exported: List<String>? = null
+        val highlight = Bookmark(3, ReadingPosition(0, 0), "Hello brave", 0, highlight = "Hello brave new world.", note = "Lovely")
+        setContent(
+            ui.copy(bookmarks = listOf(highlight)),
+            PlayerState(text = text, index = 1),
+            ReaderActions(onToggleHighlight = { toggles++ }, onExportNotes = { exported = it }),
+        )
+
+        compose.onNodeWithText(context.getString(R.string.reader_remove_highlight)).performClick()
+        assertEquals(1, toggles)
+
+        compose.onNodeWithContentDescription(context.getString(R.string.reader_chapters)).performClick()
+        compose.onNodeWithText(context.getString(R.string.reader_bookmarks, 1)).performClick()
+        compose.onNodeWithText("\u201cHello brave new world.\u201d").assertIsDisplayed()
+        compose.onNodeWithText("Lovely").assertIsDisplayed()
+        compose.onNodeWithText(context.getString(R.string.reader_notes_export)).performClick()
+        assertEquals(listOf("Opening", "Closing"), exported)
+    }
+
+    @Test
     fun theCurrentWordShowsItsBookmark() {
         val bookmark = Bookmark(7, ReadingPosition(0, 1), "brave new world.", createdAt = 0)
         setContent(ui.copy(bookmarks = listOf(bookmark)), PlayerState(text = text, index = 1))

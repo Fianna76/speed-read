@@ -56,8 +56,12 @@ class FakeBookRepository(
     override fun observeBookmarks(bookId: Long): Flow<List<Bookmark>> =
         bookmarks.map { list -> list.sortedWith(compareBy({ it.position.chapterIndex }, { it.position.wordIndex })) }
 
-    override suspend fun addBookmark(bookId: Long, position: ReadingPosition, snippet: String) {
-        bookmarks.update { it + Bookmark(nextBookmarkId++, position, snippet, createdAt = 0) }
+    override suspend fun addBookmark(bookId: Long, position: ReadingPosition, snippet: String, highlight: String?) {
+        bookmarks.update { it + Bookmark(nextBookmarkId++, position, snippet, createdAt = 0, highlight = highlight) }
+    }
+
+    override suspend fun setBookmarkNote(id: Long, note: String?) {
+        bookmarks.update { list -> list.map { if (it.id == id) it.copy(note = note?.trim()?.takeIf(String::isNotEmpty)) else it } }
     }
 
     override suspend fun deleteBookmark(id: Long) {

@@ -68,7 +68,7 @@ class LibraryBackup(
                 wordIndex = book.wordIndex,
                 wordsRead = book.wordsRead,
                 chapters = books.chaptersOf(book.id).map { BackupChapter(it.index, it.title, it.href, it.wordCount, it.startWord) },
-                bookmarks = bookmarks.of(book.id).map { BackupBookmark(it.chapterIndex, it.wordIndex, it.snippet, it.createdAt) },
+                bookmarks = bookmarks.of(book.id).map { BackupBookmark(it.chapterIndex, it.wordIndex, it.snippet, it.createdAt, it.highlight, it.note) },
             )
         }
         val manifest = BackupManifest(
@@ -166,7 +166,7 @@ class LibraryBackup(
             val marks = bookmarks.of(id).mapTo(HashSet()) { it.chapterIndex to it.wordIndex }
             for (mark in book.bookmarks) {
                 if (marks.add(mark.chapterIndex to mark.wordIndex)) {
-                    bookmarks.insert(BookmarkEntity(0, id, mark.chapterIndex, mark.wordIndex, mark.snippet, mark.createdAt))
+                    bookmarks.insert(BookmarkEntity(0, id, mark.chapterIndex, mark.wordIndex, mark.snippet, mark.createdAt, mark.highlight, mark.note))
                     addedBookmarks++
                 }
             }
@@ -233,7 +233,14 @@ class LibraryBackup(
     private data class BackupChapter(val index: Int, val title: String?, val href: String, val wordCount: Int, val startWord: Int)
 
     @Serializable
-    private data class BackupBookmark(val chapterIndex: Int, val wordIndex: Int, val snippet: String, val createdAt: Long)
+    private data class BackupBookmark(
+        val chapterIndex: Int,
+        val wordIndex: Int,
+        val snippet: String,
+        val createdAt: Long,
+        val highlight: String? = null,
+        val note: String? = null,
+    )
 
     @Serializable
     private data class BackupCollection(val name: String, val createdAt: Long, val books: List<String>)

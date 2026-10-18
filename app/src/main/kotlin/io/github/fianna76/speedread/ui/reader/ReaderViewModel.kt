@@ -78,7 +78,11 @@ data class ReaderUiState(
 
     /** The bookmark at [wordIndex] of the current chapter, if there is one. */
     fun bookmarkAt(wordIndex: Int): Bookmark? =
-        bookmarks.firstOrNull { it.position.chapterIndex == chapterIndex && it.position.wordIndex == wordIndex }
+        bookmarks.firstOrNull { !it.isHighlight && it.position.chapterIndex == chapterIndex && it.position.wordIndex == wordIndex }
+
+    /** The highlight starting at [wordIndex] of the current chapter, if there is one. */
+    fun highlightAt(wordIndex: Int): Bookmark? =
+        bookmarks.firstOrNull { it.isHighlight && it.position.chapterIndex == chapterIndex && it.position.wordIndex == wordIndex }
 }
 
 enum class ReaderError { BOOK_NOT_FOUND, NO_TEXT, LOAD_FAILED }
@@ -251,6 +255,34 @@ class ReaderViewModel(
             if (existing != null) books.deleteBookmark(existing.id) else books.addBookmark(bookId, position, snippet)
         }
     }
+
+    /** Highlights the sentence holding the current word, or removes that highlight. */
+    fun toggleHighlight() {
+        if (!canControlPlayback()) return
+        val state = player.state.value
+        val text = state.text
+        if (text.isEmpty()) return
+        val start = text.sentenceStartOf(state.index)
+        val end = text.nextSentenceStart(state.index) ?: text.size
+        val existing = _uiState.value.highlightAt(start)
+        val sentence = text.words.subList(start, end).joinToString(" ") { it.text }
+        val snippet = text.words.subList(start, minOf(end, start + BOOKMARK_SNIPPET_WORDS)).joinToString(" ") { it.text }
+        externalScope.launch {
+            if (existing != null) {
+                books.deleteBookmark(existing.id)
+            } else {
+                books.addBookmark(bookId, ReadingPosition(loadedChapterIndex, start), snippet, highlight = sentence)
+            }
+        }
+    }
+
+    fun setNote(bookmark: Bookmark, note: String) {
+        externalScope.launch { books.setBookmarkNote(bookmark.id, note) }
+    }
+
+    /** The book's highlights, bookmarks and notes as Markdown, for sharing. */
+    fun notesMarkdown(chapterTitle: (Int) -> String): String =
+        NotesExport.markdown(_uiState.value.title, _uiState.value.bookmarks, chapterTitle)
 
     fun deleteBookmark(bookmark: Bookmark) {
         externalScope.launch { books.deleteBookmark(bookmark.id) }

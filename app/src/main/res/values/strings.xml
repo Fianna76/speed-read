@@ -238,8 +238,15 @@
 
     <!-- Reader -->
     <string name="reader_chapters">Chapters</string>
-    <string name="reader_bookmarks">Bookmarks (%1$d)</string>
-    <string name="reader_bookmarks_empty">No bookmarks yet. While reading, tap the bookmark icon at the top to mark your place.</string>
+    <string name="reader_bookmarks">Notes (%1$d)</string>
+    <string name="reader_bookmarks_empty">No highlights or bookmarks yet. Pause and tap “Highlight sentence”, or tap the bookmark icon at the top to mark your place.</string>
+    <string name="reader_highlight_sentence">Highlight sentence</string>
+    <string name="reader_remove_highlight">Remove highlight</string>
+    <string name="reader_highlight">Highlight</string>
+    <string name="reader_bookmark">Bookmark</string>
+    <string name="reader_edit_note">Edit note</string>
+    <string name="reader_note">Note</string>
+    <string name="reader_notes_export">Share notes as text</string>
     <string name="reader_add_bookmark">Add bookmark</string>
     <string name="reader_remove_bookmark">Remove bookmark</string>
     <string name="reader_delete_bookmark">Delete bookmark</string>

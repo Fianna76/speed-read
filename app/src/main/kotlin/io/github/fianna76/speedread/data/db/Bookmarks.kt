@@ -31,6 +31,10 @@ data class BookmarkEntity(
     /** The first words at the bookmark, shown in the list. */
     val snippet: String,
     @ColumnInfo(name = "created_at") val createdAt: Long,
+    /** The highlighted sentence, or `null` for a plain bookmark. Added in schema version 8. */
+    val highlight: String? = null,
+    /** The reader's own note. Added in schema version 8. */
+    val note: String? = null,
 )
 
 @Dao
@@ -44,6 +48,9 @@ interface BookmarkDao {
 
     @Query("SELECT * FROM bookmarks WHERE book_id = :bookId")
     suspend fun of(bookId: Long): List<BookmarkEntity>
+
+    @Query("UPDATE bookmarks SET note = :note WHERE id = :id")
+    suspend fun setNote(id: Long, note: String?)
 
     @Query("DELETE FROM bookmarks WHERE id = :id")
     suspend fun delete(id: Long)

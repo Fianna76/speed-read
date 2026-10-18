@@ -27,8 +27,18 @@ data class Book(
 /** A user-made group of books. */
 data class BookCollection(val id: Long, val name: String, val bookIds: Set<Long>)
 
-/** A saved place in a book. */
-data class Bookmark(val id: Long, val position: ReadingPosition, val snippet: String, val createdAt: Long)
+/** A saved place in a book: a bookmark, or a highlighted sentence; either can carry a note. */
+data class Bookmark(
+    val id: Long,
+    val position: ReadingPosition,
+    val snippet: String,
+    val createdAt: Long,
+    /** The highlighted sentence; `null` for a plain bookmark. */
+    val highlight: String? = null,
+    val note: String? = null,
+) {
+    val isHighlight: Boolean get() = highlight != null
+}
 
 /** Where the reader left off: a chapter and a word within it. */
 data class ReadingPosition(val chapterIndex: Int, val wordIndex: Int)

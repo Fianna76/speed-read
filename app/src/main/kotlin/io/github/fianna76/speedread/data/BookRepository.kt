@@ -47,7 +47,11 @@ interface BookRepository {
     /** [bookId]'s bookmarks in reading order. */
     fun observeBookmarks(bookId: Long): Flow<List<Bookmark>> = flowOf(emptyList())
 
-    suspend fun addBookmark(bookId: Long, position: ReadingPosition, snippet: String) {}
+    /** Adds a bookmark, or with [highlight] a highlighted sentence. */
+    suspend fun addBookmark(bookId: Long, position: ReadingPosition, snippet: String, highlight: String? = null) {}
+
+    /** Sets (or with a blank [note], clears) a bookmark's note. */
+    suspend fun setBookmarkNote(id: Long, note: String?) {}
 
     suspend fun deleteBookmark(id: Long) {}
 
@@ -115,11 +119,15 @@ class OfflineBookRepository(
 
     override fun observeBookmarks(bookId: Long): Flow<List<Bookmark>> =
         bookmarks?.observe(bookId)?.map { rows ->
-            rows.map { Bookmark(it.id, ReadingPosition(it.chapterIndex, it.wordIndex), it.snippet, it.createdAt) }
+            rows.map { Bookmark(it.id, ReadingPosition(it.chapterIndex, it.wordIndex), it.snippet, it.createdAt, it.highlight, it.note) }
         } ?: flowOf(emptyList())
 
-    override suspend fun addBookmark(bookId: Long, position: ReadingPosition, snippet: String) {
-        bookmarks?.insert(BookmarkEntity(0, bookId, position.chapterIndex, position.wordIndex, snippet, clock()))
+    override suspend fun addBookmark(bookId: Long, position: ReadingPosition, snippet: String, highlight: String?) {
+        bookmarks?.insert(BookmarkEntity(0, bookId, position.chapterIndex, position.wordIndex, snippet, clock(), highlight))
+    }
+
+    override suspend fun setBookmarkNote(id: Long, note: String?) {
+        bookmarks?.setNote(id, note?.trim()?.takeIf { it.isNotEmpty() })
     }
 
     override suspend fun deleteBookmark(id: Long) {

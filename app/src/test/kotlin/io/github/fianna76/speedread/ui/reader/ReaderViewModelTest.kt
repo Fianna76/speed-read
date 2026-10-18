@@ -172,6 +172,24 @@ class ReaderViewModelTest {
     }
 
     @Test
+    fun `highlighting saves the current sentence, notes can be added, and it toggles off`() = runTest(mainDispatcherRule.dispatcher) {
+        val viewModel = createViewModel(position = ReadingPosition(1, 3), wordsRead = 7)
+
+        viewModel.toggleHighlight()
+        val highlight = viewModel.uiState.first { it.bookmarks.isNotEmpty() }.bookmarks.single()
+        assertEquals("Seven eight.", highlight.highlight)
+        assertEquals(ReadingPosition(1, 2), highlight.position) // The sentence start.
+        assertNull(viewModel.uiState.value.bookmarkAt(2)) // A highlight isn't a bookmark.
+
+        viewModel.setNote(highlight, "  Remember this  ")
+        assertEquals("Remember this", viewModel.uiState.first { it.bookmarks.single().note != null }.bookmarks.single().note)
+        assertTrue(viewModel.notesMarkdown { "Chapter ${it + 1}" }.contains("> Seven eight.\n\nRemember this"))
+
+        viewModel.toggleHighlight()
+        assertTrue(viewModel.uiState.first { it.bookmarks.isEmpty() }.bookmarks.isEmpty())
+    }
+
+    @Test
     fun `scrubbing pauses and moves through the chapter`() = runTest(mainDispatcherRule.dispatcher) {
         val viewModel = createViewModel()
         viewModel.togglePlayPause()

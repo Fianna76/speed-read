@@ -29,6 +29,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import android.content.Intent
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -118,6 +119,16 @@ fun ReaderScreen(
             onToggleBookmark = viewModel::toggleBookmark,
             onGoToBookmark = viewModel::goToBookmark,
             onDeleteBookmark = viewModel::deleteBookmark,
+            onToggleHighlight = viewModel::toggleHighlight,
+            onSetNote = viewModel::setNote,
+            onExportNotes = { titles ->
+                val markdown = viewModel.notesMarkdown { index -> titles.getOrElse(index) { "" } }
+                val send = Intent(Intent.ACTION_SEND)
+                    .setType("text/plain")
+                    .putExtra(Intent.EXTRA_SUBJECT, ui.title)
+                    .putExtra(Intent.EXTRA_TEXT, markdown)
+                context.startActivity(Intent.createChooser(send, context.getString(R.string.reader_notes_export)))
+            },
             onWordsPerMinuteChange = viewModel::setWordsPerMinute,
             onWordsPerMinuteChangeFinished = viewModel::commitWordsPerMinute,
             onChangeWordsPerMinuteBy = viewModel::changeWordsPerMinuteBy,
@@ -155,6 +166,10 @@ class ReaderActions(
     val onToggleBookmark: () -> Unit = {},
     val onGoToBookmark: (Bookmark) -> Unit = {},
     val onDeleteBookmark: (Bookmark) -> Unit = {},
+    val onToggleHighlight: () -> Unit = {},
+    val onSetNote: (Bookmark, String) -> Unit = { _, _ -> },
+    /** Shares the notes; given each chapter's display title. */
+    val onExportNotes: (chapterTitles: List<String>) -> Unit = {},
 )
 
 /** Runs a hardware key's [ReaderKeyAction]; returns whether the key was used. */
@@ -179,6 +194,7 @@ private fun ReaderActions.handleKey(event: KeyEvent, ui: ReaderUiState, player: 
 fun ReaderContent(ui: ReaderUiState, player: PlayerState, actions: ReaderActions, modifier: Modifier = Modifier) {
     var showChapters by rememberSaveable { mutableStateOf(false) }
     var pageView by rememberSaveable { mutableStateOf(false) }
+    var editingNote by rememberSaveable { mutableStateOf<Long?>(null) }
     // Playing (from the controls or a key) always shows the RSVP view.
     LaunchedEffect(player.isPlaying) { if (player.isPlaying) pageView = false }
     val progress = ReaderProgress.of(ui, player)
@@ -306,6 +322,10 @@ fun ReaderContent(ui: ReaderUiState, player: PlayerState, actions: ReaderActions
                             onPlayPause = actions.onPlayPause,
                             onNextSentence = actions.onNextSentence,
                         )
+                        // Above the tap zones, so it gets its own taps.
+                        if (canControl && !player.isPlaying && !ui.showTapHint) {
+                            HighlightButton(ui, player, actions.onToggleHighlight, Modifier.align(Alignment.BottomCenter).padding(bottom = 8.dp))
+                        }
                     }
                 }
             }
@@ -345,6 +365,18 @@ fun ReaderContent(ui: ReaderUiState, player: PlayerState, actions: ReaderActions
         }
     }
 
+    val chapterTitles = ui.chapters.map { it.displayTitle() }
+    ui.bookmarks.firstOrNull { it.id == editingNote }?.let { bookmark ->
+        NoteDialog(
+            bookmark = bookmark,
+            onSave = { note ->
+                editingNote = null
+                actions.onSetNote(bookmark, note)
+            },
+            onDismiss = { editingNote = null },
+        )
+    }
+
     if (showChapters) {
         ChapterSheet(
             chapters = ui.chapters,
@@ -361,6 +393,8 @@ fun ReaderContent(ui: ReaderUiState, player: PlayerState, actions: ReaderActions
                 actions.onGoToBookmark(bookmark)
             },
             onDeleteBookmark = actions.onDeleteBookmark,
+            onEditNote = { editingNote = it.id },
+            onExportNotes = { actions.onExportNotes(chapterTitles) },
         )
     }
 }
@@ -397,6 +431,18 @@ private fun ReadingSurface(ui: ReaderUiState, player: PlayerState) {
                 }
             }
         }
+    }
+}
+
+/** Highlights (or un-highlights) the sentence being read. Only books have notes; not articles. */
+@Composable
+private fun HighlightButton(ui: ReaderUiState, player: PlayerState, onToggle: () -> Unit, modifier: Modifier = Modifier) {
+    if (ui.sourceUrl != null || player.text.isEmpty()) return
+    val highlighted = ui.highlightAt(player.text.sentenceStartOf(player.index)) != null
+    TextButton(onClick = onToggle, modifier = modifier) {
+        Icon(painterResource(R.drawable.ic_edit), contentDescription = null, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.size(8.dp))
+        Text(stringResource(if (highlighted) R.string.reader_remove_highlight else R.string.reader_highlight_sentence))
     }
 }
 

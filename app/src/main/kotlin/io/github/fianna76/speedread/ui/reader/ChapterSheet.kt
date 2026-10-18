@@ -1,13 +1,25 @@
 package io.github.fianna76.speedread.ui.reader
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Tab
@@ -49,6 +61,8 @@ fun ChapterSheet(
     bookmarks: List<Bookmark> = emptyList(),
     onSelectBookmark: (Bookmark) -> Unit = {},
     onDeleteBookmark: (Bookmark) -> Unit = {},
+    onEditNote: (Bookmark) -> Unit = {},
+    onExportNotes: () -> Unit = {},
 ) {
     var showBookmarks by rememberSaveable { mutableStateOf(false) }
     val numberFormat = remember { NumberFormat.getIntegerInstance() }
@@ -72,7 +86,7 @@ fun ChapterSheet(
             )
         }
         if (showBookmarks) {
-            BookmarkList(chapters, bookmarks, onSelectBookmark, onDeleteBookmark)
+            BookmarkList(chapters, bookmarks, onSelectBookmark, onDeleteBookmark, onEditNote, onExportNotes)
             return@ModalBottomSheet
         }
         LazyColumn(state = listState) {
@@ -109,12 +123,15 @@ fun ChapterSheet(
     }
 }
 
+/** Highlights, bookmarks and their notes, in reading order, with "Share as text". */
 @Composable
 private fun BookmarkList(
     chapters: List<Chapter>,
     bookmarks: List<Bookmark>,
     onSelect: (Bookmark) -> Unit,
     onDelete: (Bookmark) -> Unit,
+    onEditNote: (Bookmark) -> Unit,
+    onExport: () -> Unit,
 ) {
     if (bookmarks.isEmpty()) {
         Text(
@@ -125,22 +142,76 @@ private fun BookmarkList(
         )
         return
     }
+    TextButton(onClick = onExport, modifier = Modifier.padding(start = 12.dp, top = 4.dp)) {
+        Icon(painterResource(R.drawable.ic_share), contentDescription = null)
+        Spacer(Modifier.width(8.dp))
+        Text(stringResource(R.string.reader_notes_export))
+    }
     LazyColumn {
-        items(bookmarks, key = { it.id }) { bookmark ->
+        items(bookmarks.sortedWith(compareBy({ it.position.chapterIndex }, { it.position.wordIndex })), key = { it.id }) { bookmark ->
             val chapter = chapters.getOrNull(bookmark.position.chapterIndex)
             ListItem(
-                headlineContent = { Text(bookmark.snippet + "\u2026", maxLines = 2, overflow = TextOverflow.Ellipsis) },
-                supportingContent = chapter?.let { { Text(it.displayTitle(), maxLines = 1, overflow = TextOverflow.Ellipsis) } },
-                leadingContent = { Icon(painterResource(R.drawable.ic_bookmark_filled), contentDescription = null) },
+                overlineContent = chapter?.let { { Text(it.displayTitle(), maxLines = 1, overflow = TextOverflow.Ellipsis) } },
+                headlineContent = {
+                    Text(
+                        text = bookmark.highlight?.let { "\u201c$it\u201d" } ?: (bookmark.snippet + "\u2026"),
+                        maxLines = 4,
+                        overflow = TextOverflow.Ellipsis,
+                        fontStyle = if (bookmark.isHighlight) FontStyle.Italic else FontStyle.Normal,
+                    )
+                },
+                supportingContent = bookmark.note?.let { note -> { Text(note, color = MaterialTheme.colorScheme.primary) } },
+                leadingContent = {
+                    Icon(
+                        painterResource(if (bookmark.isHighlight) R.drawable.ic_edit else R.drawable.ic_bookmark_filled),
+                        contentDescription = stringResource(if (bookmark.isHighlight) R.string.reader_highlight else R.string.reader_bookmark),
+                    )
+                },
                 trailingContent = {
-                    IconButton(onClick = { onDelete(bookmark) }) {
-                        Icon(painterResource(R.drawable.ic_delete), stringResource(R.string.reader_delete_bookmark))
+                    Row {
+                        IconButton(onClick = { onEditNote(bookmark) }) {
+                            Icon(painterResource(R.drawable.ic_edit), stringResource(R.string.reader_edit_note))
+                        }
+                        IconButton(onClick = { onDelete(bookmark) }) {
+                            Icon(painterResource(R.drawable.ic_delete), stringResource(R.string.reader_delete_bookmark))
+                        }
                     }
                 },
                 modifier = Modifier.clickable { onSelect(bookmark) },
             )
         }
     }
+}
+
+/** Edits a highlight's or bookmark's note; an empty note removes it. */
+@Composable
+fun NoteDialog(bookmark: Bookmark, onSave: (String) -> Unit, onDismiss: () -> Unit) {
+    var note by rememberSaveable(bookmark.id) { mutableStateOf(bookmark.note.orEmpty()) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.reader_edit_note)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    bookmark.highlight ?: (bookmark.snippet + "\u2026"),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontStyle = FontStyle.Italic,
+                    maxLines = 4,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                OutlinedTextField(
+                    value = note,
+                    onValueChange = { note = it },
+                    label = { Text(stringResource(R.string.reader_note)) },
+                    minLines = 3,
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+        },
+        confirmButton = { TextButton(onClick = { onSave(note) }) { Text(stringResource(R.string.action_save)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
+    )
 }
 
 /** The chapter's own title, else its PDF pages, else a numbered fallback for untitled sections. */
