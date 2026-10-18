@@ -71,6 +71,8 @@ fun ReaderControls(
     modifier: Modifier = Modifier,
     onScrub: (Float) -> Unit = {},
     onScrubFinished: () -> Unit = {},
+    /** Speed training's target, shown next to the speed while it is still climbing. */
+    trainingTarget: Int? = null,
 ) {
     Surface(modifier = modifier, color = MaterialTheme.colorScheme.surfaceContainer) {
         Column(
@@ -101,6 +103,7 @@ fun ReaderControls(
                 onChange = onWordsPerMinuteChange,
                 onChangeFinished = onWordsPerMinuteChangeFinished,
                 onChangeBy = onChangeWordsPerMinuteBy,
+                trainingTarget = trainingTarget,
             )
 
             Row(
@@ -180,6 +183,7 @@ private fun SpeedRow(
     onChange: (Int) -> Unit,
     onChangeFinished: () -> Unit,
     onChangeBy: (Int) -> Unit,
+    trainingTarget: Int?,
 ) {
     val label = stringResource(R.string.reader_wpm, wordsPerMinute)
     val speedDescription = stringResource(R.string.reader_speed)
@@ -204,11 +208,15 @@ private fun SpeedRow(
         IconButton(onClick = { onChangeBy(WordsPerMinute.STEP) }, enabled = wordsPerMinute < WordsPerMinute.MAX) {
             Icon(painterResource(R.drawable.ic_add), stringResource(R.string.reader_faster))
         }
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelLarge,
-            textAlign = TextAlign.End,
-            modifier = Modifier.widthIn(min = 72.dp),
-        )
+        Column(horizontalAlignment = Alignment.End, modifier = Modifier.widthIn(min = 72.dp)) {
+            Text(text = label, style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.End)
+            if (trainingTarget != null) {
+                Text(
+                    text = stringResource(R.string.reader_training_target, trainingTarget),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
     }
 }

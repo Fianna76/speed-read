@@ -10,6 +10,9 @@ data class UserPreferences(
     val display: ReaderDisplay = ReaderDisplay(),
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val librarySort: LibrarySort = LibrarySort.RECENT,
+    /** Raise the speed by [SPEED_TRAINING_STEP] every [SPEED_TRAINING_INTERVAL_MINUTES] of reading, up to [trainingTargetWpm]. */
+    val speedTraining: Boolean = false,
+    val trainingTargetWpm: Int = DEFAULT_TRAINING_TARGET,
     /** In the reader, volume up/down move to the next/previous sentence. */
     val volumeKeysTurnSentences: Boolean = false,
     /** Hide stories already opened from the Newsstand list. */
@@ -42,6 +45,13 @@ data class UserPreferences(
 
     companion object {
         const val DEFAULT_BRIEFING_TIME = 7 * 60
+
+        const val DEFAULT_TRAINING_TARGET = 500
+        const val SPEED_TRAINING_STEP = 25
+        const val SPEED_TRAINING_INTERVAL_MINUTES = 2
+
+        /** Training targets offered in Settings. */
+        val TRAINING_TARGETS: List<Int> = listOf(400, 500, 600, 800, 1000)
 
         /** Briefing times offered in Settings: every half hour from 5:30 to 10:00. */
         val BRIEFING_TIMES: List<Int> = (11..20).map { it * 30 }

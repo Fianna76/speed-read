@@ -29,6 +29,12 @@ class SettingsViewModel(private val preferences: UserPreferencesRepository) : Vi
 
     fun setRampUp(enabled: Boolean) = launch { preferences.setRampUp(enabled) }
 
+    fun setChunkSize(words: Int) = launch { preferences.setChunkSize(words) }
+
+    fun setSpeedTraining(enabled: Boolean) = launch { preferences.setSpeedTraining(enabled) }
+
+    fun setTrainingTarget(wpm: Int) = launch { preferences.setTrainingTarget(wpm) }
+
     fun setFontSize(sizeSp: Int) = launch { preferences.setFontSize(sizeSp) }
 
     fun setFont(font: ReaderFont) = launch { preferences.setFont(font) }

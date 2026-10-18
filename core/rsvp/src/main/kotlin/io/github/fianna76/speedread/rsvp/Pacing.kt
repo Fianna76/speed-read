@@ -10,6 +10,8 @@ data class PlaybackSettings(
     val smartPacing: Boolean = true,
     /** Show the first few words after (re)starting a little longer so the eye can lock on. */
     val rampUp: Boolean = true,
+    /** Words flashed together (1 to [Chunking.MAX_SIZE]); see [Chunking]. */
+    val chunkSize: Int = 1,
 )
 
 /** Supported reading speeds. */

@@ -45,6 +45,25 @@ class RsvpPlayerTest {
     }
 
     @Test
+    fun `chunk mode shows phrases for as long as their words would take`() = runTest {
+        val player = player(sentences)
+        player.updateSettings(flat.copy(chunkSize = 2))
+        assertEquals("One two.", player.state.value.displayWord!!.text)
+        player.play()
+        runCurrent()
+
+        advance(200) // Two words' worth.
+        assertEquals(2, player.state.value.index)
+        assertEquals("Three four", player.state.value.displayWord!!.text)
+        advance(200)
+        assertEquals("five.", player.state.value.displayWord!!.text)
+        advance(100)
+        assertEquals("Six seven.", player.state.value.displayWord!!.text)
+        advance(200)
+        assertFalse(player.state.value.isPlaying)
+    }
+
+    @Test
     fun `pause freezes the current word`() = runTest {
         val player = player(sentences)
         player.play()

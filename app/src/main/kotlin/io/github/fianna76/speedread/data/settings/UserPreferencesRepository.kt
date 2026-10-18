@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
+import io.github.fianna76.speedread.rsvp.Chunking
 import io.github.fianna76.speedread.rsvp.PlaybackSettings
 import io.github.fianna76.speedread.rsvp.WordsPerMinute
 import kotlinx.coroutines.flow.Flow
@@ -39,6 +40,12 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
     suspend fun setSmartPacing(enabled: Boolean) = update { it[Keys.SMART_PACING] = enabled }
 
     suspend fun setRampUp(enabled: Boolean) = update { it[Keys.RAMP_UP] = enabled }
+
+    suspend fun setChunkSize(words: Int) = update { it[Keys.CHUNK_SIZE] = words.coerceIn(1, Chunking.MAX_SIZE) }
+
+    suspend fun setSpeedTraining(enabled: Boolean) = update { it[Keys.SPEED_TRAINING] = enabled }
+
+    suspend fun setTrainingTarget(wpm: Int) = update { it[Keys.TRAINING_TARGET] = WordsPerMinute.clamp(wpm) }
 
     suspend fun setFontSize(sizeSp: Int) = update {
         it[Keys.FONT_SIZE] = sizeSp.coerceIn(ReaderDisplay.MIN_FONT_SIZE_SP, ReaderDisplay.MAX_FONT_SIZE_SP)
@@ -91,6 +98,7 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
                 wordsPerMinute = WordsPerMinute.clamp(this[Keys.WPM] ?: defaults.playback.wordsPerMinute),
                 smartPacing = this[Keys.SMART_PACING] ?: defaults.playback.smartPacing,
                 rampUp = this[Keys.RAMP_UP] ?: defaults.playback.rampUp,
+                chunkSize = (this[Keys.CHUNK_SIZE] ?: defaults.playback.chunkSize).coerceIn(1, Chunking.MAX_SIZE),
             ),
             display = ReaderDisplay(
                 fontSizeSp = (this[Keys.FONT_SIZE] ?: defaults.display.fontSizeSp)
@@ -101,6 +109,8 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
             ),
             themeMode = enumOrDefault(this[Keys.THEME], defaults.themeMode),
             librarySort = enumOrDefault(this[Keys.LIBRARY_SORT], defaults.librarySort),
+            speedTraining = this[Keys.SPEED_TRAINING] ?: defaults.speedTraining,
+            trainingTargetWpm = WordsPerMinute.clamp(this[Keys.TRAINING_TARGET] ?: defaults.trainingTargetWpm),
             volumeKeysTurnSentences = this[Keys.VOLUME_KEYS] ?: defaults.volumeKeysTurnSentences,
             hideReadNews = this[Keys.HIDE_READ_NEWS] ?: defaults.hideReadNews,
             newsImages = enumOrDefault(this[Keys.NEWS_IMAGES], defaults.newsImages),
@@ -121,6 +131,9 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
         val WPM = intPreferencesKey("words_per_minute")
         val SMART_PACING = booleanPreferencesKey("smart_pacing")
         val RAMP_UP = booleanPreferencesKey("ramp_up")
+        val CHUNK_SIZE = intPreferencesKey("chunk_size")
+        val SPEED_TRAINING = booleanPreferencesKey("speed_training")
+        val TRAINING_TARGET = intPreferencesKey("training_target_wpm")
         val FONT_SIZE = intPreferencesKey("font_size_sp")
         val FONT = stringPreferencesKey("reader_font")
         val HIGHLIGHT_FOCUS = booleanPreferencesKey("highlight_focus_letter")

@@ -69,6 +69,7 @@ import io.github.fianna76.speedread.data.settings.ReaderDisplay
 import io.github.fianna76.speedread.data.settings.ReaderFont
 import io.github.fianna76.speedread.data.settings.ThemeMode
 import io.github.fianna76.speedread.data.settings.UserPreferences
+import io.github.fianna76.speedread.rsvp.Chunking
 import io.github.fianna76.speedread.rsvp.Tokenizer
 import io.github.fianna76.speedread.rsvp.WordsPerMinute
 import io.github.fianna76.speedread.ui.reader.RsvpWordView
@@ -99,6 +100,11 @@ fun SettingsScreen(
         onHighlightChange = viewModel::setHighlightFocusLetter,
         onShowContextChange = viewModel::setShowContextWhenPaused,
         onVolumeKeysChange = viewModel::setVolumeKeysTurnSentences,
+        trainingActions = TrainingSettingsActions(
+            onChunkSizeChange = viewModel::setChunkSize,
+            onSpeedTrainingChange = viewModel::setSpeedTraining,
+            onTrainingTargetChange = viewModel::setTrainingTarget,
+        ),
         onThemeModeChange = viewModel::setThemeMode,
         onNewsSourceChange = viewModel::setNewsSourceEnabled,
         newsActions = NewsSettingsActions(
@@ -112,6 +118,13 @@ fun SettingsScreen(
         ),
     )
 }
+
+/** Chunk mode and speed training callbacks. */
+data class TrainingSettingsActions(
+    val onChunkSizeChange: (Int) -> Unit = {},
+    val onSpeedTrainingChange: (Boolean) -> Unit = {},
+    val onTrainingTargetChange: (Int) -> Unit = {},
+)
 
 /** Newsstand settings callbacks. */
 data class NewsSettingsActions(
@@ -171,6 +184,7 @@ fun SettingsContent(
     onNewsSourceChange: (sourceId: String, enabled: Boolean) -> Unit = { _, _ -> },
     newsActions: NewsSettingsActions = NewsSettingsActions(),
     onVolumeKeysChange: (Boolean) -> Unit = {},
+    trainingActions: TrainingSettingsActions = TrainingSettingsActions(),
 ) {
     Scaffold(
         modifier = modifier,
@@ -219,6 +233,42 @@ fun SettingsContent(
                 checked = preferences.playback.rampUp,
                 onCheckedChange = onRampUpChange,
             )
+            ChoiceSetting(
+                title = stringResource(R.string.settings_chunk),
+                options = (1..Chunking.MAX_SIZE).toList(),
+                selected = preferences.playback.chunkSize,
+                label = { size ->
+                    stringResource(
+                        when (size) {
+                            1 -> R.string.settings_chunk_one
+                            2 -> R.string.settings_chunk_two
+                            else -> R.string.settings_chunk_three
+                        },
+                    )
+                },
+                onSelect = trainingActions.onChunkSizeChange,
+            )
+            Text(
+                text = stringResource(R.string.settings_chunk_summary),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
+            SwitchSetting(
+                title = stringResource(R.string.settings_training),
+                summary = stringResource(R.string.settings_training_summary),
+                checked = preferences.speedTraining,
+                onCheckedChange = trainingActions.onSpeedTrainingChange,
+            )
+            if (preferences.speedTraining) {
+                ChoiceSetting(
+                    title = stringResource(R.string.settings_training_target),
+                    options = UserPreferences.TRAINING_TARGETS,
+                    selected = preferences.trainingTargetWpm,
+                    label = { it.toString() },
+                    onSelect = trainingActions.onTrainingTargetChange,
+                )
+            }
 
             SectionDivider()
             SectionHeader(stringResource(R.string.settings_section_display))

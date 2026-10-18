@@ -16,6 +16,7 @@ import io.github.fianna76.speedread.data.ReadingPosition
 import io.github.fianna76.speedread.data.settings.ReaderDisplay
 import io.github.fianna76.speedread.data.news.ArticleResult
 import io.github.fianna76.speedread.data.news.UpNext
+import io.github.fianna76.speedread.data.settings.UserPreferences
 import io.github.fianna76.speedread.data.settings.UserPreferencesRepository
 import io.github.fianna76.speedread.news.FeedItem
 import io.github.fianna76.speedread.news.NewsSources
@@ -67,6 +68,8 @@ data class ReaderUiState(
     val bookmarks: List<Bookmark> = emptyList(),
     /** Volume keys move between sentences (keyboards and page turners always work). */
     val volumeKeysTurnSentences: Boolean = false,
+    /** Speed training's target while it is still raising the speed; `null` when off or reached. */
+    val trainingTarget: Int? = null,
 ) {
     val chapter: Chapter? get() = chapters.getOrNull(chapterIndex)
     val hasPreviousChapter: Boolean get() = chapterIndex > 0
@@ -114,6 +117,7 @@ class ReaderViewModel(
     private val saveMutex = Mutex()
     private var lastSaved: Pair<ReadingPosition, Int>? = null
     private var autoContinue = true
+    private var training: Int? = null
     private var countdownJob: Job? = null
     /** Next stories that could not be read (no text, paywall, offline), skipped from now on. */
     private val skippedNext = HashSet<String>()
@@ -123,6 +127,8 @@ class ReaderViewModel(
             preferences.preferences.collect { prefs ->
                 player.updateSettings(prefs.playback)
                 autoContinue = prefs.autoContinueNews
+                training = prefs.trainingTargetWpm.takeIf { prefs.speedTraining && prefs.playback.wordsPerMinute < it }
+                _uiState.update { it.copy(trainingTarget = training) }
                 _uiState.update { it.copy(display = prefs.display, volumeKeysTurnSentences = prefs.volumeKeysTurnSentences) }
             }
         }
@@ -141,6 +147,21 @@ class ReaderViewModel(
             }
         }
         viewModelScope.launch { openBook() }
+        viewModelScope.launch {
+            // Speed training: count reading time (not paused time) and step the speed up.
+            var readMillis = 0L
+            player.state.map { it.isPlaying }.distinctUntilChanged().collectLatest { playing ->
+                while (playing) {
+                    delay(TRAINING_TICK_MS)
+                    if (training == null) continue
+                    readMillis += TRAINING_TICK_MS
+                    if (readMillis >= TRAINING_INTERVAL_MS) {
+                        readMillis = 0
+                        stepUpSpeed()
+                    }
+                }
+            }
+        }
         viewModelScope.launch {
             books.observeBookmarks(bookId).collect { marks -> _uiState.update { it.copy(bookmarks = marks) } }
         }
@@ -245,6 +266,14 @@ class ReaderViewModel(
 
     fun changeWordsPerMinuteBy(delta: Int) {
         setWordsPerMinute(player.state.value.settings.wordsPerMinute + delta)
+        commitWordsPerMinute()
+    }
+
+    private fun stepUpSpeed() {
+        val target = training ?: return
+        val wpm = player.state.value.settings.wordsPerMinute
+        if (wpm >= target) return
+        setWordsPerMinute(minOf(wpm + UserPreferences.SPEED_TRAINING_STEP, target))
         commitWordsPerMinute()
     }
 
@@ -424,6 +453,8 @@ class ReaderViewModel(
         private const val NO_CHAPTER = -1
         private const val PERIODIC_SAVE_MS = 10_000L
         private const val BOOKMARK_SNIPPET_WORDS = 12
+        private const val TRAINING_TICK_MS = 1_000L
+        private const val TRAINING_INTERVAL_MS = UserPreferences.SPEED_TRAINING_INTERVAL_MINUTES * 60_000L
         const val AUTO_CONTINUE_SECONDS = 5
 
         fun factory(bookId: Long, autoPlay: Boolean = false): ViewModelProvider.Factory = viewModelFactory {

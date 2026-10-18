@@ -309,6 +309,7 @@ fun ReaderContent(ui: ReaderUiState, player: PlayerState, actions: ReaderActions
                     onPreviousChapter = actions.onPreviousChapter,
                     onNextChapter = actions.onNextChapter,
                     onScrub = actions.onScrub,
+                    trainingTarget = ui.trainingTarget,
                 )
             }
         }
@@ -342,7 +343,7 @@ private fun ReadingSurface(ui: ReaderUiState, player: PlayerState) {
         if (ui.isLoading) {
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
         } else {
-            RsvpWordView(word = player.word, display = ui.display)
+            RsvpWordView(word = player.displayWord, display = ui.display)
         }
         Box(
             Modifier

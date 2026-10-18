@@ -112,6 +112,40 @@ class ReaderViewModelTest {
     }
 
     @Test
+    fun `speed training steps the speed up every two minutes of reading, up to the target`() =
+        runTest(mainDispatcherRule.dispatcher) {
+            val long = List(3_000) { "word" }.joinToString(" ")
+            repository = FakeBookRepository(
+                books = listOf(testBook(BOOK_ID, totalWords = 3_000)),
+                chapters = mapOf(BOOK_ID to listOf(Chapter(0, null, "c0.xhtml", 3_000, 0))),
+                texts = mapOf((BOOK_ID to 0) to listOf(long)),
+            )
+            preferences = testPreferences(tmp.newFolder(), backgroundScope)
+            preferences.setWordsPerMinute(600)
+            preferences.setSmartPacing(false)
+            preferences.setRampUp(false)
+            preferences.setSpeedTraining(true)
+            preferences.setTrainingTarget(650)
+            val viewModel = newViewModel().also { awaitReady(it) }
+            assertEquals(650, viewModel.uiState.first { it.trainingTarget != null }.trainingTarget)
+
+            viewModel.togglePlayPause()
+            advance(60_000)
+            viewModel.togglePlayPause() // Paused time doesn't count.
+            advance(600_000)
+            assertEquals(600, viewModel.playerState.value.settings.wordsPerMinute)
+            viewModel.togglePlayPause()
+            advance(60_000)
+            assertEquals(625, viewModel.playerState.value.settings.wordsPerMinute)
+            advance(120_000)
+            assertEquals(650, viewModel.playerState.value.settings.wordsPerMinute)
+            assertEquals(650, preferences.preferences.first().playback.wordsPerMinute)
+            assertNull(viewModel.uiState.first { it.trainingTarget == null }.trainingTarget) // Reached.
+            advance(120_000)
+            assertEquals(650, viewModel.playerState.value.settings.wordsPerMinute)
+        }
+
+    @Test
     fun `scrubbing pauses and moves through the chapter`() = runTest(mainDispatcherRule.dispatcher) {
         val viewModel = createViewModel()
         viewModel.togglePlayPause()

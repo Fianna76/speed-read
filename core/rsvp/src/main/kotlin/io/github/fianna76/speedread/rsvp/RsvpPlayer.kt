@@ -18,6 +18,12 @@ data class PlayerState(
 ) {
     val word: RsvpWord? get() = text.words.getOrNull(index)
 
+    /** Words shown together from [index] (1 unless chunk mode is on). */
+    val span: Int get() = if (text.isEmpty()) 1 else Chunking.span(text, index, settings.chunkSize)
+
+    /** What is on screen: the current word, or the chunk starting at it. */
+    val displayWord: RsvpWord? get() = if (index in 0 until text.size) Chunking.join(text, index, span) else null
+
     /** Fraction of the loaded text already shown, in `[0, 1]`. */
     val progress: Float get() = if (text.size <= 1) 0f else index.toFloat() / (text.size - 1)
 
@@ -116,15 +122,17 @@ class RsvpPlayer(
         var deadline = clock()
         while (true) {
             val current = _state.value
-            val word = current.word ?: break
-            val duration = Pacing.durationMillis(word, current.settings, wordsShown)
+            if (current.word == null) break
+            val span = current.span
+            // A chunk lasts as long as its words would have, one at a time.
+            val duration = (0 until span).sumOf { Pacing.durationMillis(current.text[current.index + it], current.settings, wordsShown + it) }
             val now = clock()
             // Absorb small scheduling delays, but never shorten a word by more than a quarter.
             deadline = maxOf(deadline, now - duration / 4) + duration
             delay(deadline - now)
-            wordsShown++
-            if (current.index >= current.text.size - 1) break
-            _state.update { it.copy(index = it.index + 1) }
+            wordsShown += span
+            if (current.index + span > current.text.size - 1) break
+            _state.update { it.copy(index = it.index + span) }
         }
         playbackJob = null
         _state.update { it.copy(isPlaying = false) }

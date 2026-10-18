@@ -183,6 +183,15 @@
     <string name="reader_remove_bookmark">Remove bookmark</string>
     <string name="reader_delete_bookmark">Delete bookmark</string>
     <string name="reader_position">Position in chapter</string>
+    <string name="reader_training_target">Training → %1$d</string>
+    <string name="settings_chunk">Words at a time</string>
+    <string name="settings_chunk_one">1</string>
+    <string name="settings_chunk_two">Up to 2</string>
+    <string name="settings_chunk_three">Up to 3</string>
+    <string name="settings_chunk_summary">Short words are shown together (“in the”, “of a”), which keeps high speeds readable. Phrases never cross commas or sentence ends.</string>
+    <string name="settings_training">Speed training</string>
+    <string name="settings_training_summary">While you read, the speed goes up by 25 wpm every 2 minutes until it reaches your target. Slow down at any time with the speed controls.</string>
+    <string name="settings_training_target">Training target (wpm)</string>
     <string name="reader_position_percent">%1$d%%</string>
     <string name="settings_volume_keys">Volume keys turn sentences</string>
     <string name="settings_volume_keys_summary">In the reader, volume down goes back a sentence and volume up goes forward. Keyboards and page turners always work.</string>
