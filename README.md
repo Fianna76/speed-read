@@ -58,6 +58,13 @@ so your eyes stay still while you read.
     new story.
   Subscriber-only articles always open on the outlet's site. Paywalled outlets (The Irish
   Times, Irish Examiner, NYT, FT…) and Reuters and AP (no public feeds) aren't included.
+- **Reader extras.** A chapter scrubber that previews where you'll land; bookmarks; keyboard,
+  Bluetooth page-turner and headset controls (and, optionally, volume keys); chunk mode (2–3
+  short words at a time); and optional speed training that raises the speed as you read.
+- **Shortcuts.** Long-press the app icon for Continue reading, Play briefing or Speed-read
+  clipboard; a Quick Settings tile speed-reads the clipboard too. Share plain text or a link
+  to SpeedRead to read it.
+- **Your own feeds.** Add any RSS/Atom feed, or just a site's address, to the Newsstand.
 - **Library.** A cover grid with progress, four sort orders, tap to read, and long-press to
   select books for deletion.
 - **Speed control.** A 100–1000 wpm slider with −/+ buttons right on the reading screen.
@@ -83,7 +90,7 @@ The full design (goals, architecture, data model, testing strategy, roadmap and 
 
 ## Install the APK
 
-1. Copy `SpeedRead-1.7.0-release.apk` to your phone (Android 8.0 or newer). The APK comes
+1. Copy `SpeedRead-1.8.0-release.apk` to your phone (Android 8.0 or newer). The APK comes
    from a [CI run's](../../actions) artifacts or from a local build (below).
 2. Open it and allow installs from that source when prompted.
 3. Tap **Import book** and pick an EPUB or PDF, or open the **News** tab. Public-domain EPUBs are available from
@@ -99,7 +106,7 @@ Requirements: JDK 17+ (JDK 21 recommended) and the Android SDK with platform 37
 (`ANDROID_HOME` or `local.properties`). The Gradle wrapper downloads everything else.
 
 ```bash
-./gradlew assembleRelease   # → app/build/outputs/apk/release/SpeedRead-1.7.0-release.apk
+./gradlew assembleRelease   # → app/build/outputs/apk/release/SpeedRead-1.8.0-release.apk
 ./gradlew assembleDebug     # → debug build (installs alongside release as "…speedread.debug")
 ./gradlew lint test         # static analysis + all unit, Robolectric and Compose UI tests
 ```

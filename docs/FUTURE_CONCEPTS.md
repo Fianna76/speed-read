@@ -1,6 +1,6 @@
 # SpeedRead: future concepts
 
-This is the full list of ideas for SpeedRead after v1.7, gathered in one place. It covers
+This is the full list of ideas for SpeedRead, gathered in one place. ✅ marks concepts already shipped (v1.8). It covers
 the reader, the library, the Newsstand, the platform and the project itself. Nothing here
 is committed work. [`PROJECT_PLAN.md`](PROJECT_PLAN.md) §6 holds the prioritised backlog,
 and items move there when they are scheduled.
@@ -18,8 +18,8 @@ control works with TalkBack and at 200 % font scale.
 
 | Concept | What it is | Value | Effort |
 |---|---|---|---|
-| ★ Chunk mode | Flash 2–3 short words together ("in the", "of a"), which keeps high speeds readable. The chunk size adapts to word length. | High | M |
-| ★ Speed training | An optional ramp that adds +10 wpm every N minutes up to a target. It suggests a new default speed when comprehension stays steady. | High | S |
+| ✅ Chunk mode | **Done in v1.8:** up to 2 or 3 short words per flash. Phrases stop at commas and sentence ends, and long words stand alone. | High | M |
+| ✅ Speed training | **Done in v1.8:** +25 wpm per 2 minutes of reading, up to a chosen target. Still to come: suggesting a new default speed. | High | S |
 | Comprehension checks | An optional 3-question quiz after a chapter or article, generated on-device from the text: cloze sentences drawn from key sentences, no AI service. Its score informs speed suggestions. | Medium | M |
 | Adaptive pacing v2 | Slow down for rare words (a frequency list per language), numbers, proper nouns and words in quotes. Speed up through dialogue tags ("he said"). | Medium | M |
 | Sentence-aware rewind | Swipe left on the word strip to step back word by word while paused, and long-press to scrub. | Medium | S |
@@ -33,8 +33,8 @@ control works with TalkBack and at 200 % font scale.
 
 | Concept | What it is | Value | Effort |
 |---|---|---|---|
-| ★ Scrubber and bookmarks | A chapter scrubber with a word-accurate preview, named bookmarks, and "jump to bookmark". | High | M |
-| ★ Hardware controls | Volume keys for previous/next sentence, Bluetooth page-turner and keyboard support (space, arrows), and optional haptic ticks on sentence ends. | High | S |
+| ✅ Scrubber and bookmarks | **Done in v1.8:** the chapter scrubber previews the word under the thumb. Bookmarks are added from the top bar and listed beside the chapters. Still to come: named bookmarks. | High | M |
+| ✅ Hardware controls | **Done in v1.8:** keyboards, page turners, headset buttons and (optionally) volume keys. Still to come: haptic ticks. | High | S |
 | Highlights and notes | Long-press while paused to highlight the current sentence and add a note. Export as Markdown. | Medium | M |
 | Landscape and large screens | A landscape reader layout, plus tablet and foldable list-detail via Material 3 adaptive. Tabletop posture on foldables puts the word on top and controls below. | Medium | M |
 | Sleep timer | Stop after N minutes or at the end of the chapter, for bedtime reading. | Medium | S |
@@ -51,7 +51,7 @@ control works with TalkBack and at 200 % font scale.
 | EPUB chapters from TOC fragments | Split chapters at TOC anchors for books that keep several chapters in one file. | Medium | M |
 | PDF quality | Header and footer stripping, multi-column detection, a password prompt, and cached extracted text. | Medium | M |
 | More formats | Plain text, Markdown, HTML files, FB2, DOCX (via ZIP + XML), and DRM-free MOBI/AZW3. | Medium | L |
-| Clipboard reading | "Speed-read clipboard" from the app shortcut and a Quick Settings tile. | High | S |
+| ✅ Clipboard reading | **Done in v1.8:** a copied link opens its article, and copied or shared text is read as it is. | High | S |
 | Read-later integrations | Import from Pocket-style exports and Instapaper CSV, and "Share → SpeedRead" for Wallabag and other self-hosted services. | Medium | M |
 | Reading statistics | Words read, time saved versus 250 wpm, effective wpm, streaks and a weekly chart, all on device. | Medium | M |
 | Goals | Optional daily minutes or words goal, with a gentle streak (never guilt notifications). | Low | S |
@@ -67,7 +67,7 @@ share-a-link (v1.6); breaking Irish news alerts and the morning briefing (v1.7).
 
 | Concept | What it is | Value | Effort |
 |---|---|---|---|
-| ★ Custom feeds | Add any RSS or Atom URL, or a site URL with feed autodiscovery. Custom feeds get their own region, topics and extraction hints. | High | M |
+| ✅ Custom feeds | **Done in v1.8:** feed or site address with autodiscovery, a chosen region, and removable feeds. Still to come: per-feed extraction hints. | High | M |
 | ★ Briefing options | Choose the briefing's regions and topics, its length (3 to 10 stories), and weekend times. "Skip stories I've seen in alerts". | Medium | S |
 | Alert options | Alerts for Europe and world as well as Ireland, keyword alerts ("Budget", "Storm"), quiet hours, and a per-day cap. | Medium | S |
 | Story timeline | For a grouped story, show how coverage developed: first report, updates and other outlets, with times. | Medium | M |
@@ -103,7 +103,7 @@ share-a-link (v1.6); breaking Irish news alerts and the morning briefing (v1.7).
 
 | Concept | What it is | Value | Effort |
 |---|---|---|---|
-| ★ App shortcuts and Quick Settings tile | Launcher shortcuts for Continue reading, Play briefing and Speed-read clipboard, plus a QS tile for clipboard. | High | S |
+| ✅ App shortcuts and Quick Settings tile | **Done in v1.8:** Continue reading, Play briefing and Speed-read clipboard, plus a clipboard tile. Shared plain text is read too. | High | S |
 | Predictive back and shared-element transitions | A card-to-reader transition, and a predictive back preview on Android 15+. | Low | S |
 | Per-app language | `LocaleConfig` and translated UI: Irish (Gaeilge), German, French and Spanish first. | Medium | M |
 | Assistant and App Actions | "Hey Google, speed-read my briefing" and "continue my book" via App Actions. | Low | M |
@@ -136,11 +136,13 @@ share-a-link (v1.6); breaking Irish news alerts and the morning briefing (v1.7).
 
 ## Recommended next steps
 
-1. **App shortcuts and Quick Settings tile.** Cheap, and they make the briefing and
-   clipboard reading one tap away.
-2. **Custom feeds.** The most-requested kind of feature for any news reader, and it relieves
-   pressure on the built-in catalogue.
-3. **Scrubber, bookmarks and hardware controls.** The biggest remaining reader gaps.
-4. **Chunk mode and speed training.** The core speed-reading value.
+v1.8 shipped the first round: shortcuts and the clipboard tile, custom feeds, the scrubber,
+bookmarks, hardware controls, chunk mode and speed training. Next:
+
+1. **Library search and collections.** The library is the last screen without search.
+2. **Briefing options and alert options.** Small, and they make the v1.7 news features
+   personal.
+3. **Backup and restore.** Progress, bookmarks and feeds are now worth keeping.
+4. **Classic page view toggle.** Lets readers switch between RSVP and normal text.
 5. **Baseline profile, an accessibility audit and the Play Store release.** Getting the app
    into people's hands.
