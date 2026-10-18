@@ -1,6 +1,6 @@
 # SpeedRead: future concepts
 
-This is the full list of ideas for SpeedRead, gathered in one place. ✅ marks concepts already shipped (v1.8). It covers
+This is the full list of ideas for SpeedRead, gathered in one place. ✅ marks concepts already shipped (v1.8 and v1.9). It covers
 the reader, the library, the Newsstand, the platform and the project itself. Nothing here
 is committed work. [`PROJECT_PLAN.md`](PROJECT_PLAN.md) §6 holds the prioritised backlog,
 and items move there when they are scheduled.
@@ -27,7 +27,7 @@ control works with TalkBack and at 200 % font scale.
 | Pause on punctuation styles | Different pauses for paragraph, section break (`***`), dialogue and list item. | Low | S |
 | Eye-rest reminders | A gentle reminder every 20 minutes to look away (20-20-20 rule), with a configurable interval. | Low | S |
 | Bionic or "focus prefix" mode | An alternative to ORP colouring: the first letters are bold. It is shown in the normal page view too. | Low | S |
-| Classic page view toggle | Read the same position as normal scrolling text, and drop back into RSVP at any word. | High | M |
+| ✅ Classic page view toggle | **Done in v1.9:** the chapter as text with the current word highlighted. Tapping a word continues RSVP from there. | High | M |
 
 ## 2. Reader UI
 
@@ -47,7 +47,7 @@ control works with TalkBack and at 200 % font scale.
 
 | Concept | What it is | Value | Effort |
 |---|---|---|---|
-| ★ Library search and collections | Search by title and author, collections or shelves, and filters for "in progress" and "finished". | High | M |
+| ✅ Library search and collections | **Done in v1.9:** search by title or author, Reading / Not started / Finished filters, and collections (rename, delete, add and remove books). | High | M |
 | EPUB chapters from TOC fragments | Split chapters at TOC anchors for books that keep several chapters in one file. | Medium | M |
 | PDF quality | Header and footer stripping, multi-column detection, a password prompt, and cached extracted text. | Medium | M |
 | More formats | Plain text, Markdown, HTML files, FB2, DOCX (via ZIP + XML), and DRM-free MOBI/AZW3. | Medium | L |
@@ -55,7 +55,7 @@ control works with TalkBack and at 200 % font scale.
 | Read-later integrations | Import from Pocket-style exports and Instapaper CSV, and "Share → SpeedRead" for Wallabag and other self-hosted services. | Medium | M |
 | Reading statistics | Words read, time saved versus 250 wpm, effective wpm, streaks and a weekly chart, all on device. | Medium | M |
 | Goals | Optional daily minutes or words goal, with a gentle streak (never guilt notifications). | Low | S |
-| Backup and restore | Export the library, progress, bookmarks and settings to a single file (SAF), and import it on a new phone. | High | M |
+| ✅ Backup and restore | **Done in v1.9:** one ZIP file through the system picker, holding books, covers, positions, bookmarks, collections, feeds and settings. Restoring merges. | High | M |
 | Optional sync | End-to-end-encrypted progress sync through the user's own storage (WebDAV, or a file in their cloud drive). It is opt-in and has no SpeedRead server. | Medium | L |
 | OPDS catalogues | Browse and download from Project Gutenberg, Standard Ebooks and Calibre servers. | Medium | M |
 
@@ -68,8 +68,8 @@ share-a-link (v1.6); breaking Irish news alerts and the morning briefing (v1.7).
 | Concept | What it is | Value | Effort |
 |---|---|---|---|
 | ✅ Custom feeds | **Done in v1.8:** feed or site address with autodiscovery, a chosen region, and removable feeds. Still to come: per-feed extraction hints. | High | M |
-| ★ Briefing options | Choose the briefing's regions and topics, its length (3 to 10 stories), and weekend times. "Skip stories I've seen in alerts". | Medium | S |
-| Alert options | Alerts for Europe and world as well as Ireland, keyword alerts ("Budget", "Storm"), quiet hours, and a per-day cap. | Medium | S |
+| ✅ Briefing options | **Done in v1.9:** stories per region, regions covered, and weekend notifications. Still to come: topic choice. | Medium | S |
+| ✅ Alert options | **Done in v1.9:** alert regions, quiet hours (22:00–07:00) and a daily limit. Still to come: keyword alerts. | Medium | S |
 | Story timeline | For a grouped story, show how coverage developed: first report, updates and other outlets, with times. | Medium | M |
 | Bias and perspective view | Show a story's versions side by side by region ("Irish view / European view / world view"), using existing grouping. No ratings, just the versions. | Medium | M |
 | Follow a story | "Follow" a grouped story to be notified, or see it in a Following tab, when new versions appear. | Medium | M |
@@ -136,13 +136,14 @@ share-a-link (v1.6); breaking Irish news alerts and the morning briefing (v1.7).
 
 ## Recommended next steps
 
-v1.8 shipped the first round: shortcuts and the clipboard tile, custom feeds, the scrubber,
-bookmarks, hardware controls, chunk mode and speed training. Next:
+v1.8 shipped shortcuts and the clipboard tile, custom feeds, the scrubber, bookmarks, hardware
+controls, chunk mode and speed training. v1.9 added library search and collections, briefing
+and alert options, backup and restore, and page view. Next:
 
-1. **Library search and collections.** The library is the last screen without search.
-2. **Briefing options and alert options.** Small, and they make the v1.7 news features
-   personal.
-3. **Backup and restore.** Progress, bookmarks and feeds are now worth keeping.
-4. **Classic page view toggle.** Lets readers switch between RSVP and normal text.
-5. **Baseline profile, an accessibility audit and the Play Store release.** Getting the app
-   into people's hands.
+1. **Baseline profile and an accessibility audit.** Faster start-up and a TalkBack pass, before
+   wider release.
+2. **Reading statistics.** Words read, time saved and streaks, now that there's history worth
+   showing.
+3. **Highlights and notes.** They build on bookmarks.
+4. **Play Store and F-Droid release.**
+5. **Podcast-style reading queue.** It generalises the briefing.

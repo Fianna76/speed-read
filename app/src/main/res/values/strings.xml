@@ -45,7 +45,6 @@
     <string name="library_new_collection">New collection</string>
     <string name="library_new_collection_ellipsis">New collection…</string>
     <string name="library_collection_name">Name</string>
-    <string name="library_create">Create</string>
     <string name="library_add_to_collection">Add to collection</string>
     <string name="library_remove_from_collection">Remove from collection</string>
     <string name="library_collection_options">Collection options</string>

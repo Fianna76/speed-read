@@ -9,8 +9,8 @@ plugins {
     alias(libs.plugins.room)
 }
 
-val appVersionName = "1.8.0"
-val appVersionCode = 9
+val appVersionName = "1.9.0"
+val appVersionCode = 10
 
 // Release signing credentials come from a git-ignored keystore.properties file or from
 // environment variables (CI). Without them the release build falls back to the debug key,

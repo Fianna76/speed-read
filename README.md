@@ -65,8 +65,13 @@ so your eyes stay still while you read.
   clipboard; a Quick Settings tile speed-reads the clipboard too. Share plain text or a link
   to SpeedRead to read it.
 - **Your own feeds.** Add any RSS/Atom feed, or just a site's address, to the Newsstand.
-- **Library.** A cover grid with progress, four sort orders, tap to read, and long-press to
-  select books for deletion.
+- **Library.** A cover grid with progress, four sort orders, search by title or author,
+  Reading / Not started / Finished filters, and collections. Long-press to select books
+  to add to a collection or delete.
+- **Page view.** Switch the reader to ordinary text to skim or find a place; tap a word to
+  continue speed reading from there.
+- **Backup and restore.** Books, positions, bookmarks, collections, feeds and settings in one
+  file, for a new phone.
 - **Speed control.** A 100–1000 wpm slider with −/+ buttons right on the reading screen.
   Changes apply instantly and are remembered.
 - **Single-tap controls.** Tap the middle to play or pause, the left side for the previous
@@ -90,7 +95,7 @@ The full design (goals, architecture, data model, testing strategy, roadmap and 
 
 ## Install the APK
 
-1. Copy `SpeedRead-1.8.0-release.apk` to your phone (Android 8.0 or newer). The APK comes
+1. Copy `SpeedRead-1.9.0-release.apk` to your phone (Android 8.0 or newer). The APK comes
    from a [CI run's](../../actions) artifacts or from a local build (below).
 2. Open it and allow installs from that source when prompted.
 3. Tap **Import book** and pick an EPUB or PDF, or open the **News** tab. Public-domain EPUBs are available from
@@ -106,7 +111,7 @@ Requirements: JDK 17+ (JDK 21 recommended) and the Android SDK with platform 37
 (`ANDROID_HOME` or `local.properties`). The Gradle wrapper downloads everything else.
 
 ```bash
-./gradlew assembleRelease   # → app/build/outputs/apk/release/SpeedRead-1.8.0-release.apk
+./gradlew assembleRelease   # → app/build/outputs/apk/release/SpeedRead-1.9.0-release.apk
 ./gradlew assembleDebug     # → debug build (installs alongside release as "…speedread.debug")
 ./gradlew lint test         # static analysis + all unit, Robolectric and Compose UI tests
 ```

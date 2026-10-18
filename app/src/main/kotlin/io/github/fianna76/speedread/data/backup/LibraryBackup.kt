@@ -190,9 +190,15 @@ class LibraryBackup(
     }
 
     private fun ZipInputStream.readLimited(limit: Int): ByteArray {
-        val bytes = readNBytes(limit + 1)
-        if (bytes.size > limit) throw BackupFormatException("Manifest too large")
-        return bytes
+        val out = java.io.ByteArrayOutputStream()
+        val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+        while (true) {
+            val read = read(buffer)
+            if (read < 0) break
+            out.write(buffer, 0, read)
+            if (out.size() > limit) throw BackupFormatException("Manifest too large")
+        }
+        return out.toByteArray()
     }
 
     @Serializable

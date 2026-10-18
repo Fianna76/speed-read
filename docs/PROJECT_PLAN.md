@@ -5,7 +5,7 @@ SpeedRead is an Android e-reader for EPUB and PDF books that uses **Rapid Serial
 *optimal recognition point* (ORP), so the eyes don't have to travel across lines and pages.
 
 This document is the plan for the app. The repository already contains a working
-first release (v1.0.0) built from it, plus PDF support added in v1.1.0, the Newsstand in v1.2.0, 69 news sources in v1.3.0 Newsstand quality-of-life features in v1.4.0–v1.6.0, breaking-news alerts and the morning briefing in v1.7.0, and reader and convenience features in v1.8.0 (shortcuts, clipboard reading, custom feeds, a scrubber, bookmarks, hardware keys, chunk mode and speed training) ([`NEWSSTAND_UX_PLAN.md`](NEWSSTAND_UX_PLAN.md)). §6 marks what is done and what comes next.
+first release (v1.0.0) built from it, plus PDF support added in v1.1.0, the Newsstand in v1.2.0, 69 news sources in v1.3.0 Newsstand quality-of-life features in v1.4.0–v1.6.0, breaking-news alerts and the morning briefing in v1.7.0, reader and convenience features in v1.8.0 (shortcuts, clipboard reading, custom feeds, a scrubber, bookmarks, hardware keys, chunk mode and speed training), and library search, collections, backup and restore, page view and briefing/alert options in v1.9.0 ([`NEWSSTAND_UX_PLAN.md`](NEWSSTAND_UX_PLAN.md)). §6 marks what is done and what comes next.
 
 ---
 
@@ -284,7 +284,7 @@ Steps 1, 2 and 7 are shared with EPUB. The format is identified from the file's 
   progress therefore work unchanged. The library query excludes articles, the Newsstand
   shows their progress by URL, and articles not opened for 30 days are pruned.
 - **Network etiquette.** The User-Agent is browser-compatible but names the app
-  (`Mozilla/5.0 (Linux; Android …) SpeedRead/1.8.0`); one firewall rejects anything else.
+  (`Mozilla/5.0 (Linux; Android …) SpeedRead/1.9.0`); one firewall rejects anything else.
   Pages are fetched only when the user asks to read them. Requests use 15 s connect /
   45 s call timeouts and a 5 MB response cap, and are cancelled with their screen.
 
@@ -391,7 +391,7 @@ without covers, large books).
 3. ~~Chunk mode (2–3 words per flash) and an optional speed-training ramp.~~ Done in v1.8.
 4. A bundled high-legibility font (e.g. Atkinson Hyperlegible), plus dyslexia-friendly options.
 5. Reading statistics: words read, effective wpm, streaks.
-6. Library search and collections.
+6. ~~Library search and collections.~~ Done in v1.9.
 7. Landscape reader layout, and tablet/foldable list-detail via Material 3 adaptive.
 8. ~~Hardware controls: volume keys, Bluetooth page turners.~~ Done in v1.8. Optional haptics.
 9. CJK segmentation (ICU `BreakIterator`), RTL ORP mirroring, more languages
@@ -431,7 +431,7 @@ The complete, unprioritised list of future concepts is in [`FUTURE_CONCEPTS.md`]
 ./gradlew assembleRelease  # app/build/outputs/apk/release/SpeedRead-1.6.0-release.apk
 ```
 
-- **Versioning.** Semantic `versionName` (`1.8.0`) and a monotonically increasing
+- **Versioning.** Semantic `versionName` (`1.9.0`) and a monotonically increasing
   `versionCode`.
 - **Signing.** Put `storeFile`, `storePassword`, `keyAlias` and `keyPassword` in
   `keystore.properties`, or set the `SPEEDREAD_KEYSTORE_*` / `SPEEDREAD_KEY_*` environment
