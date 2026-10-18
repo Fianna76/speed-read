@@ -75,4 +75,45 @@ class SharedLinkReaderTest {
 
         assertFalse(reader.open("no link here"))
     }
+
+    @Test
+    fun `plain text is read as it is, titled by its first line, and the same text reopens the same copy`() = runTest {
+        val reader = SharedLinkReader(ArticleRepository(database.bookDao(), files, web), backgroundScope)
+        val text = "Notes from the meeting\n\nWe agreed to ship the reader first.\nThen the Newsstand follows."
+
+        assertTrue(reader.read(text))
+        val first = reader.state.first { it is SharedLinkReader.State.Ready } as SharedLinkReader.State.Ready
+        val books = OfflineBookRepository(database.bookDao(), files, PdfBooks(context))
+        val book = books.getBook(first.bookId)!!
+        assertEquals("Notes from the meeting", book.title)
+        assertNull(book.author)
+        assertEquals(15, book.totalWords)
+        assertTrue(web.requests.isEmpty())
+
+        reader.onOpened()
+        assertTrue(reader.read(text))
+        assertEquals(first, reader.state.first { it is SharedLinkReader.State.Ready })
+    }
+
+    @Test
+    fun `a link in the text wins, and a stray word or two is not worth reading`() = runTest {
+        web.responses["https://blog.example/post/1"] = TestNews.articlePage(title = "An interesting essay")
+        val reader = SharedLinkReader(ArticleRepository(database.bookDao(), files, web), backgroundScope)
+
+        assertTrue(reader.read("Worth a look, honestly: https://blog.example/post/1"))
+        val ready = reader.state.first { it is SharedLinkReader.State.Ready } as SharedLinkReader.State.Ready
+        assertEquals("An interesting essay", OfflineBookRepository(database.bookDao(), files, PdfBooks(context)).getBook(ready.bookId)!!.title)
+
+        assertFalse(reader.read("  "))
+        assertFalse(reader.read("Seán Ó"))
+    }
+
+    @Test
+    fun `long first lines are shortened at a word for the title`() = runTest {
+        val articles = ArticleRepository(database.bookDao(), files, web)
+        val line = "This is a very long opening sentence that keeps going well past the length of any sensible title"
+        val result = articles.saveText(line) as ArticleResult.Ready
+        val title = OfflineBookRepository(database.bookDao(), files, PdfBooks(context)).getBook(result.bookId)!!.title
+        assertEquals("This is a very long opening sentence that keeps going well\u2026", title)
+    }
 }

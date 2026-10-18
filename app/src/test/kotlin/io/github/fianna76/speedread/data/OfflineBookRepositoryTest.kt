@@ -73,6 +73,18 @@ class OfflineBookRepositoryTest {
     }
 
     @Test
+    fun `continue reading finds the last opened book until it is finished`() = runTest {
+        val id = importSample()
+        assertNull(repository.lastUnfinishedBookId()) // Never opened.
+
+        repository.markOpened(id)
+        assertEquals(id, repository.lastUnfinishedBookId())
+
+        repository.savePosition(id, ReadingPosition(chapterIndex = 1, wordIndex = 4), wordsRead = 11)
+        assertNull(repository.lastUnfinishedBookId())
+    }
+
+    @Test
     fun `loads and tokenises chapter text from the stored file`() = runTest {
         val id = importSample()
         val chapters = repository.getChapters(id)

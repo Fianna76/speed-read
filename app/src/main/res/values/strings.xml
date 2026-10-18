@@ -11,7 +11,13 @@
     <string name="action_close">Close</string>
 
     <!-- Shared links -->
-    <string name="shared_link_none">There’s no web link to read in what you shared</string>
+    <string name="shared_link_none">There’s nothing to speed-read in what you shared</string>
+    <string name="clipboard_empty">Copy a link or some text first, then try again</string>
+    <string name="shortcut_continue">Continue reading</string>
+    <string name="shortcut_briefing">Play briefing</string>
+    <string name="shortcut_clipboard">Speed-read clipboard</string>
+    <string name="shortcut_nothing_to_continue">Nothing to continue: open a book or article first</string>
+    <string name="tile_clipboard">Speed-read clipboard</string>
     <string name="shared_link_preparing">Preparing the article…</string>
     <string name="shared_link_failed_title">Couldn’t speed-read this page</string>
     <string name="shared_link_no_text">This page has no article text to speed-read.</string>

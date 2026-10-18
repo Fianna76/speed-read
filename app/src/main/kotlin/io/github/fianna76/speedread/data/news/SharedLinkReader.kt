@@ -3,6 +3,7 @@ package io.github.fianna76.speedread.data.news
 import android.util.Patterns
 import io.github.fianna76.speedread.news.FeedItem
 import io.github.fianna76.speedread.news.NewsSources
+import io.github.fianna76.speedread.rsvp.Tokenizer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,15 +13,16 @@ import kotlinx.coroutines.launch
 import java.net.URI
 
 /**
- * Speed-reads any web article shared to the app (Share → SpeedRead from a browser or another
- * app): finds the link in the shared text, extracts the article and asks the UI to open it.
+ * Speed-reads what is shared to the app (Share → SpeedRead) or copied to the clipboard. A web
+ * link is downloaded and its article extracted; other text is read as it is.
  */
 class SharedLinkReader(private val articles: ArticleRepository, private val scope: CoroutineScope) {
 
     sealed interface State {
         data object Idle : State
 
-        data class Preparing(val url: String) : State
+        /** Downloading [url]; `null` while saving plain text. */
+        data class Preparing(val url: String?) : State
 
         /** The article is ready; the UI opens the reader and calls [onOpened]. */
         data class Ready(val bookId: Long) : State
@@ -32,6 +34,25 @@ class SharedLinkReader(private val articles: ArticleRepository, private val scop
     val state: StateFlow<State> = _state.asStateFlow()
 
     private var job: Job? = null
+
+    /**
+     * Starts reading the first web link in [text] or, if there is none, the text itself.
+     * Returns `false` if there is nothing worth reading (blank, or a word or two).
+     */
+    fun read(text: String, subject: String? = null): Boolean {
+        if (findUrl(text) != null) return open(text, subject)
+        if (Tokenizer.countWords(listOf(text)) < MIN_TEXT_WORDS) return false
+        job?.cancel()
+        _state.value = State.Preparing(null)
+        job = scope.launch {
+            _state.value = when (val result = articles.saveText(text, subject?.trim()?.takeUnless { it.startsWith("http") })) {
+                is ArticleResult.Ready -> State.Ready(result.bookId)
+                // Plain text can only fail to save, never to download; there is nothing to open online.
+                is ArticleResult.Failed -> State.Failed("", result.reason)
+            }
+        }
+        return true
+    }
 
     /** Starts reading the first web link in [text]; returns `false` if there is none. */
     fun open(text: String, subject: String? = null): Boolean {
@@ -62,6 +83,9 @@ class SharedLinkReader(private val articles: ArticleRepository, private val scop
     companion object {
         /** Source id of articles that came from a shared link rather than a feed. */
         const val WEB_SOURCE = "web"
+
+        /** Shorter text is more likely a stray copy (a name, a number) than something to read. */
+        const val MIN_TEXT_WORDS = 3
 
         internal fun findUrl(text: String): String? {
             val matcher = Patterns.WEB_URL.matcher(text)

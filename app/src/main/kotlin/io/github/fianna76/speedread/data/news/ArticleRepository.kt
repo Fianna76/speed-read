@@ -94,12 +94,36 @@ class ArticleRepository(
         return save(item, url, article)
     }
 
+    /**
+     * Saves pasted or shared plain text so it can be speed-read like an article. The same text
+     * opens the same copy (and keeps its position). [title] defaults to the text's first line.
+     */
+    suspend fun saveText(text: String, title: String? = null): ArticleResult {
+        val paragraphs = text.lines().map { it.trim() }.filter { it.isNotEmpty() }
+        if (paragraphs.isEmpty()) return ArticleResult.Failed(ArticleError.NO_TEXT)
+        val url = TEXT_URL_PREFIX + sha256(paragraphs.joinToString("\n"))
+        dao.findArticle(url)?.let { existing ->
+            if (files.readChapterText(existing.fileName, ARTICLE_HREF) != null) return ArticleResult.Ready(existing.id)
+            delete(listOf(existing))
+        }
+        val heading = title?.trim()?.takeIf { it.isNotEmpty() } ?: paragraphs.first().let {
+            if (it.length <= MAX_TEXT_TITLE) it else it.take(MAX_TEXT_TITLE).substringBeforeLast(' ').trimEnd(',', ';', ':') + "\u2026"
+        }
+        val item = FeedItem(TEXT_SOURCE, heading, url, summary = "", imageUrl = null, publishedAt = null, author = null)
+        return save(item, url, ExtractedArticle(heading, null, paragraphs), author = null)
+    }
+
     /** Deletes saved articles not opened within [RETENTION_MILLIS]. */
     suspend fun pruneOld() {
         delete(dao.findArticlesOlderThan(clock() - RETENTION_MILLIS))
     }
 
-    private suspend fun save(item: FeedItem, url: String, article: ExtractedArticle): ArticleResult {
+    private suspend fun save(
+        item: FeedItem,
+        url: String,
+        article: ExtractedArticle,
+        author: String? = NewsSources.byId(item.sourceId)?.name ?: ArticleUrls.displayHost(item.url).ifEmpty { null },
+    ): ArticleResult {
         val paragraphs = article.paragraphs
         val fileName = "article-${sha256(url)}"
         val stored = withContext(ioDispatcher) { files.writeChapterText(fileName, ARTICLE_HREF, paragraphs) }
@@ -108,7 +132,7 @@ class ArticleRepository(
         val book = BookEntity(
             // Shared links have no feed headline or known outlet: use the page's own title and site.
             title = item.title.ifBlank { article.title.ifBlank { ArticleUrls.displayHost(item.url) } },
-            author = NewsSources.byId(item.sourceId)?.name ?: ArticleUrls.displayHost(item.url).ifEmpty { null },
+            author = author,
             language = null,
             format = BookFormat.ARTICLE.name,
             fileName = fileName,
@@ -144,5 +168,13 @@ class ArticleRepository(
         const val ARTICLE_HREF = "article"
 
         const val RETENTION_MILLIS = 30L * 24 * 60 * 60 * 1000
+
+        /** Pasted text has no web address; it is keyed by a hash of its content under this prefix. */
+        const val TEXT_URL_PREFIX = "speedread:text/"
+
+        /** Source id of pasted or shared plain text. */
+        const val TEXT_SOURCE = "text"
+
+        private const val MAX_TEXT_TITLE = 60
     }
 }

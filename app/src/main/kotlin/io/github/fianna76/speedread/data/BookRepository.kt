@@ -33,6 +33,9 @@ interface BookRepository {
     suspend fun markOpened(bookId: Long)
 
     suspend fun deleteBooks(ids: Set<Long>)
+
+    /** The book or article read most recently and not finished, for "Continue reading". */
+    suspend fun lastUnfinishedBookId(): Long? = null
 }
 
 /** [BookRepository] backed by Room and the app-private [BookFileStore]. */
@@ -76,6 +79,8 @@ class OfflineBookRepository(
     override suspend fun markOpened(bookId: Long) {
         dao.updateLastOpened(bookId, clock())
     }
+
+    override suspend fun lastUnfinishedBookId(): Long? = dao.findLastUnfinished()?.id
 
     override suspend fun deleteBooks(ids: Set<Long>) {
         if (ids.isEmpty()) return

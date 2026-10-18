@@ -34,6 +34,13 @@ interface BookDao {
     )
     suspend fun findArticlesOlderThan(cutoff: Long): List<BookEntity>
 
+    /** The book or article read most recently that isn't finished, if any. */
+    @Query(
+        "SELECT * FROM books WHERE last_opened_at IS NOT NULL AND words_read < total_words " +
+            "ORDER BY last_opened_at DESC LIMIT 1",
+    )
+    suspend fun findLastUnfinished(): BookEntity?
+
     @Query("SELECT * FROM books WHERE id = :id")
     suspend fun findById(id: Long): BookEntity?
 

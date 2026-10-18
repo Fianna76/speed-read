@@ -53,7 +53,8 @@ fun SharedLinkDialogs(
     when (state) {
         SharedLinkReader.State.Idle -> Unit
         is SharedLinkReader.State.Ready -> LaunchedEffect(state.bookId) { onReady(state.bookId) }
-        is SharedLinkReader.State.Preparing -> AlertDialog(
+        // Plain text is saved in a moment: no progress dialog.
+        is SharedLinkReader.State.Preparing -> if (state.url != null) AlertDialog(
             onDismissRequest = onCancel,
             title = { Text(stringResource(R.string.shared_link_preparing)) },
             text = {
@@ -80,7 +81,12 @@ fun SharedLinkDialogs(
                     ),
                 )
             },
-            confirmButton = { TextButton(onClick = { onOpenOnline(state.url) }) { Text(stringResource(R.string.news_open_online)) } },
+            confirmButton = {
+                // Plain text has no page to open.
+                if (state.url.isNotEmpty()) {
+                    TextButton(onClick = { onOpenOnline(state.url) }) { Text(stringResource(R.string.news_open_online)) }
+                }
+            },
             dismissButton = { TextButton(onClick = onCancel) { Text(stringResource(R.string.action_close)) } },
         )
     }

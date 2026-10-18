@@ -44,6 +44,9 @@ sealed interface NavigationRequest {
      * showing or playing the [briefing].
      */
     data class OpenNews(val previewUrl: String? = null, val briefing: BriefingRequest? = null) : NavigationRequest
+
+    /** The reader for book [bookId], above the library. */
+    data class OpenBook(val bookId: Long) : NavigationRequest
 }
 
 /**
@@ -66,6 +69,10 @@ fun SpeedReadNavigation(
                 backStack.navigateTopLevel(TopLevelDestination.NEWS)
                 newsPreview = request.previewUrl
                 newsBriefing = request.briefing
+            }
+            is NavigationRequest.OpenBook -> {
+                backStack.navigateTopLevel(TopLevelDestination.LIBRARY)
+                backStack.navigate(ReaderRoute(request.bookId))
             }
             null -> return@LaunchedEffect
         }

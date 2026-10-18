@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Launcher shortcut icon: Material Symbols Rounded "play_arrow" (Apache License 2.0) on the brand circle. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path
+        android:fillColor="@color/shortcut_background"
+        android:pathData="M24,0A24,24 0,1 1,24,48A24,24 0,1 1,24,0Z" />
+    <group
+        android:scaleX="0.025"
+        android:scaleY="0.025"
+        android:translateX="12"
+        android:translateY="12">
+        <group android:translateY="960">
+            <path
+                android:fillColor="#FFFFFFFF"
+                android:pathData="M320-273v-414q0-17 12-28.5t28-11.5q5 0 10.5 1.5T381-721l326 207q9 6 13.5 15t4.5 19q0 10-4.5 19T707-446L381-239q-5 3-10.5 4.5T360-233q-16 0-28-11.5T320-273Z" />
+        </group>
+    </group>
+</vector>

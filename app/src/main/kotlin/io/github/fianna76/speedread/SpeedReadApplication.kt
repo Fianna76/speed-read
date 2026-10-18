@@ -6,6 +6,7 @@ import coil3.PlatformContext
 import coil3.SingletonImageLoader
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import io.github.fianna76.speedread.di.AppContainer
+import io.github.fianna76.speedread.shortcuts.AppShortcuts
 
 class SpeedReadApplication : Application(), SingletonImageLoader.Factory {
 
@@ -16,6 +17,7 @@ class SpeedReadApplication : Application(), SingletonImageLoader.Factory {
         super.onCreate()
         container = AppContainer(this)
         container.startBackgroundNewsScheduling()
+        AppShortcuts.publish(this)
     }
 
     /** News images share the app's HTTP connections; Coil keeps its own image caches. */
