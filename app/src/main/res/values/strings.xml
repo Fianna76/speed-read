@@ -177,6 +177,15 @@
 
     <!-- Reader -->
     <string name="reader_chapters">Chapters</string>
+    <string name="reader_bookmarks">Bookmarks (%1$d)</string>
+    <string name="reader_bookmarks_empty">No bookmarks yet. While reading, tap the bookmark icon at the top to mark your place.</string>
+    <string name="reader_add_bookmark">Add bookmark</string>
+    <string name="reader_remove_bookmark">Remove bookmark</string>
+    <string name="reader_delete_bookmark">Delete bookmark</string>
+    <string name="reader_position">Position in chapter</string>
+    <string name="reader_position_percent">%1$d%%</string>
+    <string name="settings_volume_keys">Volume keys turn sentences</string>
+    <string name="settings_volume_keys_summary">In the reader, volume down goes back a sentence and volume up goes forward. Keyboards and page turners always work.</string>
     <string name="reader_section">Section %1$d</string>
     <string name="reader_pages">Pages %1$d–%2$d</string>
     <string name="reader_page">Page %1$d</string>

@@ -10,6 +10,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import io.github.fianna76.speedread.SpeedReadApplication
 import io.github.fianna76.speedread.data.BookRepository
+import io.github.fianna76.speedread.data.Bookmark
 import io.github.fianna76.speedread.data.Chapter
 import io.github.fianna76.speedread.data.ReadingPosition
 import io.github.fianna76.speedread.data.settings.ReaderDisplay
@@ -36,6 +37,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlin.math.roundToInt
 
 data class ReaderUiState(
     val isLoading: Boolean = true,
@@ -61,10 +63,18 @@ data class ReaderUiState(
     val preparingNext: Boolean = false,
     /** Next story ready to open; the UI navigates and calls [ReaderViewModel.onNextOpened]. */
     val nextBookToOpen: Long? = null,
+    /** Saved places in this book, in reading order. */
+    val bookmarks: List<Bookmark> = emptyList(),
+    /** Volume keys move between sentences (keyboards and page turners always work). */
+    val volumeKeysTurnSentences: Boolean = false,
 ) {
     val chapter: Chapter? get() = chapters.getOrNull(chapterIndex)
     val hasPreviousChapter: Boolean get() = chapterIndex > 0
     val hasNextChapter: Boolean get() = chapterIndex < chapters.lastIndex
+
+    /** The bookmark at [wordIndex] of the current chapter, if there is one. */
+    fun bookmarkAt(wordIndex: Int): Bookmark? =
+        bookmarks.firstOrNull { it.position.chapterIndex == chapterIndex && it.position.wordIndex == wordIndex }
 }
 
 enum class ReaderError { BOOK_NOT_FOUND, NO_TEXT, LOAD_FAILED }
@@ -113,7 +123,7 @@ class ReaderViewModel(
             preferences.preferences.collect { prefs ->
                 player.updateSettings(prefs.playback)
                 autoContinue = prefs.autoContinueNews
-                _uiState.update { it.copy(display = prefs.display) }
+                _uiState.update { it.copy(display = prefs.display, volumeKeysTurnSentences = prefs.volumeKeysTurnSentences) }
             }
         }
         viewModelScope.launch {
@@ -131,6 +141,9 @@ class ReaderViewModel(
             }
         }
         viewModelScope.launch { openBook() }
+        viewModelScope.launch {
+            books.observeBookmarks(bookId).collect { marks -> _uiState.update { it.copy(bookmarks = marks) } }
+        }
     }
 
     // --- User actions ------------------------------------------------------------------------
@@ -180,6 +193,44 @@ class ReaderViewModel(
     }
 
     fun selectChapter(index: Int) = loadChapter(index, autoPlay = false)
+
+    /**
+     * Moves to [fraction] of the current chapter while the scrubber is dragged. Playback
+     * pauses, so the word shown (and the paused context) previews the new position.
+     */
+    fun scrubTo(fraction: Float) {
+        if (!canControlPlayback()) return
+        val size = player.state.value.text.size
+        if (size == 0) return
+        player.pause()
+        player.seekTo(((size - 1) * fraction.coerceIn(0f, 1f)).roundToInt())
+    }
+
+    /** Bookmarks the current word, or removes the bookmark already there. */
+    fun toggleBookmark() {
+        if (!canControlPlayback()) return
+        val state = player.state.value
+        val existing = _uiState.value.bookmarkAt(state.index)
+        val position = ReadingPosition(loadedChapterIndex, state.index)
+        val snippet = state.text.words.drop(state.index).take(BOOKMARK_SNIPPET_WORDS).joinToString(" ") { it.text }
+        externalScope.launch {
+            if (existing != null) books.deleteBookmark(existing.id) else books.addBookmark(bookId, position, snippet)
+        }
+    }
+
+    fun deleteBookmark(bookmark: Bookmark) {
+        externalScope.launch { books.deleteBookmark(bookmark.id) }
+    }
+
+    fun goToBookmark(bookmark: Bookmark) {
+        val position = bookmark.position
+        if (position.chapterIndex == loadedChapterIndex && !_uiState.value.isFinished && !_uiState.value.isLoading) {
+            player.pause()
+            player.seekTo(position.wordIndex)
+        } else {
+            loadChapter(position.chapterIndex, startWord = position.wordIndex, autoPlay = false)
+        }
+    }
 
     /** Live speed change while dragging the slider; call [commitWordsPerMinute] when done. */
     fun setWordsPerMinute(wpm: Int) {
@@ -372,6 +423,7 @@ class ReaderViewModel(
         private const val TAG = "ReaderViewModel"
         private const val NO_CHAPTER = -1
         private const val PERIODIC_SAVE_MS = 10_000L
+        private const val BOOKMARK_SNIPPET_WORDS = 12
         const val AUTO_CONTINUE_SECONDS = 5
 
         fun factory(bookId: Long, autoPlay: Boolean = false): ViewModelProvider.Factory = viewModelFactory {

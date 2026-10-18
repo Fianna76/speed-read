@@ -39,6 +39,14 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.focusable
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.KeyEvent
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
@@ -59,7 +67,9 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.fianna76.speedread.R
+import io.github.fianna76.speedread.data.Bookmark
 import io.github.fianna76.speedread.data.Chapter
+import io.github.fianna76.speedread.rsvp.WordsPerMinute
 import io.github.fianna76.speedread.rsvp.ContextWindow
 import io.github.fianna76.speedread.rsvp.PlayerState
 import io.github.fianna76.speedread.rsvp.Tokenizer
@@ -102,6 +112,10 @@ fun ReaderScreen(
             onPreviousChapter = viewModel::previousChapter,
             onNextChapter = viewModel::nextChapter,
             onSelectChapter = viewModel::selectChapter,
+            onScrub = viewModel::scrubTo,
+            onToggleBookmark = viewModel::toggleBookmark,
+            onGoToBookmark = viewModel::goToBookmark,
+            onDeleteBookmark = viewModel::deleteBookmark,
             onWordsPerMinuteChange = viewModel::setWordsPerMinute,
             onWordsPerMinuteChangeFinished = viewModel::commitWordsPerMinute,
             onChangeWordsPerMinuteBy = viewModel::changeWordsPerMinuteBy,
@@ -134,7 +148,28 @@ class ReaderActions(
     val onOpenOnline: (String) -> Unit = {},
     val onReadNext: () -> Unit = {},
     val onCancelAutoContinue: () -> Unit = {},
+    val onScrub: (Float) -> Unit = {},
+    val onToggleBookmark: () -> Unit = {},
+    val onGoToBookmark: (Bookmark) -> Unit = {},
+    val onDeleteBookmark: (Bookmark) -> Unit = {},
 )
+
+/** Runs a hardware key's [ReaderKeyAction]; returns whether the key was used. */
+private fun ReaderActions.handleKey(event: KeyEvent, ui: ReaderUiState, player: PlayerState): Boolean {
+    val action = readerKeyAction(event.key, ui.volumeKeysTurnSentences) ?: return false
+    // Consume both halves of the key press, but act once.
+    if (event.type != KeyEventType.KeyDown) return true
+    when (action) {
+        ReaderKeyAction.PLAY_PAUSE -> onPlayPause()
+        ReaderKeyAction.PREVIOUS_SENTENCE -> onPreviousSentence()
+        ReaderKeyAction.NEXT_SENTENCE -> onNextSentence()
+        ReaderKeyAction.SLOWER -> onChangeWordsPerMinuteBy(-WordsPerMinute.STEP)
+        ReaderKeyAction.FASTER -> onChangeWordsPerMinuteBy(WordsPerMinute.STEP)
+        ReaderKeyAction.PREVIOUS_CHAPTER -> onPreviousChapter()
+        ReaderKeyAction.NEXT_CHAPTER -> onNextChapter()
+    }
+    return true
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -142,9 +177,14 @@ fun ReaderContent(ui: ReaderUiState, player: PlayerState, actions: ReaderActions
     var showChapters by rememberSaveable { mutableStateOf(false) }
     val progress = ReaderProgress.of(ui, player)
     val canControl = !ui.isLoading && ui.error == null && !ui.isFinished
+    val focus = remember { FocusRequester() }
+    LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
 
     Scaffold(
-        modifier = modifier,
+        modifier = modifier
+            .focusRequester(focus)
+            .focusable()
+            .onPreviewKeyEvent { event -> actions.handleKey(event, ui, player) },
         // Insets are handled per component so the control panel can extend behind the navigation bar.
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
@@ -176,6 +216,13 @@ fun ReaderContent(ui: ReaderUiState, player: PlayerState, actions: ReaderActions
                             Icon(painterResource(R.drawable.ic_open_in_new), stringResource(R.string.news_open_online))
                         }
                     } else {
+                        val bookmarked = canControl && ui.bookmarkAt(player.index) != null
+                        IconButton(onClick = actions.onToggleBookmark, enabled = canControl) {
+                            Icon(
+                                painterResource(if (bookmarked) R.drawable.ic_bookmark_filled else R.drawable.ic_bookmark),
+                                stringResource(if (bookmarked) R.string.reader_remove_bookmark else R.string.reader_add_bookmark),
+                            )
+                        }
                         IconButton(onClick = { showChapters = true }, enabled = ui.chapters.isNotEmpty()) {
                             Icon(painterResource(R.drawable.ic_toc), stringResource(R.string.reader_chapters))
                         }
@@ -261,6 +308,7 @@ fun ReaderContent(ui: ReaderUiState, player: PlayerState, actions: ReaderActions
                     onNextSentence = actions.onNextSentence,
                     onPreviousChapter = actions.onPreviousChapter,
                     onNextChapter = actions.onNextChapter,
+                    onScrub = actions.onScrub,
                 )
             }
         }
@@ -276,6 +324,12 @@ fun ReaderContent(ui: ReaderUiState, player: PlayerState, actions: ReaderActions
                 actions.onSelectChapter(index)
             },
             onDismiss = { showChapters = false },
+            bookmarks = ui.bookmarks,
+            onSelectBookmark = { bookmark ->
+                showChapters = false
+                actions.onGoToBookmark(bookmark)
+            },
+            onDeleteBookmark = actions.onDeleteBookmark,
         )
     }
 }

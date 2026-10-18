@@ -14,17 +14,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -35,6 +37,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import io.github.fianna76.speedread.R
 import io.github.fianna76.speedread.rsvp.WordsPerMinute
@@ -66,6 +69,8 @@ fun ReaderControls(
     onPreviousChapter: () -> Unit,
     onNextChapter: () -> Unit,
     modifier: Modifier = Modifier,
+    onScrub: (Float) -> Unit = {},
+    onScrubFinished: () -> Unit = {},
 ) {
     Surface(modifier = modifier, color = MaterialTheme.colorScheme.surfaceContainer) {
         Column(
@@ -89,9 +94,7 @@ fun ReaderControls(
                     maxLines = 1,
                 )
             }
-            Spacer(Modifier.height(6.dp))
-            LinearProgressIndicator(progress = { chapterProgress }, modifier = Modifier.fillMaxWidth())
-            Spacer(Modifier.height(8.dp))
+            ChapterScrubber(chapterProgress, enabled, onScrub, onScrubFinished)
 
             SpeedRow(
                 wordsPerMinute = wordsPerMinute,
@@ -127,6 +130,48 @@ fun ReaderControls(
             }
         }
     }
+}
+
+/**
+ * Position in the chapter. Dragging pauses and moves through the text, so the word on screen
+ * (and the context under it) previews where reading will continue.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ChapterScrubber(progress: Float, enabled: Boolean, onScrub: (Float) -> Unit, onScrubFinished: () -> Unit) {
+    val description = stringResource(R.string.reader_position)
+    val percent = stringResource(R.string.reader_position_percent, (progress * 100).roundToInt())
+    val interactionSource = remember { MutableInteractionSource() }
+    Slider(
+        value = progress.coerceIn(0f, 1f),
+        onValueChange = onScrub,
+        onValueChangeFinished = onScrubFinished,
+        enabled = enabled,
+        interactionSource = interactionSource,
+        thumb = {
+            SliderDefaults.Thumb(
+                interactionSource = interactionSource,
+                enabled = enabled,
+                thumbSize = DpSize(4.dp, 22.dp),
+            )
+        },
+        track = { state ->
+            SliderDefaults.Track(
+                sliderState = state,
+                enabled = enabled,
+                drawStopIndicator = null,
+                thumbTrackGapSize = 3.dp,
+                modifier = Modifier.height(6.dp),
+            )
+        },
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(32.dp)
+            .semantics {
+                contentDescription = description
+                stateDescription = percent
+            },
+    )
 }
 
 @Composable

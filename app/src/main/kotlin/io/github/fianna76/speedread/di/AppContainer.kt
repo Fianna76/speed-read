@@ -153,7 +153,7 @@ class AppContainer(context: Context) {
 
     val newsUpNext by lazy { NewsUpNext(newsQueue, newsHistoryRepository, articleRepository, applicationScope) }
 
-    val bookRepository: BookRepository by lazy { OfflineBookRepository(database.bookDao(), fileStore, pdfBooks) }
+    val bookRepository: BookRepository by lazy { OfflineBookRepository(database.bookDao(), fileStore, pdfBooks, bookmarks = database.bookmarkDao()) }
 
     /** The container is the single owner of the DataStore, as DataStore requires one instance per file. */
     val preferencesRepository by lazy {

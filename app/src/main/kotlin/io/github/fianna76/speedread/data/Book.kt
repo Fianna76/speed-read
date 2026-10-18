@@ -24,6 +24,9 @@ data class Book(
         get() = if (totalWords <= 0) 0f else (wordsRead.toFloat() / totalWords).coerceIn(0f, 1f)
 }
 
+/** A saved place in a book. */
+data class Bookmark(val id: Long, val position: ReadingPosition, val snippet: String, val createdAt: Long)
+
 /** Where the reader left off: a chapter and a word within it. */
 data class ReadingPosition(val chapterIndex: Int, val wordIndex: Int)
 

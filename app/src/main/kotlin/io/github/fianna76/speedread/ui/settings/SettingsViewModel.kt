@@ -37,6 +37,8 @@ class SettingsViewModel(private val preferences: UserPreferencesRepository) : Vi
 
     fun setShowContextWhenPaused(enabled: Boolean) = launch { preferences.setShowContextWhenPaused(enabled) }
 
+    fun setVolumeKeysTurnSentences(enabled: Boolean) = launch { preferences.setVolumeKeysTurnSentences(enabled) }
+
     fun setThemeMode(mode: ThemeMode) = launch { preferences.setThemeMode(mode) }
 
     fun setNewsSourceEnabled(sourceId: String, enabled: Boolean) = launch { preferences.setNewsSourceEnabled(sourceId, enabled) }

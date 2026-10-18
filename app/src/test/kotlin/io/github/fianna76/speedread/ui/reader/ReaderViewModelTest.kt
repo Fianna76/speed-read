@@ -91,6 +91,40 @@ class ReaderViewModelTest {
     }
 
     @Test
+    fun `bookmarks toggle at the current word and take you back to it`() = runTest(mainDispatcherRule.dispatcher) {
+        val viewModel = createViewModel(position = ReadingPosition(1, 2), wordsRead = 6)
+
+        viewModel.toggleBookmark()
+        val marked = viewModel.uiState.first { it.bookmarks.isNotEmpty() }.bookmarks.single()
+        assertEquals(ReadingPosition(1, 2), marked.position)
+        assertEquals("Seven eight.", marked.snippet)
+        assertTrue(viewModel.uiState.value.bookmarkAt(2) != null)
+
+        viewModel.selectChapter(0)
+        viewModel.uiState.first { it.chapterIndex == 0 && !it.isLoading }
+        viewModel.goToBookmark(marked)
+        val state = viewModel.uiState.first { it.chapterIndex == 1 && !it.isLoading }
+        assertEquals(2, viewModel.playerState.value.index)
+
+        viewModel.toggleBookmark() // Same word: removes it.
+        assertTrue(viewModel.uiState.first { it.bookmarks.isEmpty() }.bookmarks.isEmpty())
+        assertNull(state.bookmarkAt(3))
+    }
+
+    @Test
+    fun `scrubbing pauses and moves through the chapter`() = runTest(mainDispatcherRule.dispatcher) {
+        val viewModel = createViewModel()
+        viewModel.togglePlayPause()
+        advance(50)
+
+        viewModel.scrubTo(1f)
+        assertFalse(viewModel.playerState.value.isPlaying)
+        assertEquals(3, viewModel.playerState.value.index)
+        viewModel.scrubTo(0.4f)
+        assertEquals(1, viewModel.playerState.value.index)
+    }
+
+    @Test
     fun `plays across a chapter boundary without stopping`() = runTest(mainDispatcherRule.dispatcher) {
         val viewModel = createViewModel()
         assertTrue(viewModel.uiState.value.showTapHint) // Unread book.

@@ -3,7 +3,12 @@ package io.github.fianna76.speedread.ui.reader
 import android.content.Context
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performKeyInput
+import androidx.compose.ui.test.pressKey
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -12,7 +17,9 @@ import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.github.fianna76.speedread.R
+import io.github.fianna76.speedread.data.Bookmark
 import io.github.fianna76.speedread.data.Chapter
+import io.github.fianna76.speedread.data.ReadingPosition
 import io.github.fianna76.speedread.rsvp.PlayerState
 import io.github.fianna76.speedread.rsvp.Tokenizer
 import io.github.fianna76.speedread.ui.theme.SpeedReadTheme
@@ -112,6 +119,55 @@ class ReaderContentTest {
         compose.onNodeWithText(context.getString(R.string.reader_wpm, 300)).assertIsDisplayed()
         assertEquals(1, playPause)
         assertEquals(25, speedDelta)
+    }
+
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun keyboardsAndPageTurnersControlPlayback() {
+        var playPause = 0
+        var next = 0
+        var speedDelta = 0
+        setContent(
+            ui,
+            PlayerState(text = text, index = 1),
+            ReaderActions(onPlayPause = { playPause++ }, onNextSentence = { next++ }, onChangeWordsPerMinuteBy = { speedDelta += it }),
+        )
+
+        compose.onRoot().performKeyInput { pressKey(Key.Spacebar) }
+        compose.onRoot().performKeyInput { pressKey(Key.PageDown) }
+        compose.onRoot().performKeyInput { pressKey(Key.DirectionDown) }
+        compose.onRoot().performKeyInput { pressKey(Key.VolumeUp) } // Volume keys are off by default.
+
+        assertEquals(1, playPause)
+        assertEquals(1, next)
+        assertEquals(-25, speedDelta)
+    }
+
+    @Test
+    fun bookmarksAreAddedFromTheTopBarAndListedWithTheChapters() {
+        var toggles = 0
+        var opened: Bookmark? = null
+        val bookmark = Bookmark(7, ReadingPosition(1, 0), "The last chapter begins", createdAt = 0)
+        setContent(
+            ui.copy(bookmarks = listOf(bookmark)),
+            PlayerState(text = text, index = 1),
+            ReaderActions(onToggleBookmark = { toggles++ }, onGoToBookmark = { opened = it }),
+        )
+
+        compose.onNodeWithContentDescription(context.getString(R.string.reader_add_bookmark)).performClick()
+        assertEquals(1, toggles)
+
+        compose.onNodeWithContentDescription(context.getString(R.string.reader_chapters)).performClick()
+        compose.onNodeWithText(context.getString(R.string.reader_bookmarks, 1)).performClick()
+        compose.onNodeWithText("The last chapter begins\u2026").performClick()
+        assertEquals(bookmark, opened)
+    }
+
+    @Test
+    fun theCurrentWordShowsItsBookmark() {
+        val bookmark = Bookmark(7, ReadingPosition(0, 1), "brave new world.", createdAt = 0)
+        setContent(ui.copy(bookmarks = listOf(bookmark)), PlayerState(text = text, index = 1))
+        compose.onNodeWithContentDescription(context.getString(R.string.reader_remove_bookmark)).assertIsDisplayed()
     }
 
     @Test

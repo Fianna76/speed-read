@@ -10,6 +10,8 @@ data class UserPreferences(
     val display: ReaderDisplay = ReaderDisplay(),
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val librarySort: LibrarySort = LibrarySort.RECENT,
+    /** In the reader, volume up/down move to the next/previous sentence. */
+    val volumeKeysTurnSentences: Boolean = false,
     /** Hide stories already opened from the Newsstand list. */
     val hideReadNews: Boolean = false,
     /** When news thumbnails are loaded (data saver). */

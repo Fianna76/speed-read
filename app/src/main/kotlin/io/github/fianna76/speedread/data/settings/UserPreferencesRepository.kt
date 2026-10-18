@@ -54,6 +54,8 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
 
     suspend fun setLibrarySort(sort: LibrarySort) = update { it[Keys.LIBRARY_SORT] = sort.name }
 
+    suspend fun setVolumeKeysTurnSentences(enabled: Boolean) = update { it[Keys.VOLUME_KEYS] = enabled }
+
     suspend fun setHideReadNews(hide: Boolean) = update { it[Keys.HIDE_READ_NEWS] = hide }
 
     suspend fun setNewsImages(images: NewsImages) = update { it[Keys.NEWS_IMAGES] = images.name }
@@ -99,6 +101,7 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
             ),
             themeMode = enumOrDefault(this[Keys.THEME], defaults.themeMode),
             librarySort = enumOrDefault(this[Keys.LIBRARY_SORT], defaults.librarySort),
+            volumeKeysTurnSentences = this[Keys.VOLUME_KEYS] ?: defaults.volumeKeysTurnSentences,
             hideReadNews = this[Keys.HIDE_READ_NEWS] ?: defaults.hideReadNews,
             newsImages = enumOrDefault(this[Keys.NEWS_IMAGES], defaults.newsImages),
             autoContinueNews = this[Keys.AUTO_CONTINUE_NEWS] ?: defaults.autoContinueNews,
@@ -124,6 +127,7 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
         val SHOW_CONTEXT = booleanPreferencesKey("show_context_when_paused")
         val THEME = stringPreferencesKey("theme_mode")
         val LIBRARY_SORT = stringPreferencesKey("library_sort")
+        val VOLUME_KEYS = booleanPreferencesKey("volume_keys_turn_sentences")
         val HIDE_READ_NEWS = booleanPreferencesKey("hide_read_news")
         val NEWS_IMAGES = stringPreferencesKey("news_images")
         val AUTO_CONTINUE_NEWS = booleanPreferencesKey("auto_continue_news")

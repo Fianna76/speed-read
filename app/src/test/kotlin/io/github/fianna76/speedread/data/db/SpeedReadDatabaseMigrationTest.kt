@@ -46,6 +46,11 @@ class SpeedReadDatabaseMigrationTest {
             assertEquals(1, database.bookDao().chaptersOf(1).size)
             // Tables added by later versions exist and work.
             assertTrue(database.newsHistoryDao().observeAll().first().isEmpty())
+            database.bookmarkDao().insert(BookmarkEntity(bookId = 1, chapterIndex = 0, wordIndex = 42, snippet = "here", createdAt = 1))
+            assertEquals(listOf(42), database.bookmarkDao().observe(1).first().map { it.wordIndex })
+            // Bookmarks go with their book.
+            database.bookDao().deleteBooks(listOf(1L))
+            assertTrue(database.bookmarkDao().observe(1).first().isEmpty())
         } finally {
             database.close()
         }

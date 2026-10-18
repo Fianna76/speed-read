@@ -98,6 +98,7 @@ fun SettingsScreen(
         onFontChange = viewModel::setFont,
         onHighlightChange = viewModel::setHighlightFocusLetter,
         onShowContextChange = viewModel::setShowContextWhenPaused,
+        onVolumeKeysChange = viewModel::setVolumeKeysTurnSentences,
         onThemeModeChange = viewModel::setThemeMode,
         onNewsSourceChange = viewModel::setNewsSourceEnabled,
         newsActions = NewsSettingsActions(
@@ -169,6 +170,7 @@ fun SettingsContent(
     modifier: Modifier = Modifier,
     onNewsSourceChange: (sourceId: String, enabled: Boolean) -> Unit = { _, _ -> },
     newsActions: NewsSettingsActions = NewsSettingsActions(),
+    onVolumeKeysChange: (Boolean) -> Unit = {},
 ) {
     Scaffold(
         modifier = modifier,
@@ -239,6 +241,12 @@ fun SettingsContent(
                 summary = stringResource(R.string.settings_context_summary),
                 checked = preferences.display.showContextWhenPaused,
                 onCheckedChange = onShowContextChange,
+            )
+            SwitchSetting(
+                title = stringResource(R.string.settings_volume_keys),
+                summary = stringResource(R.string.settings_volume_keys_summary),
+                checked = preferences.volumeKeysTurnSentences,
+                onCheckedChange = onVolumeKeysChange,
             )
 
             SectionDivider()

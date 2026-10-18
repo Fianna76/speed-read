@@ -2,6 +2,8 @@ package io.github.fianna76.speedread.data
 
 import io.github.fianna76.speedread.data.db.BookDao
 import io.github.fianna76.speedread.data.db.BookEntity
+import io.github.fianna76.speedread.data.db.BookmarkDao
+import io.github.fianna76.speedread.data.db.BookmarkEntity
 import io.github.fianna76.speedread.data.db.ChapterEntity
 import io.github.fianna76.speedread.data.pdf.PdfBooks
 import io.github.fianna76.speedread.data.pdf.PdfPageRange
@@ -12,6 +14,7 @@ import io.github.fianna76.speedread.rsvp.Tokenizer
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import java.io.IOException
@@ -36,6 +39,13 @@ interface BookRepository {
 
     /** The book or article read most recently and not finished, for "Continue reading". */
     suspend fun lastUnfinishedBookId(): Long? = null
+
+    /** [bookId]'s bookmarks in reading order. */
+    fun observeBookmarks(bookId: Long): Flow<List<Bookmark>> = flowOf(emptyList())
+
+    suspend fun addBookmark(bookId: Long, position: ReadingPosition, snippet: String) {}
+
+    suspend fun deleteBookmark(id: Long) {}
 }
 
 /** [BookRepository] backed by Room and the app-private [BookFileStore]. */
@@ -45,6 +55,7 @@ class OfflineBookRepository(
     private val pdfBooks: PdfBooks,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val clock: () -> Long = System::currentTimeMillis,
+    private val bookmarks: BookmarkDao? = null,
 ) : BookRepository {
 
     override fun observeBooks(): Flow<List<Book>> =
@@ -81,6 +92,19 @@ class OfflineBookRepository(
     }
 
     override suspend fun lastUnfinishedBookId(): Long? = dao.findLastUnfinished()?.id
+
+    override fun observeBookmarks(bookId: Long): Flow<List<Bookmark>> =
+        bookmarks?.observe(bookId)?.map { rows ->
+            rows.map { Bookmark(it.id, ReadingPosition(it.chapterIndex, it.wordIndex), it.snippet, it.createdAt) }
+        } ?: flowOf(emptyList())
+
+    override suspend fun addBookmark(bookId: Long, position: ReadingPosition, snippet: String) {
+        bookmarks?.insert(BookmarkEntity(0, bookId, position.chapterIndex, position.wordIndex, snippet, clock()))
+    }
+
+    override suspend fun deleteBookmark(id: Long) {
+        bookmarks?.delete(id)
+    }
 
     override suspend fun deleteBooks(ids: Set<Long>) {
         if (ids.isEmpty()) return

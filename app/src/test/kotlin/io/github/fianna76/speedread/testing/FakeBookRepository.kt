@@ -2,12 +2,14 @@ package io.github.fianna76.speedread.testing
 
 import io.github.fianna76.speedread.data.Book
 import io.github.fianna76.speedread.data.BookRepository
+import io.github.fianna76.speedread.data.Bookmark
 import io.github.fianna76.speedread.data.Chapter
 import io.github.fianna76.speedread.data.ReadingPosition
 import io.github.fianna76.speedread.rsvp.TokenizedText
 import io.github.fianna76.speedread.rsvp.Tokenizer
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import java.io.IOException
 
@@ -45,6 +47,20 @@ class FakeBookRepository(
 
     override suspend fun markOpened(bookId: Long) {
         openedBooks += bookId
+    }
+
+    val bookmarks = MutableStateFlow<List<Bookmark>>(emptyList())
+    private var nextBookmarkId = 1L
+
+    override fun observeBookmarks(bookId: Long): Flow<List<Bookmark>> =
+        bookmarks.map { list -> list.sortedWith(compareBy({ it.position.chapterIndex }, { it.position.wordIndex })) }
+
+    override suspend fun addBookmark(bookId: Long, position: ReadingPosition, snippet: String) {
+        bookmarks.update { it + Bookmark(nextBookmarkId++, position, snippet, createdAt = 0) }
+    }
+
+    override suspend fun deleteBookmark(id: Long) {
+        bookmarks.update { list -> list.filterNot { it.id == id } }
     }
 
     override suspend fun deleteBooks(ids: Set<Long>) {
