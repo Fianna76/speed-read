@@ -353,6 +353,20 @@
         <item quantity="other">Your briefing: %1$d stories</item>
     </plurals>
     <string name="notification_briefing_play">Speed-read</string>
+    <string name="settings_section_backup">Backup</string>
+    <string name="settings_backup_body">Save your books, reading positions, bookmarks, collections, feeds and settings to one file, for a new phone or safekeeping. Restoring adds to what’s here and keeps whichever reading position is further along.</string>
+    <string name="settings_backup_export">Back up</string>
+    <string name="settings_backup_restore">Restore</string>
+    <plurals name="settings_backup_done">
+        <item quantity="one">Backed up %1$d book</item>
+        <item quantity="other">Backed up %1$d books</item>
+    </plurals>
+    <plurals name="settings_restore_done">
+        <item quantity="one">Restored: %1$d book added</item>
+        <item quantity="other">Restored: %1$d books added</item>
+    </plurals>
+    <string name="settings_backup_invalid">That file isn’t a SpeedRead backup</string>
+    <string name="settings_backup_failed">Couldn’t complete the backup. Check there’s enough space and try again.</string>
     <string name="settings_section_about">About</string>
     <string name="settings_version">Version %1$s</string>
     <string name="settings_about_body">SpeedRead uses Rapid Serial Visual Presentation (RSVP): words appear one at a time at a fixed focal point, so your eyes don’t have to travel across the page. Your books stay on this device; the internet is used only to load the Newsstand. No tracking or analytics.</string>

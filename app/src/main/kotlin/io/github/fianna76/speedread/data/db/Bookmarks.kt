@@ -42,6 +42,9 @@ interface BookmarkDao {
     @Insert
     suspend fun insert(bookmark: BookmarkEntity): Long
 
+    @Query("SELECT * FROM bookmarks WHERE book_id = :bookId")
+    suspend fun of(bookId: Long): List<BookmarkEntity>
+
     @Query("DELETE FROM bookmarks WHERE id = :id")
     suspend fun delete(id: Long)
 }

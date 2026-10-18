@@ -17,6 +17,8 @@ import io.github.fianna76.speedread.data.news.NewsHistoryRepository
 import io.github.fianna76.speedread.data.news.NewsQueue
 import io.github.fianna76.speedread.data.news.NewsUpNext
 import io.github.fianna76.speedread.data.news.SharedLinkReader
+import io.github.fianna76.speedread.data.backup.BackupDocuments
+import io.github.fianna76.speedread.data.backup.LibraryBackup
 import io.github.fianna76.speedread.data.news.CustomFeedResolver
 import io.github.fianna76.speedread.news.NewsRegion
 import io.github.fianna76.speedread.news.NewsSources
@@ -152,6 +154,11 @@ class AppContainer(context: Context) {
             .getWorkInfosForUniqueWork(NewsBackgroundScheduler.BRIEFING_WORK_NAME).get()
             .any { !it.state.isFinished }
     }.getOrDefault(false)
+
+    val backupDocuments by lazy {
+        val backup = LibraryBackup(database.bookDao(), database.bookmarkDao(), database.collectionDao(), fileStore, preferencesRepository)
+        BackupDocuments(appContext.contentResolver, backup)
+    }
 
     /** Finds feeds for "Add a feed" in Settings. */
     val customFeedResolver by lazy { CustomFeedResolver(webClient) }

@@ -41,6 +41,13 @@ interface BookDao {
     )
     suspend fun findLastUnfinished(): BookEntity?
 
+    /** Books only (not news articles), for backups. */
+    @Query("SELECT * FROM books WHERE format != 'ARTICLE'")
+    suspend fun allBooks(): List<BookEntity>
+
+    @Query("UPDATE books SET last_opened_at = :lastOpenedAt WHERE id = :id")
+    suspend fun setLastOpened(id: Long, lastOpenedAt: Long?)
+
     @Query("SELECT * FROM books WHERE id = :id")
     suspend fun findById(id: Long): BookEntity?
 

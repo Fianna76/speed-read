@@ -7,7 +7,9 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import io.github.fianna76.speedread.news.NewsRegion
@@ -20,7 +22,20 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
+import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.float
+import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.long
+import kotlinx.serialization.json.put
 import java.io.IOException
 
 /** Persists [UserPreferences] with Jetpack DataStore. */
@@ -119,6 +134,44 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
     suspend fun removeCustomNewsSource(sourceId: String) = update {
         it[Keys.CUSTOM_NEWS_SOURCES] = encodeSources(decodeSources(it[Keys.CUSTOM_NEWS_SOURCES]).filterNot { old -> old.id == sourceId })
         it[Keys.DISABLED_NEWS_SOURCES] = it[Keys.DISABLED_NEWS_SOURCES].orEmpty() - sourceId
+    }
+
+    /** Every stored setting as JSON (`{"key": {"type": "int", "value": 300}}`), for backups. */
+    suspend fun exportJson(): JsonObject = buildJsonObject {
+        dataStore.data.first().asMap().forEach { (key, value) ->
+            val (type, json) = when (value) {
+                is Boolean -> "boolean" to JsonPrimitive(value)
+                is Int -> "int" to JsonPrimitive(value)
+                is Long -> "long" to JsonPrimitive(value)
+                is Float -> "float" to JsonPrimitive(value)
+                is String -> "string" to JsonPrimitive(value)
+                is Set<*> -> "strings" to JsonArray(value.map { JsonPrimitive(it.toString()) })
+                else -> return@forEach
+            }
+            put(key.name, buildJsonObject {
+                put("type", type)
+                put("value", json)
+            })
+        }
+    }
+
+    /** Replaces the settings with a backup's; unknown or malformed entries are skipped. */
+    suspend fun importJson(json: JsonObject) = update { prefs ->
+        prefs.clear()
+        json.forEach { (name, entry) ->
+            runCatching {
+                val obj = entry.jsonObject
+                val value = obj.getValue("value")
+                when (obj.getValue("type").jsonPrimitive.content) {
+                    "boolean" -> prefs[booleanPreferencesKey(name)] = value.jsonPrimitive.boolean
+                    "int" -> prefs[intPreferencesKey(name)] = value.jsonPrimitive.int
+                    "long" -> prefs[longPreferencesKey(name)] = value.jsonPrimitive.long
+                    "float" -> prefs[floatPreferencesKey(name)] = value.jsonPrimitive.float
+                    "string" -> prefs[stringPreferencesKey(name)] = value.jsonPrimitive.content
+                    "strings" -> prefs[stringSetPreferencesKey(name)] = value.jsonArray.mapTo(HashSet()) { it.jsonPrimitive.content }
+                }
+            }.onFailure { Log.w(TAG, "Skipping setting $name from backup", it) }
+        }
     }
 
     private suspend fun update(block: (MutablePreferences) -> Unit) {

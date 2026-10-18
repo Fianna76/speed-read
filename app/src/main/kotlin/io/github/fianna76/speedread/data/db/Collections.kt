@@ -43,6 +43,12 @@ interface CollectionDao {
     @Query("SELECT * FROM book_collections")
     fun observeMemberships(): Flow<List<BookCollectionEntity>>
 
+    @Query("SELECT * FROM collections ORDER BY created_at")
+    suspend fun allCollections(): List<CollectionEntity>
+
+    @Query("SELECT * FROM book_collections")
+    suspend fun allMemberships(): List<BookCollectionEntity>
+
     @Insert
     suspend fun insertCollection(collection: CollectionEntity): Long
 

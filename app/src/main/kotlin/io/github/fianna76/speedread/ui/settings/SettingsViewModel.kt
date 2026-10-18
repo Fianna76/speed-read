@@ -12,7 +12,15 @@ import io.github.fianna76.speedread.data.settings.ReaderFont
 import io.github.fianna76.speedread.data.settings.ThemeMode
 import io.github.fianna76.speedread.data.settings.UserPreferences
 import io.github.fianna76.speedread.data.settings.UserPreferencesRepository
+import android.net.Uri
+import android.util.Log
+import io.github.fianna76.speedread.data.backup.BackupDocuments
+import io.github.fianna76.speedread.data.backup.BackupFormatException
+import io.github.fianna76.speedread.data.backup.BackupSummary
 import io.github.fianna76.speedread.data.news.CustomFeedResolver
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.update
+import java.util.zip.ZipException
 import io.github.fianna76.speedread.news.NewsRegion
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -32,10 +40,55 @@ data class AddFeedState(
 
 enum class AddFeedError { INVALID, NETWORK, NO_FEED }
 
+/** Backup or restore in progress, or how the last one ended. */
+data class BackupState(
+    val working: Boolean = false,
+    val result: BackupResult? = null,
+)
+
+sealed interface BackupResult {
+    data class Exported(val summary: BackupSummary) : BackupResult
+
+    data class Restored(val summary: BackupSummary) : BackupResult
+
+    /** [invalidFile]: the file isn't a SpeedRead backup; otherwise it couldn't be read or written. */
+    data class Failed(val invalidFile: Boolean) : BackupResult
+}
+
 class SettingsViewModel(
     private val preferences: UserPreferencesRepository,
     private val feeds: CustomFeedResolver? = null,
+    private val backups: BackupDocuments? = null,
 ) : ViewModel() {
+
+    private val _backup = MutableStateFlow(BackupState())
+    val backup: StateFlow<BackupState> = _backup.asStateFlow()
+
+    fun exportBackup(uri: Uri) = runBackup { BackupResult.Exported(it.export(uri)) }
+
+    fun restoreBackup(uri: Uri) = runBackup { BackupResult.Restored(it.restore(uri)) }
+
+    fun onBackupResultShown() = _backup.update { it.copy(result = null) }
+
+    private fun runBackup(action: suspend (BackupDocuments) -> BackupResult) {
+        val documents = backups ?: return
+        if (_backup.value.working) return
+        _backup.value = BackupState(working = true)
+        viewModelScope.launch {
+            val result = try {
+                action(documents)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: BackupFormatException) {
+                Log.w(TAG, "Not a backup", e)
+                BackupResult.Failed(invalidFile = true)
+            } catch (e: Exception) {
+                Log.w(TAG, "Backup failed", e)
+                BackupResult.Failed(invalidFile = e is ZipException)
+            }
+            _backup.value = BackupState(result = result)
+        }
+    }
 
     private val _addFeed = MutableStateFlow(AddFeedState())
     val addFeed: StateFlow<AddFeedState> = _addFeed.asStateFlow()
@@ -130,10 +183,12 @@ class SettingsViewModel(
     }
 
     companion object {
+        private const val TAG = "SettingsViewModel"
+
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val container = (this[APPLICATION_KEY] as SpeedReadApplication).container
-                SettingsViewModel(container.preferencesRepository, container.customFeedResolver)
+                SettingsViewModel(container.preferencesRepository, container.customFeedResolver, container.backupDocuments)
             }
         }
     }

@@ -28,6 +28,7 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -62,6 +63,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -89,6 +91,7 @@ import io.github.fianna76.speedread.news.NewsRegion
 import io.github.fianna76.speedread.news.NewsSources
 import io.github.fianna76.speedread.ui.news.labelRes
 import io.github.fianna76.speedread.ui.theme.SpeedReadTheme
+import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -101,6 +104,13 @@ fun SettingsScreen(
 ) {
     val preferences by viewModel.uiState.collectAsStateWithLifecycle()
     val addFeed by viewModel.addFeed.collectAsStateWithLifecycle()
+    val backup by viewModel.backup.collectAsStateWithLifecycle()
+    val exportBackup = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
+        uri?.let(viewModel::exportBackup)
+    }
+    val restoreBackup = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let(viewModel::restoreBackup)
+    }
     val withNotifications = rememberNotificationPermission()
     val context = LocalContext.current
     addFeed.added?.let { name ->
@@ -147,7 +157,47 @@ fun SettingsScreen(
             onDismissAddFeed = viewModel::resetAddFeed,
         ),
         addFeedState = addFeed,
+        backup = BackupSettings(
+            state = backup,
+            onExport = { exportBackup.launch("SpeedRead-backup-${LocalDate.now()}.zip") },
+            onRestore = { restoreBackup.launch(arrayOf("application/zip", "application/octet-stream")) },
+            onResultShown = viewModel::onBackupResultShown,
+        ),
     )
+}
+
+/** Backup and restore: state and actions. */
+data class BackupSettings(
+    val state: BackupState = BackupState(),
+    val onExport: () -> Unit = {},
+    val onRestore: () -> Unit = {},
+    val onResultShown: () -> Unit = {},
+)
+
+@Composable
+private fun BackupSection(backup: BackupSettings) {
+    val context = LocalContext.current
+    backup.state.result?.let { result ->
+        val message = when (result) {
+            is BackupResult.Exported -> pluralStringResource(R.plurals.settings_backup_done, result.summary.books, result.summary.books)
+            is BackupResult.Restored -> pluralStringResource(R.plurals.settings_restore_done, result.summary.books, result.summary.books)
+            is BackupResult.Failed -> stringResource(if (result.invalidFile) R.string.settings_backup_invalid else R.string.settings_backup_failed)
+        }
+        LaunchedEffect(result) {
+            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+            backup.onResultShown()
+        }
+    }
+    AboutText(stringResource(R.string.settings_backup_body))
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+    ) {
+        OutlinedButton(onClick = backup.onExport, enabled = !backup.state.working) { Text(stringResource(R.string.settings_backup_export)) }
+        OutlinedButton(onClick = backup.onRestore, enabled = !backup.state.working) { Text(stringResource(R.string.settings_backup_restore)) }
+        if (backup.state.working) CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 3.dp)
+    }
 }
 
 /** Chunk mode and speed training callbacks. */
@@ -226,6 +276,7 @@ fun SettingsContent(
     onVolumeKeysChange: (Boolean) -> Unit = {},
     trainingActions: TrainingSettingsActions = TrainingSettingsActions(),
     addFeedState: AddFeedState = AddFeedState(),
+    backup: BackupSettings = BackupSettings(),
 ) {
     var addingFeed by rememberSaveable { mutableStateOf(false) }
     // Close the dialog once the feed is added.
@@ -481,6 +532,10 @@ fun SettingsContent(
                     )
                 }
             }
+
+            SectionDivider()
+            SectionHeader(stringResource(R.string.settings_section_backup))
+            BackupSection(backup)
 
             SectionDivider()
             SectionHeader(stringResource(R.string.settings_section_about))
