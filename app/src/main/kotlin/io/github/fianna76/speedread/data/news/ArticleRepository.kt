@@ -106,11 +106,17 @@ class ArticleRepository(
             if (files.readChapterText(existing.fileName, ARTICLE_HREF) != null) return ArticleResult.Ready(existing.id)
             delete(listOf(existing))
         }
-        val heading = title?.trim()?.takeIf { it.isNotEmpty() } ?: paragraphs.first().let {
-            if (it.length <= MAX_TEXT_TITLE) it else it.take(MAX_TEXT_TITLE).substringBeforeLast(' ').trimEnd(',', ';', ':') + "\u2026"
-        }
+        val heading = title?.trim()?.takeIf { it.isNotEmpty() } ?: textTitle(paragraphs.first())
         val item = FeedItem(TEXT_SOURCE, heading, url, summary = "", imageUrl = null, publishedAt = null, author = null)
         return save(item, url, ExtractedArticle(heading, null, paragraphs), author = null)
+    }
+
+    /** The first sentence of [line] if it is short enough, else its start, cut at a word. */
+    private fun textTitle(line: String): String {
+        val sentence = SENTENCE_END.find(line)?.let { line.substring(0, it.range.first + 1) }
+        if (sentence != null && sentence.length <= MAX_TEXT_TITLE) return sentence.trimEnd('.')
+        if (line.length <= MAX_TEXT_TITLE) return line
+        return line.take(MAX_TEXT_TITLE).substringBeforeLast(' ').trimEnd(',', ';', ':') + "\u2026"
     }
 
     /** Deletes saved articles not opened within [RETENTION_MILLIS]. */
@@ -176,5 +182,8 @@ class ArticleRepository(
         const val TEXT_SOURCE = "text"
 
         private const val MAX_TEXT_TITLE = 60
+        private val SENTENCE_END = Regex("[.!?](\\s|$)")
+
+        fun isPastedText(url: String?): Boolean = url?.startsWith(TEXT_URL_PREFIX) == true
     }
 }

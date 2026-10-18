@@ -69,6 +69,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.fianna76.speedread.R
 import io.github.fianna76.speedread.data.Bookmark
 import io.github.fianna76.speedread.data.Chapter
+import io.github.fianna76.speedread.data.news.ArticleRepository
 import io.github.fianna76.speedread.rsvp.WordsPerMinute
 import io.github.fianna76.speedread.rsvp.ContextWindow
 import io.github.fianna76.speedread.rsvp.PlayerState
@@ -197,7 +198,8 @@ fun ReaderContent(ui: ReaderUiState, player: PlayerState, actions: ReaderActions
                 title = {
                     Column {
                         Text(ui.title, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        (ui.sourceName ?: ui.chapter?.displayTitle())?.let { subtitle ->
+                        val pasted = ArticleRepository.isPastedText(ui.sourceUrl)
+                        (if (pasted) stringResource(R.string.reader_pasted_text) else ui.sourceName ?: ui.chapter?.displayTitle())?.let { subtitle ->
                             Text(
                                 text = subtitle,
                                 style = MaterialTheme.typography.bodySmall,
@@ -210,7 +212,9 @@ fun ReaderContent(ui: ReaderUiState, player: PlayerState, actions: ReaderActions
                 },
                 actions = {
                     val sourceUrl = ui.sourceUrl
-                    if (sourceUrl != null) {
+                    if (ArticleRepository.isPastedText(sourceUrl)) {
+                        // Pasted text has no page to open and is a single section.
+                    } else if (sourceUrl != null) {
                         // Articles are a single section: offer the original page instead of a contents list.
                         IconButton(onClick = { actions.onOpenOnline(sourceUrl) }) {
                             Icon(painterResource(R.drawable.ic_open_in_new), stringResource(R.string.news_open_online))

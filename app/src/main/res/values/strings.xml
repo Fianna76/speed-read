@@ -183,6 +183,7 @@
     <string name="reader_remove_bookmark">Remove bookmark</string>
     <string name="reader_delete_bookmark">Delete bookmark</string>
     <string name="reader_position">Position in chapter</string>
+    <string name="reader_pasted_text">Pasted text</string>
     <string name="reader_training_target">Training → %1$d</string>
     <string name="settings_chunk">Words at a time</string>
     <string name="settings_chunk_one">1</string>

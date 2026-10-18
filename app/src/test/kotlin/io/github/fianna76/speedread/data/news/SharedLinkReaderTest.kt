@@ -116,4 +116,12 @@ class SharedLinkReaderTest {
         val title = OfflineBookRepository(database.bookDao(), files, PdfBooks(context)).getBook(result.bookId)!!.title
         assertEquals("This is a very long opening sentence that keeps going well\u2026", title)
     }
+
+    @Test
+    fun `a short first sentence becomes the title`() = runTest {
+        val articles = ArticleRepository(database.bookDao(), files, web)
+        val result = articles.saveText("Notes for the commute. Speed reading lets you take in short texts quickly.") as ArticleResult.Ready
+        val title = OfflineBookRepository(database.bookDao(), files, PdfBooks(context)).getBook(result.bookId)!!.title
+        assertEquals("Notes for the commute", title)
+    }
 }

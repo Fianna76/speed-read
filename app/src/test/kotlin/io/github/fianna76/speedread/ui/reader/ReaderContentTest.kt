@@ -19,6 +19,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.github.fianna76.speedread.R
 import io.github.fianna76.speedread.data.Bookmark
 import io.github.fianna76.speedread.data.Chapter
+import io.github.fianna76.speedread.data.news.ArticleRepository
 import io.github.fianna76.speedread.data.ReadingPosition
 import io.github.fianna76.speedread.rsvp.PlayerState
 import io.github.fianna76.speedread.rsvp.Tokenizer
@@ -161,6 +162,16 @@ class ReaderContentTest {
         compose.onNodeWithText(context.getString(R.string.reader_bookmarks, 1)).performClick()
         compose.onNodeWithText("The last chapter begins\u2026").performClick()
         assertEquals(bookmark, opened)
+    }
+
+    @Test
+    fun pastedTextHasNoPageToOpen() {
+        setContent(
+            ui.copy(sourceUrl = ArticleRepository.TEXT_URL_PREFIX + "abc", chapters = ui.chapters.take(1)),
+            PlayerState(text = text, index = 1),
+        )
+        compose.onNodeWithText(context.getString(R.string.reader_pasted_text)).assertIsDisplayed()
+        compose.onNodeWithContentDescription(context.getString(R.string.news_open_online)).assertDoesNotExist()
     }
 
     @Test
