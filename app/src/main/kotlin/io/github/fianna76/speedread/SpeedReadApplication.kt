@@ -16,6 +16,7 @@ class SpeedReadApplication : Application(), SingletonImageLoader.Factory {
     override fun onCreate() {
         super.onCreate()
         container = AppContainer(this)
+        container.startCustomNewsSources()
         container.startBackgroundNewsScheduling()
         AppShortcuts.publish(this)
     }

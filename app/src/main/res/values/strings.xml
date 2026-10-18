@@ -281,6 +281,17 @@
     <string name="settings_news_briefing_summary">A daily notification with the top stories from Ireland, Europe and the world, downloaded and ready to speed-read</string>
     <string name="settings_news_briefing_time">Briefing time</string>
     <string name="settings_notifications_denied">Notifications are off for SpeedRead. You can turn them on in the system settings.</string>
+    <string name="settings_your_feeds">Your feeds</string>
+    <string name="settings_feed_add">Add a feed</string>
+    <string name="settings_feed_add_body">Paste a feed address, or just the site’s address and SpeedRead will look for its feed.</string>
+    <string name="settings_feed_address">Feed or site address</string>
+    <string name="settings_feed_add_button">Add</string>
+    <string name="settings_feed_remove">Remove %1$s</string>
+    <string name="settings_feed_added">Added %1$s to the Newsstand</string>
+    <string name="settings_feed_built_in">%1$s is already in the Newsstand’s list, so it’s been switched on</string>
+    <string name="settings_feed_error_invalid">That doesn’t look like a web address</string>
+    <string name="settings_feed_error_network">Couldn’t reach that site. Check the address and your connection.</string>
+    <string name="settings_feed_error_no_feed">No news feed found there. Try the site’s RSS or Atom feed address.</string>
     <string name="settings_news_region_on">Turn on all of %1$s</string>
     <string name="settings_news_region_off">Turn off all of %1$s</string>
     <string name="notification_channel_breaking">Breaking news</string>

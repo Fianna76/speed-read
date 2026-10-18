@@ -17,7 +17,9 @@ import io.github.fianna76.speedread.data.news.NewsHistoryRepository
 import io.github.fianna76.speedread.data.news.NewsQueue
 import io.github.fianna76.speedread.data.news.NewsUpNext
 import io.github.fianna76.speedread.data.news.SharedLinkReader
+import io.github.fianna76.speedread.data.news.CustomFeedResolver
 import io.github.fianna76.speedread.news.NewsRegion
+import io.github.fianna76.speedread.news.NewsSources
 import io.github.fianna76.speedread.widget.NewsWidget
 import io.github.fianna76.speedread.widget.WidgetData
 import io.github.fianna76.speedread.widget.WidgetHeadline
@@ -150,6 +152,16 @@ class AppContainer(context: Context) {
             .getWorkInfosForUniqueWork(NewsBackgroundScheduler.BRIEFING_WORK_NAME).get()
             .any { !it.state.isFinished }
     }.getOrDefault(false)
+
+    /** Finds feeds for "Add a feed" in Settings. */
+    val customFeedResolver by lazy { CustomFeedResolver(webClient) }
+
+    /** Keeps [NewsSources.custom] in line with the user's own feeds, for lookups by source id. */
+    fun startCustomNewsSources() {
+        applicationScope.launch {
+            preferencesRepository.preferences.map { it.customNewsSources }.distinctUntilChanged().collect { NewsSources.custom = it }
+        }
+    }
 
     val newsUpNext by lazy { NewsUpNext(newsQueue, newsHistoryRepository, articleRepository, applicationScope) }
 

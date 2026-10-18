@@ -137,6 +137,20 @@ class NewsstandViewModelTest {
     }
 
     @Test
+    fun `stories from the user's own feeds are listed with the built-in ones`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.awaitState { it.articles.size == 3 }
+        val mine = TestNews.source("custom-abc").copy(name = "The Ditch", region = NewsRegion.IRELAND, enabledByDefault = true)
+        web.responses[mine.feedUrl] = TestNews.rss("custom-abc", "m1")
+
+        preferences.addCustomNewsSource(mine)
+
+        val state = viewModel.awaitState { it.articles.any { a -> a.source.id == mine.id } }
+        assertEquals(mine, state.sources.first()) // Irish, so first.
+        assertEquals("The Ditch", state.articles.first().source.name)
+    }
+
+    @Test
     fun `filters by source`() = runTest {
         val viewModel = createViewModel()
         viewModel.awaitState { it.articles.size == 3 }

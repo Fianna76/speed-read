@@ -176,5 +176,14 @@ object NewsSources {
         world("mexiconewsdaily", "Mexico News Daily", "https://mexiconewsdaily.com/feed/", "https://mexiconewsdaily.com", note = "Mexico"),
     )
 
-    fun byId(id: String): NewsSource? = ALL.firstOrNull { it.id == id }
+    /** Feeds the user added (see [FeedDiscovery]); replaced whenever the user's list changes. */
+    @Volatile
+    var custom: List<NewsSource> = emptyList()
+
+    /** The built-in sources followed by the user's own. */
+    val all: List<NewsSource> get() = ALL + custom
+
+    fun byId(id: String): NewsSource? = ALL.firstOrNull { it.id == id } ?: custom.firstOrNull { it.id == id }
+
+    val NewsSource.isCustom: Boolean get() = id.startsWith(FeedDiscovery.CUSTOM_PREFIX)
 }

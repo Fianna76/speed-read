@@ -342,7 +342,7 @@ class NewsstandViewModel(
         val shownIds = shownSources.map { it.id }
         val query = chosen.query.trim()
 
-        fun article(item: FeedItem): NewsArticle? = NewsSources.byId(item.sourceId)?.let { source ->
+        fun article(item: FeedItem): NewsArticle? = prefs.newsSource(item.sourceId)?.let { source ->
             val entry = entries[item.canonicalUrl]
             NewsArticle(item, source, progress[item.canonicalUrl], isRead = entry?.isRead == true, isSaved = entry?.isSaved == true)
         }

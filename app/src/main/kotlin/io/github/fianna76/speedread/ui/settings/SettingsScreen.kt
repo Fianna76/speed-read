@@ -17,10 +17,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -41,6 +49,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -74,6 +84,7 @@ import io.github.fianna76.speedread.rsvp.Tokenizer
 import io.github.fianna76.speedread.rsvp.WordsPerMinute
 import io.github.fianna76.speedread.ui.reader.RsvpWordView
 import io.github.fianna76.speedread.news.ArticleUrls
+import io.github.fianna76.speedread.news.NewsRegion
 import io.github.fianna76.speedread.news.NewsSources
 import io.github.fianna76.speedread.ui.news.labelRes
 import io.github.fianna76.speedread.ui.theme.SpeedReadTheme
@@ -88,7 +99,16 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = viewModel(factory = SettingsViewModel.Factory),
 ) {
     val preferences by viewModel.uiState.collectAsStateWithLifecycle()
+    val addFeed by viewModel.addFeed.collectAsStateWithLifecycle()
     val withNotifications = rememberNotificationPermission()
+    val context = LocalContext.current
+    addFeed.added?.let { name ->
+        val message = stringResource(if (addFeed.wasBuiltIn) R.string.settings_feed_built_in else R.string.settings_feed_added, name)
+        LaunchedEffect(addFeed) {
+            Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+            viewModel.resetAddFeed()
+        }
+    }
     SettingsContent(
         preferences = preferences,
         onBack = onBack,
@@ -115,7 +135,11 @@ fun SettingsScreen(
             onBreakingAlertsChange = withNotifications(viewModel::setBreakingNewsAlerts),
             onMorningBriefingChange = withNotifications(viewModel::setMorningBriefing),
             onBriefingTimeChange = viewModel::setBriefingTime,
+            onAddFeed = viewModel::addFeed,
+            onRemoveFeed = viewModel::removeFeed,
+            onDismissAddFeed = viewModel::resetAddFeed,
         ),
+        addFeedState = addFeed,
     )
 }
 
@@ -135,6 +159,9 @@ data class NewsSettingsActions(
     val onBreakingAlertsChange: (Boolean) -> Unit = {},
     val onMorningBriefingChange: (Boolean) -> Unit = {},
     val onBriefingTimeChange: (minuteOfDay: Int) -> Unit = {},
+    val onAddFeed: (input: String, region: NewsRegion) -> Unit = { _, _ -> },
+    val onRemoveFeed: (sourceId: String) -> Unit = {},
+    val onDismissAddFeed: () -> Unit = {},
 )
 
 /**
@@ -185,7 +212,21 @@ fun SettingsContent(
     newsActions: NewsSettingsActions = NewsSettingsActions(),
     onVolumeKeysChange: (Boolean) -> Unit = {},
     trainingActions: TrainingSettingsActions = TrainingSettingsActions(),
+    addFeedState: AddFeedState = AddFeedState(),
 ) {
+    var addingFeed by rememberSaveable { mutableStateOf(false) }
+    // Close the dialog once the feed is added.
+    LaunchedEffect(addFeedState.added) { if (addFeedState.added != null) addingFeed = false }
+    if (addingFeed) {
+        AddFeedDialog(
+            state = addFeedState,
+            onAdd = newsActions.onAddFeed,
+            onDismiss = {
+                addingFeed = false
+                newsActions.onDismissAddFeed()
+            },
+        )
+    }
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -346,6 +387,12 @@ fun SettingsContent(
             if (preferences.morningBriefing) {
                 BriefingTimeSetting(preferences.briefingTime, newsActions.onBriefingTimeChange)
             }
+            CustomFeeds(
+                preferences = preferences,
+                onSourceChange = onNewsSourceChange,
+                onRemove = newsActions.onRemoveFeed,
+                onAdd = { addingFeed = true },
+            )
             NewsSources.ALL.groupBy { it.region }.forEach { (region, sources) ->
                 val allOn = sources.all { preferences.isNewsSourceEnabled(it) }
                 Row(
@@ -487,6 +534,104 @@ private fun FontSizeSetting(display: ReaderDisplay, onValueCommitted: (Int) -> U
         word = word,
         display = display.copy(fontSizeSp = previewSize.roundToInt()),
         modifier = Modifier.padding(horizontal = 16.dp),
+    )
+}
+
+/** The user's own feeds, each removable, and "Add a feed". */
+@Composable
+private fun CustomFeeds(
+    preferences: UserPreferences,
+    onSourceChange: (sourceId: String, enabled: Boolean) -> Unit,
+    onRemove: (String) -> Unit,
+    onAdd: () -> Unit,
+) {
+    Text(
+        text = stringResource(R.string.settings_your_feeds),
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp),
+    )
+    preferences.customNewsSources.forEach { source ->
+        val enabled = preferences.isNewsSourceEnabled(source)
+        ListItem(
+            headlineContent = { Text(source.name) },
+            supportingContent = {
+                Text(stringResource(R.string.settings_news_source_summary, stringResource(source.region.labelRes()), ArticleUrls.displayHost(source.homepage)))
+            },
+            trailingContent = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = { onRemove(source.id) }) {
+                        Icon(painterResource(R.drawable.ic_delete), stringResource(R.string.settings_feed_remove, source.name))
+                    }
+                    Switch(checked = enabled, onCheckedChange = null)
+                }
+            },
+            modifier = Modifier.toggleable(value = enabled, role = Role.Switch) { onSourceChange(source.id, it) },
+        )
+    }
+    TextButton(onClick = onAdd, modifier = Modifier.padding(horizontal = 8.dp)) {
+        Icon(painterResource(R.drawable.ic_add), contentDescription = null)
+        Spacer(Modifier.width(8.dp))
+        Text(stringResource(R.string.settings_feed_add))
+    }
+}
+
+@Composable
+private fun AddFeedDialog(state: AddFeedState, onAdd: (String, NewsRegion) -> Unit, onDismiss: () -> Unit) {
+    var address by rememberSaveable { mutableStateOf("") }
+    var region by rememberSaveable { mutableStateOf(NewsRegion.IRELAND) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings_feed_add)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(stringResource(R.string.settings_feed_add_body), style = MaterialTheme.typography.bodyMedium)
+                OutlinedTextField(
+                    value = address,
+                    onValueChange = { address = it },
+                    label = { Text(stringResource(R.string.settings_feed_address)) },
+                    singleLine = true,
+                    enabled = !state.working,
+                    isError = state.error != null,
+                    supportingText = state.error?.let { error ->
+                        {
+                            Text(
+                                stringResource(
+                                    when (error) {
+                                        AddFeedError.INVALID -> R.string.settings_feed_error_invalid
+                                        AddFeedError.NETWORK -> R.string.settings_feed_error_network
+                                        AddFeedError.NO_FEED -> R.string.settings_feed_error_no_feed
+                                    },
+                                ),
+                            )
+                        }
+                    },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { if (address.isNotBlank()) onAdd(address, region) }),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                    NewsRegion.entries.forEachIndexed { index, option ->
+                        SegmentedButton(
+                            selected = option == region,
+                            onClick = { region = option },
+                            enabled = !state.working,
+                            shape = SegmentedButtonDefaults.itemShape(index = index, count = NewsRegion.entries.size),
+                        ) { Text(stringResource(option.labelRes())) }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onAdd(address, region) }, enabled = address.isNotBlank() && !state.working) {
+                if (state.working) {
+                    CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                } else {
+                    Text(stringResource(R.string.settings_feed_add_button))
+                }
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
     )
 }
 

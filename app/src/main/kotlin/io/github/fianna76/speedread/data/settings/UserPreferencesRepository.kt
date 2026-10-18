@@ -10,6 +10,8 @@ import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
+import io.github.fianna76.speedread.news.NewsRegion
+import io.github.fianna76.speedread.news.NewsSource
 import io.github.fianna76.speedread.rsvp.Chunking
 import io.github.fianna76.speedread.rsvp.PlaybackSettings
 import io.github.fianna76.speedread.rsvp.WordsPerMinute
@@ -17,6 +19,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import java.io.IOException
 
 /** Persists [UserPreferences] with Jetpack DataStore. */
@@ -87,6 +91,18 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
 
     suspend fun setNewsSourceEnabled(sourceId: String, enabled: Boolean) = setNewsSourcesEnabled(listOf(sourceId), enabled)
 
+    /** Adds (or replaces, by id) a feed the user found; it starts switched on. */
+    suspend fun addCustomNewsSource(source: NewsSource) = update {
+        val sources = decodeSources(it[Keys.CUSTOM_NEWS_SOURCES]).filterNot { old -> old.id == source.id } + source
+        it[Keys.CUSTOM_NEWS_SOURCES] = encodeSources(sources)
+        it[Keys.DISABLED_NEWS_SOURCES] = it[Keys.DISABLED_NEWS_SOURCES].orEmpty() - source.id
+    }
+
+    suspend fun removeCustomNewsSource(sourceId: String) = update {
+        it[Keys.CUSTOM_NEWS_SOURCES] = encodeSources(decodeSources(it[Keys.CUSTOM_NEWS_SOURCES]).filterNot { old -> old.id == sourceId })
+        it[Keys.DISABLED_NEWS_SOURCES] = it[Keys.DISABLED_NEWS_SOURCES].orEmpty() - sourceId
+    }
+
     private suspend fun update(block: (MutablePreferences) -> Unit) {
         dataStore.edit { block(it) }
     }
@@ -121,8 +137,33 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
             briefingTime = (this[Keys.BRIEFING_TIME] ?: defaults.briefingTime).coerceIn(0, MINUTES_PER_DAY - 1),
             disabledNewsSources = this[Keys.DISABLED_NEWS_SOURCES] ?: defaults.disabledNewsSources,
             addedNewsSources = this[Keys.ADDED_NEWS_SOURCES] ?: defaults.addedNewsSources,
+            customNewsSources = decodeSources(this[Keys.CUSTOM_NEWS_SOURCES]),
         )
     }
+
+    private fun encodeSources(sources: List<NewsSource>): String = JSON.encodeToString(
+        sources.map { StoredSource(it.id, it.name, it.feedUrl, it.homepage, it.region.name) },
+    )
+
+    private fun decodeSources(json: String?): List<NewsSource> {
+        if (json.isNullOrEmpty()) return emptyList()
+        return runCatching { JSON.decodeFromString<List<StoredSource>>(json) }
+            .onFailure { Log.w(TAG, "Discarding unreadable custom feeds", it) }
+            .getOrDefault(emptyList())
+            .map { stored ->
+                NewsSource(
+                    id = stored.id,
+                    name = stored.name,
+                    feedUrl = stored.feedUrl,
+                    homepage = stored.homepage,
+                    region = enumOrDefault(stored.region, NewsRegion.WORLD),
+                    enabledByDefault = true,
+                )
+            }
+    }
+
+    @Serializable
+    private data class StoredSource(val id: String, val name: String, val feedUrl: String, val homepage: String, val region: String)
 
     private inline fun <reified E : Enum<E>> enumOrDefault(name: String?, default: E): E =
         name?.let { stored -> enumValues<E>().firstOrNull { it.name == stored } } ?: default
@@ -150,10 +191,12 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
         val BRIEFING_TIME = intPreferencesKey("briefing_time")
         val DISABLED_NEWS_SOURCES = stringSetPreferencesKey("disabled_news_sources")
         val ADDED_NEWS_SOURCES = stringSetPreferencesKey("added_news_sources")
+        val CUSTOM_NEWS_SOURCES = stringPreferencesKey("custom_news_sources")
     }
 
     private companion object {
         const val TAG = "UserPreferences"
+        val JSON = Json { ignoreUnknownKeys = true }
         const val MINUTES_PER_DAY = 24 * 60
     }
 }

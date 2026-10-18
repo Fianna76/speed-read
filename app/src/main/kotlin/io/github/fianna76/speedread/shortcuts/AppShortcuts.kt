@@ -1,5 +1,6 @@
 package io.github.fianna76.speedread.shortcuts
 
+import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
@@ -18,17 +19,30 @@ import io.github.fianna76.speedread.R
  */
 object AppShortcuts {
 
+    /** Shortcut ids by the intent action each one sends. */
+    private val IDS = mapOf(
+        MainActivity.ACTION_CONTINUE_READING to "continue",
+        MainActivity.ACTION_PLAY_BRIEFING to "briefing",
+        MainActivity.ACTION_READ_CLIPBOARD to "clipboard",
+    )
+
     fun publish(context: Context) {
         val shortcuts = listOf(
-            shortcut(context, "continue", R.string.shortcut_continue, R.drawable.ic_shortcut_book, MainActivity.ACTION_CONTINUE_READING),
-            shortcut(context, "briefing", R.string.shortcut_briefing, R.drawable.ic_shortcut_play, MainActivity.ACTION_PLAY_BRIEFING),
-            shortcut(context, "clipboard", R.string.shortcut_clipboard, R.drawable.ic_shortcut_clipboard, MainActivity.ACTION_READ_CLIPBOARD),
+            shortcut(context, MainActivity.ACTION_CONTINUE_READING, R.string.shortcut_continue, R.drawable.ic_shortcut_book),
+            shortcut(context, MainActivity.ACTION_PLAY_BRIEFING, R.string.shortcut_briefing, R.drawable.ic_shortcut_play),
+            shortcut(context, MainActivity.ACTION_READ_CLIPBOARD, R.string.shortcut_clipboard, R.drawable.ic_shortcut_clipboard),
         )
         runCatching { ShortcutManagerCompat.setDynamicShortcuts(context, shortcuts) }
     }
 
-    private fun shortcut(context: Context, id: String, label: Int, icon: Int, action: String) =
-        ShortcutInfoCompat.Builder(context, id)
+    /** Tells the launcher a shortcut's action was used (from the shortcut or elsewhere), to rank shortcuts. */
+    fun reportUsed(context: Context, action: String?) {
+        val id = IDS[action] ?: return
+        runCatching { ShortcutManagerCompat.reportShortcutUsed(context, id) }
+    }
+
+    private fun shortcut(context: Context, action: String, label: Int, icon: Int) =
+        ShortcutInfoCompat.Builder(context, IDS.getValue(action))
             .setShortLabel(context.getString(label))
             .setIcon(IconCompat.createWithResource(context, icon))
             .setIntent(Intent(context, MainActivity::class.java).setAction(action))
@@ -38,6 +52,8 @@ object AppShortcuts {
 /** Quick Settings tile: speed-read whatever is on the clipboard. */
 class ClipboardTileService : TileService() {
 
+    // The Intent overload is deprecated but is the only one before Android 14.
+    @SuppressLint("StartActivityAndCollapseDeprecated")
     override fun onClick() {
         super.onClick()
         val intent = Intent(this, MainActivity::class.java)

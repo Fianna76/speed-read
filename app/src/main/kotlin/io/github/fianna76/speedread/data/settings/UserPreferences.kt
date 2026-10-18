@@ -33,6 +33,8 @@ data class UserPreferences(
     val disabledNewsSources: Set<String> = emptySet(),
     /** Ids of [NewsSources] the user switched on (sources not enabled by default). */
     val addedNewsSources: Set<String> = emptySet(),
+    /** Feeds the user added themselves, in the order added. */
+    val customNewsSources: List<NewsSource> = emptyList(),
 ) {
     /** The user's choice if they made one, else the source's default. */
     fun isNewsSourceEnabled(source: NewsSource): Boolean = when (source.id) {
@@ -41,7 +43,12 @@ data class UserPreferences(
         else -> source.enabledByDefault
     }
 
-    val enabledNewsSources: List<NewsSource> get() = NewsSources.ALL.filter(::isNewsSourceEnabled)
+    /** Enabled sources, built-in and the user's own, grouped by region (Ireland, Europe, world). */
+    val enabledNewsSources: List<NewsSource>
+        get() = (NewsSources.ALL + customNewsSources).filter(::isNewsSourceEnabled).sortedBy { it.region }
+
+    /** A source by id, including the user's own feeds. */
+    fun newsSource(id: String): NewsSource? = NewsSources.byId(id) ?: customNewsSources.firstOrNull { it.id == id }
 
     companion object {
         const val DEFAULT_BRIEFING_TIME = 7 * 60

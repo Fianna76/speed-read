@@ -12,12 +12,61 @@ import io.github.fianna76.speedread.data.settings.ReaderFont
 import io.github.fianna76.speedread.data.settings.ThemeMode
 import io.github.fianna76.speedread.data.settings.UserPreferences
 import io.github.fianna76.speedread.data.settings.UserPreferencesRepository
+import io.github.fianna76.speedread.data.news.CustomFeedResolver
+import io.github.fianna76.speedread.news.NewsRegion
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-class SettingsViewModel(private val preferences: UserPreferencesRepository) : ViewModel() {
+/** Progress of "Add a feed". */
+data class AddFeedState(
+    val working: Boolean = false,
+    val error: AddFeedError? = null,
+    /** Name of the feed just added (or the built-in source switched on); the dialog closes. */
+    val added: String? = null,
+    val wasBuiltIn: Boolean = false,
+)
+
+enum class AddFeedError { INVALID, NETWORK, NO_FEED }
+
+class SettingsViewModel(
+    private val preferences: UserPreferencesRepository,
+    private val feeds: CustomFeedResolver? = null,
+) : ViewModel() {
+
+    private val _addFeed = MutableStateFlow(AddFeedState())
+    val addFeed: StateFlow<AddFeedState> = _addFeed.asStateFlow()
+
+    /** Looks for the feed at [input] (a feed or a site address) and adds it, switched on. */
+    fun addFeed(input: String, region: NewsRegion) {
+        val resolver = feeds ?: return
+        if (_addFeed.value.working) return
+        _addFeed.value = AddFeedState(working = true)
+        viewModelScope.launch {
+            _addFeed.value = when (val result = resolver.resolve(input, region)) {
+                is CustomFeedResolver.Result.Found -> {
+                    preferences.addCustomNewsSource(result.source)
+                    AddFeedState(added = result.source.name)
+                }
+                is CustomFeedResolver.Result.BuiltIn -> {
+                    preferences.setNewsSourceEnabled(result.source.id, true)
+                    AddFeedState(added = result.source.name, wasBuiltIn = true)
+                }
+                CustomFeedResolver.Result.Invalid -> AddFeedState(error = AddFeedError.INVALID)
+                CustomFeedResolver.Result.Network -> AddFeedState(error = AddFeedError.NETWORK)
+                CustomFeedResolver.Result.NoFeed -> AddFeedState(error = AddFeedError.NO_FEED)
+            }
+        }
+    }
+
+    fun resetAddFeed() {
+        if (!_addFeed.value.working) _addFeed.value = AddFeedState()
+    }
+
+    fun removeFeed(sourceId: String) = launch { preferences.removeCustomNewsSource(sourceId) }
 
     /** `null` until the stored preferences have been read. */
     val uiState: StateFlow<UserPreferences?> = preferences.preferences
@@ -71,7 +120,8 @@ class SettingsViewModel(private val preferences: UserPreferencesRepository) : Vi
     companion object {
         val Factory: ViewModelProvider.Factory = viewModelFactory {
             initializer {
-                SettingsViewModel((this[APPLICATION_KEY] as SpeedReadApplication).container.preferencesRepository)
+                val container = (this[APPLICATION_KEY] as SpeedReadApplication).container
+                SettingsViewModel(container.preferencesRepository, container.customFeedResolver)
             }
         }
     }

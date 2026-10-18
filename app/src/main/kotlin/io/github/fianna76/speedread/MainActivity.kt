@@ -21,6 +21,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.fianna76.speedread.data.settings.ThemeMode
+import io.github.fianna76.speedread.shortcuts.AppShortcuts
 import io.github.fianna76.speedread.ui.navigation.NavigationRequest
 import io.github.fianna76.speedread.ui.news.BriefingRequest
 import io.github.fianna76.speedread.ui.navigation.SpeedReadNavigation
@@ -68,6 +69,7 @@ class MainActivity : ComponentActivity() {
     private var navigationRequest by mutableStateOf<NavigationRequest?>(null)
 
     private fun handle(intent: Intent?) {
+        AppShortcuts.reportUsed(this, intent?.action)
         when (intent?.action) {
             ACTION_OPEN_NEWS -> navigationRequest = NavigationRequest.OpenNews(previewUrl = intent.dataString)
             ACTION_OPEN_BRIEFING -> navigationRequest = NavigationRequest.OpenNews(briefing = BriefingRequest.SHOW)
