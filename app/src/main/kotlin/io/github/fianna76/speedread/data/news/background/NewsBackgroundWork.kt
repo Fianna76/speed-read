@@ -10,9 +10,10 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import io.github.fianna76.speedread.SpeedReadApplication
-import io.github.fianna76.speedread.news.NewsRegion
 import kotlinx.coroutines.flow.first
+import java.time.DayOfWeek
 import java.time.Duration
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.util.concurrent.TimeUnit
@@ -33,11 +34,11 @@ class NewsBackgroundWorker(context: Context, params: WorkerParameters) : Corouti
                 val result = container.newsPrefetcher.sync(sources)
                 Log.i(TAG, "Background news: ${result.downloaded} downloaded, ${result.failed} unavailable")
             } else {
-                // Alerts only need the Irish headlines: a few small feed requests.
-                container.newsRepository.refresh(sources.filter { it.region == NewsRegion.IRELAND })
+                // Alerts only need the headlines of the alert regions: a few small feed requests.
+                container.newsRepository.refresh(sources.filter { it.region in prefs.alertRegions })
             }
             if (prefs.breakingNewsAlerts) {
-                val posted = container.breakingNewsAlerts.check(sources)
+                val posted = container.breakingNewsAlerts.check(sources, AlertOptions.of(prefs))
                 if (posted > 0) Log.i(TAG, "Posted $posted breaking news alert(s)")
             }
             Result.success()
@@ -59,8 +60,10 @@ class MorningBriefingWorker(context: Context, params: WorkerParameters) : Corout
         val container = (applicationContext as SpeedReadApplication).container
         val prefs = container.preferencesRepository.preferences.first()
         if (!prefs.morningBriefing) return Result.success()
+        val weekend = LocalDate.now().dayOfWeek in setOf(DayOfWeek.SATURDAY, DayOfWeek.SUNDAY)
+        if (weekend && !prefs.briefingWeekends) return Result.success()
         return try {
-            val stories = container.morningBriefing.prepare(prefs.enabledNewsSources)
+            val stories = container.morningBriefing.prepare(prefs.enabledNewsSources, prefs.briefingPerRegion, prefs.briefingRegions)
             Log.i(TAG, "Morning briefing: ${stories.size} stories")
             Result.success()
         } catch (e: Exception) {

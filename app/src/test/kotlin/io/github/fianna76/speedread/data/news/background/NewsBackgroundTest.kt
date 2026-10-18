@@ -138,19 +138,57 @@ class NewsBackgroundTest {
         val notifier = RecordingNotifier()
         val alerts = BreakingNewsAlerts(news, history, NewsAlertLog(tmp.root.resolve("alerts.json")), notifier)
         val sources = listOf(rte, times, bbc)
+        val anyTime = AlertOptions(quietHours = false)
 
         news.refresh(sources)
-        assertEquals(0, alerts.check(sources)) // First check: what is already leading is not news.
+        assertEquals(0, alerts.check(sources, anyTime)) // First check: what is already leading is not news.
         assertTrue(notifier.breaking.isEmpty())
 
         web.responses[rte.feedUrl] = rss("rte", "fire" to "Major fire closes Dublin Port overnight", "old" to "Minister resigns")
         web.responses[times.feedUrl] = rss("irishtimes", "fire" to "Dublin Port closed by major overnight fire")
         news.refresh(sources)
-        assertEquals(1, alerts.check(sources))
+        assertEquals(1, alerts.check(sources, anyTime))
         assertEquals("Major fire closes Dublin Port overnight", notifier.breaking.single().first.lead.title)
         assertEquals(listOf("RTE", "IRISHTIMES"), notifier.breaking.single().second)
 
-        assertEquals(0, alerts.check(sources)) // Announced once.
+        assertEquals(0, alerts.check(sources, anyTime)) // Announced once.
+    }
+
+    @Test
+    fun `alerts respect regions, quiet hours and the daily limit`() = runTest {
+        val dw = TestNews.source("dw").copy(region = NewsRegion.EUROPE)
+        val f24 = TestNews.source("france24").copy(region = NewsRegion.EUROPE)
+        val web = FakeWebClient(mapOf(dw.feedUrl to rss("dw", "old" to "Old news here today"), f24.feedUrl to rss("france24", "x" to "Other")))
+        val news = NewsRepository(web, NewsCache(tmp.root.resolve("news.json")))
+        val history = NewsHistoryRepository(database.newsHistoryDao())
+        val notifier = RecordingNotifier()
+        // 23:30 UTC: inside quiet hours.
+        var now = java.time.Instant.parse("2026-10-17T23:30:00Z").toEpochMilli()
+        val alerts = BreakingNewsAlerts(
+            news, history, NewsAlertLog(tmp.root.resolve("alerts.json"), clock = { now }), notifier,
+            clock = { now }, zone = { java.time.ZoneOffset.UTC },
+        )
+        val sources = listOf(dw, f24)
+        val europe = AlertOptions(regions = setOf(NewsRegion.EUROPE), quietHours = true, dailyLimit = 1)
+        news.refresh(sources)
+        assertEquals(0, alerts.check(sources, europe.copy(quietHours = false))) // Starts the log.
+
+        fun breaking(slug: String, a: String, b: String) {
+            web.responses[dw.feedUrl] = rss("dw", slug to a)
+            web.responses[f24.feedUrl] = rss("france24", slug to b)
+        }
+        breaking("ep", "European Parliament votes to ban plastic packaging", "Plastic packaging ban passed by European Parliament vote")
+        news.refresh(sources)
+        assertEquals(0, alerts.check(sources, AlertOptions(regions = setOf(NewsRegion.IRELAND), quietHours = false)))
+        assertEquals(0, alerts.check(sources, europe)) // Quiet hours: held back, not recorded.
+
+        now = java.time.Instant.parse("2026-10-18T07:30:00Z").toEpochMilli()
+        assertEquals(1, alerts.check(sources, europe)) // After quiet hours it alerts.
+
+        breaking("rail", "Strike halts rail services across France and Belgium", "Rail services halted by strike across Belgium and France")
+        news.refresh(sources)
+        assertEquals(0, alerts.check(sources, europe)) // Daily limit of 1 reached.
+        assertEquals(1, notifier.breaking.size)
     }
 
     @Test
@@ -173,6 +211,8 @@ class NewsBackgroundTest {
         assertEquals(listOf("Story b", "Story c", "Story d"), stories.map { it.title })
         assertEquals(stories, notifier.briefings.single())
         assertEquals(stories.map { it.canonicalUrl }.toSet(), articles.observeProgress().first().keys)
+        // Fewer stories, fewer regions.
+        assertEquals(listOf("Story b"), briefing.prepare(listOf(rte, bbc), perRegion = 1, regions = setOf(NewsRegion.IRELAND)).map { it.title })
     }
 
     private fun rss(sourceId: String, vararg items: Pair<String, String>): String =

@@ -1,5 +1,7 @@
 package io.github.fianna76.speedread.data.settings
 
+import io.github.fianna76.speedread.news.Briefing
+import io.github.fianna76.speedread.news.NewsRegion
 import io.github.fianna76.speedread.news.NewsSource
 import io.github.fianna76.speedread.news.NewsSources
 import io.github.fianna76.speedread.rsvp.PlaybackSettings
@@ -29,6 +31,18 @@ data class UserPreferences(
     val morningBriefing: Boolean = false,
     /** When the morning briefing arrives, in minutes after midnight (local time). */
     val briefingTime: Int = DEFAULT_BRIEFING_TIME,
+    /** Stories the briefing takes from each region (1 to 3). */
+    val briefingPerRegion: Int = Briefing.PER_REGION,
+    /** Regions the briefing covers. */
+    val briefingRegions: Set<NewsRegion> = NewsRegion.entries.toSet(),
+    /** Send the briefing notification on Saturdays and Sundays too. */
+    val briefingWeekends: Boolean = true,
+    /** Regions whose outlets can raise breaking-news alerts. */
+    val alertRegions: Set<NewsRegion> = setOf(NewsRegion.IRELAND),
+    /** No alerts from [QUIET_START] to [QUIET_END] (local time). */
+    val alertQuietHours: Boolean = true,
+    /** Most alerts per day. */
+    val alertDailyLimit: Int = DEFAULT_ALERT_LIMIT,
     /** Ids of [NewsSources] the user switched off. */
     val disabledNewsSources: Set<String> = emptySet(),
     /** Ids of [NewsSources] the user switched on (sources not enabled by default). */
@@ -52,6 +66,12 @@ data class UserPreferences(
 
     companion object {
         const val DEFAULT_BRIEFING_TIME = 7 * 60
+
+        const val DEFAULT_ALERT_LIMIT = 5
+        val ALERT_LIMITS: List<Int> = listOf(1, 3, 5, 10)
+        /** Quiet hours, in minutes after midnight. */
+        const val QUIET_START = 22 * 60
+        const val QUIET_END = 7 * 60
 
         const val DEFAULT_TRAINING_TARGET = 500
         const val SPEED_TRAINING_STEP = 25

@@ -111,6 +111,18 @@ class SettingsViewModel(
 
     fun setMorningBriefing(enabled: Boolean) = launch { preferences.setMorningBriefing(enabled) }
 
+    fun setBriefingPerRegion(stories: Int) = launch { preferences.setBriefingPerRegion(stories) }
+
+    fun setBriefingRegion(region: NewsRegion, included: Boolean) = launch { preferences.setBriefingRegion(region, included) }
+
+    fun setBriefingWeekends(enabled: Boolean) = launch { preferences.setBriefingWeekends(enabled) }
+
+    fun setAlertRegion(region: NewsRegion, included: Boolean) = launch { preferences.setAlertRegion(region, included) }
+
+    fun setAlertQuietHours(enabled: Boolean) = launch { preferences.setAlertQuietHours(enabled) }
+
+    fun setAlertDailyLimit(limit: Int) = launch { preferences.setAlertDailyLimit(limit) }
+
     fun setBriefingTime(minuteOfDay: Int) = launch { preferences.setBriefingTime(minuteOfDay) }
 
     private fun launch(block: suspend () -> Unit) {

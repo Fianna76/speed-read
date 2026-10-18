@@ -373,7 +373,7 @@ class NewsstandViewModel(
         val briefing = if (feedState.feeds.isEmpty()) {
             emptyList()
         } else {
-            feedState.briefing(sources) { entries[it.canonicalUrl]?.isRead == true }
+            feedState.briefing(prefs) { entries[it.canonicalUrl]?.isRead == true }
                 .mapNotNull { group -> article(group.lead)?.let { NewsStory(it, group.related.mapNotNull(::article)) } }
         }
 

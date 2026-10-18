@@ -79,6 +79,24 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
 
     suspend fun setMorningBriefing(enabled: Boolean) = update { it[Keys.MORNING_BRIEFING] = enabled }
 
+    suspend fun setBriefingPerRegion(stories: Int) = update { it[Keys.BRIEFING_PER_REGION] = stories.coerceIn(1, MAX_PER_REGION) }
+
+    suspend fun setBriefingRegion(region: NewsRegion, included: Boolean) = update {
+        val current = regionsOrDefault(it[Keys.BRIEFING_REGIONS], NewsRegion.entries.toSet())
+        it[Keys.BRIEFING_REGIONS] = (if (included) current + region else current - region).mapTo(HashSet()) { r -> r.name }
+    }
+
+    suspend fun setBriefingWeekends(enabled: Boolean) = update { it[Keys.BRIEFING_WEEKENDS] = enabled }
+
+    suspend fun setAlertRegion(region: NewsRegion, included: Boolean) = update {
+        val current = regionsOrDefault(it[Keys.ALERT_REGIONS], setOf(NewsRegion.IRELAND))
+        it[Keys.ALERT_REGIONS] = (if (included) current + region else current - region).mapTo(HashSet()) { r -> r.name }
+    }
+
+    suspend fun setAlertQuietHours(enabled: Boolean) = update { it[Keys.ALERT_QUIET_HOURS] = enabled }
+
+    suspend fun setAlertDailyLimit(limit: Int) = update { it[Keys.ALERT_DAILY_LIMIT] = limit.coerceAtLeast(1) }
+
     suspend fun setBriefingTime(minuteOfDay: Int) = update { it[Keys.BRIEFING_TIME] = minuteOfDay.coerceIn(0, MINUTES_PER_DAY - 1) }
 
     /** Switches several sources at once (e.g. a whole region). */
@@ -135,11 +153,20 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
             breakingNewsAlerts = this[Keys.BREAKING_NEWS_ALERTS] ?: defaults.breakingNewsAlerts,
             morningBriefing = this[Keys.MORNING_BRIEFING] ?: defaults.morningBriefing,
             briefingTime = (this[Keys.BRIEFING_TIME] ?: defaults.briefingTime).coerceIn(0, MINUTES_PER_DAY - 1),
+            briefingPerRegion = (this[Keys.BRIEFING_PER_REGION] ?: defaults.briefingPerRegion).coerceIn(1, MAX_PER_REGION),
+            briefingRegions = regionsOrDefault(this[Keys.BRIEFING_REGIONS], defaults.briefingRegions),
+            briefingWeekends = this[Keys.BRIEFING_WEEKENDS] ?: defaults.briefingWeekends,
+            alertRegions = regionsOrDefault(this[Keys.ALERT_REGIONS], defaults.alertRegions),
+            alertQuietHours = this[Keys.ALERT_QUIET_HOURS] ?: defaults.alertQuietHours,
+            alertDailyLimit = (this[Keys.ALERT_DAILY_LIMIT] ?: defaults.alertDailyLimit).coerceAtLeast(1),
             disabledNewsSources = this[Keys.DISABLED_NEWS_SOURCES] ?: defaults.disabledNewsSources,
             addedNewsSources = this[Keys.ADDED_NEWS_SOURCES] ?: defaults.addedNewsSources,
             customNewsSources = decodeSources(this[Keys.CUSTOM_NEWS_SOURCES]),
         )
     }
+
+    private fun regionsOrDefault(names: Set<String>?, default: Set<NewsRegion>): Set<NewsRegion> =
+        names?.mapNotNullTo(LinkedHashSet()) { name -> NewsRegion.entries.firstOrNull { it.name == name } } ?: default
 
     private fun encodeSources(sources: List<NewsSource>): String = JSON.encodeToString(
         sources.map { StoredSource(it.id, it.name, it.feedUrl, it.homepage, it.region.name) },
@@ -189,6 +216,12 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
         val BREAKING_NEWS_ALERTS = booleanPreferencesKey("breaking_news_alerts")
         val MORNING_BRIEFING = booleanPreferencesKey("morning_briefing")
         val BRIEFING_TIME = intPreferencesKey("briefing_time")
+        val BRIEFING_PER_REGION = intPreferencesKey("briefing_per_region")
+        val BRIEFING_REGIONS = stringSetPreferencesKey("briefing_regions")
+        val BRIEFING_WEEKENDS = booleanPreferencesKey("briefing_weekends")
+        val ALERT_REGIONS = stringSetPreferencesKey("alert_regions")
+        val ALERT_QUIET_HOURS = booleanPreferencesKey("alert_quiet_hours")
+        val ALERT_DAILY_LIMIT = intPreferencesKey("alert_daily_limit")
         val DISABLED_NEWS_SOURCES = stringSetPreferencesKey("disabled_news_sources")
         val ADDED_NEWS_SOURCES = stringSetPreferencesKey("added_news_sources")
         val CUSTOM_NEWS_SOURCES = stringPreferencesKey("custom_news_sources")
@@ -198,5 +231,6 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
         const val TAG = "UserPreferences"
         val JSON = Json { ignoreUnknownKeys = true }
         const val MINUTES_PER_DAY = 24 * 60
+        const val MAX_PER_REGION = 3
     }
 }

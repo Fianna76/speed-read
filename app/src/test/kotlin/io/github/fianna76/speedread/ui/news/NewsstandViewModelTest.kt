@@ -117,6 +117,17 @@ class NewsstandViewModelTest {
     }
 
     @Test
+    fun `the briefing follows its settings`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.awaitState { it.briefing.size == 3 }
+
+        preferences.setBriefingPerRegion(1)
+        assertEquals(listOf("d1", "b1"), viewModel.awaitState { it.briefing.size == 2 }.briefing.map { it.article.item.url.substringAfterLast('/') })
+        preferences.setBriefingRegion(NewsRegion.EUROPE, false)
+        assertEquals(listOf("b1"), viewModel.awaitState { it.briefing.size == 1 }.briefing.map { it.article.item.url.substringAfterLast('/') })
+    }
+
+    @Test
     fun `playing the briefing skips stories that can't be read and plays the rest back to back`() = runTest {
         val queue = NewsQueue()
         var notificationCleared = false

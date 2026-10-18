@@ -14,7 +14,8 @@ import java.io.File
  */
 class NewsAlertLog(private val file: File, private val clock: () -> Long = System::currentTimeMillis) {
 
-    data class Snapshot(val isStarted: Boolean, val alerted: List<AlertedStory>)
+    /** [announcedAt] holds when each alert actually posted (others were only recorded), newest first. */
+    data class Snapshot(val isStarted: Boolean, val alerted: List<AlertedStory>, val announcedAt: List<Long> = emptyList())
 
     /** Blocking; an unreadable log reads as not started. */
     fun read(): Snapshot = try {
@@ -22,18 +23,21 @@ class NewsAlertLog(private val file: File, private val clock: () -> Long = Syste
             Snapshot(false, emptyList())
         } else {
             val log = JSON.decodeFromString<StoredLog>(file.readText())
-            Snapshot(true, log.stories.map { AlertedStory(it.url, it.title) })
+            Snapshot(true, log.stories.map { AlertedStory(it.url, it.title) }, log.stories.filter { it.announced }.map { it.at })
         }
     } catch (e: Exception) {
         Log.w(TAG, "Discarding unreadable alert log", e)
         Snapshot(false, emptyList())
     }
 
-    /** Adds [stories] and starts the log; entries older than [KEEP_MILLIS] are dropped. Blocking. */
-    fun record(stories: List<AlertedStory>) {
+    /**
+     * Adds [stories] and starts the log; [announced] are the URLs an alert was posted for.
+     * Entries older than [KEEP_MILLIS] are dropped. Blocking.
+     */
+    fun record(stories: List<AlertedStory>, announced: Set<String> = emptySet()) {
         val now = clock()
         val old = runCatching { JSON.decodeFromString<StoredLog>(file.readText()).stories }.getOrDefault(emptyList())
-        val kept = (stories.map { StoredStory(it.url, it.title, now) } + old)
+        val kept = (stories.map { StoredStory(it.url, it.title, now, announced = it.url in announced) } + old)
             .filter { now - it.at < KEEP_MILLIS }
             .distinctBy { it.url }
             .take(MAX_ENTRIES)
@@ -54,7 +58,7 @@ class NewsAlertLog(private val file: File, private val clock: () -> Long = Syste
     private data class StoredLog(val stories: List<StoredStory>)
 
     @Serializable
-    private data class StoredStory(val url: String, val title: String, val at: Long)
+    private data class StoredStory(val url: String, val title: String, val at: Long, val announced: Boolean = false)
 
     private companion object {
         const val TAG = "NewsAlertLog"

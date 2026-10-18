@@ -31,6 +31,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -135,6 +136,12 @@ fun SettingsScreen(
             onBreakingAlertsChange = withNotifications(viewModel::setBreakingNewsAlerts),
             onMorningBriefingChange = withNotifications(viewModel::setMorningBriefing),
             onBriefingTimeChange = viewModel::setBriefingTime,
+            onBriefingPerRegionChange = viewModel::setBriefingPerRegion,
+            onBriefingRegionChange = viewModel::setBriefingRegion,
+            onBriefingWeekendsChange = viewModel::setBriefingWeekends,
+            onAlertRegionChange = viewModel::setAlertRegion,
+            onAlertQuietHoursChange = viewModel::setAlertQuietHours,
+            onAlertDailyLimitChange = viewModel::setAlertDailyLimit,
             onAddFeed = viewModel::addFeed,
             onRemoveFeed = viewModel::removeFeed,
             onDismissAddFeed = viewModel::resetAddFeed,
@@ -159,6 +166,12 @@ data class NewsSettingsActions(
     val onBreakingAlertsChange: (Boolean) -> Unit = {},
     val onMorningBriefingChange: (Boolean) -> Unit = {},
     val onBriefingTimeChange: (minuteOfDay: Int) -> Unit = {},
+    val onBriefingPerRegionChange: (Int) -> Unit = {},
+    val onBriefingRegionChange: (NewsRegion, Boolean) -> Unit = { _, _ -> },
+    val onBriefingWeekendsChange: (Boolean) -> Unit = {},
+    val onAlertRegionChange: (NewsRegion, Boolean) -> Unit = { _, _ -> },
+    val onAlertQuietHoursChange: (Boolean) -> Unit = {},
+    val onAlertDailyLimitChange: (Int) -> Unit = {},
     val onAddFeed: (input: String, region: NewsRegion) -> Unit = { _, _ -> },
     val onRemoveFeed: (sourceId: String) -> Unit = {},
     val onDismissAddFeed: () -> Unit = {},
@@ -378,6 +391,44 @@ fun SettingsContent(
                 checked = preferences.breakingNewsAlerts,
                 onCheckedChange = newsActions.onBreakingAlertsChange,
             )
+            if (preferences.breakingNewsAlerts) {
+                RegionChips(
+                    title = stringResource(R.string.settings_alert_regions),
+                    selected = preferences.alertRegions,
+                    onChange = newsActions.onAlertRegionChange,
+                )
+                SwitchSetting(
+                    title = stringResource(R.string.settings_alert_quiet),
+                    summary = stringResource(R.string.settings_alert_quiet_summary, formatTimeOfDay(UserPreferences.QUIET_START), formatTimeOfDay(UserPreferences.QUIET_END)),
+                    checked = preferences.alertQuietHours,
+                    onCheckedChange = newsActions.onAlertQuietHoursChange,
+                )
+                ChoiceSetting(
+                    title = stringResource(R.string.settings_alert_limit),
+                    options = UserPreferences.ALERT_LIMITS,
+                    selected = preferences.alertDailyLimit,
+                    label = { it.toString() },
+                    onSelect = newsActions.onAlertDailyLimitChange,
+                )
+            }
+            Text(
+                text = stringResource(R.string.settings_briefing_header),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp),
+            )
+            ChoiceSetting(
+                title = stringResource(R.string.settings_briefing_per_region),
+                options = (1..3).toList(),
+                selected = preferences.briefingPerRegion,
+                label = { it.toString() },
+                onSelect = newsActions.onBriefingPerRegionChange,
+            )
+            RegionChips(
+                title = stringResource(R.string.settings_briefing_regions),
+                selected = preferences.briefingRegions,
+                onChange = newsActions.onBriefingRegionChange,
+            )
             SwitchSetting(
                 title = stringResource(R.string.settings_news_briefing),
                 summary = stringResource(R.string.settings_news_briefing_summary),
@@ -386,6 +437,12 @@ fun SettingsContent(
             )
             if (preferences.morningBriefing) {
                 BriefingTimeSetting(preferences.briefingTime, newsActions.onBriefingTimeChange)
+                SwitchSetting(
+                    title = stringResource(R.string.settings_briefing_weekends),
+                    summary = stringResource(R.string.settings_briefing_weekends_summary),
+                    checked = preferences.briefingWeekends,
+                    onCheckedChange = newsActions.onBriefingWeekendsChange,
+                )
             }
             CustomFeeds(
                 preferences = preferences,
@@ -633,6 +690,25 @@ private fun AddFeedDialog(state: AddFeedState, onAdd: (String, NewsRegion) -> Un
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) } },
     )
+}
+
+/** Multi-select region chips; the last selected region can't be switched off. */
+@Composable
+private fun RegionChips(title: String, selected: Set<NewsRegion>, onChange: (NewsRegion, Boolean) -> Unit) {
+    Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(title, style = MaterialTheme.typography.bodyLarge)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            NewsRegion.entries.forEach { region ->
+                val on = region in selected
+                FilterChip(
+                    selected = on,
+                    onClick = { onChange(region, !on) },
+                    enabled = !on || selected.size > 1,
+                    label = { Text(stringResource(region.labelRes())) },
+                )
+            }
+        }
+    }
 }
 
 @Composable
