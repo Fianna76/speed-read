@@ -2,7 +2,10 @@ package io.github.fianna76.speedread.data
 
 import io.github.fianna76.speedread.data.db.BookDao
 import io.github.fianna76.speedread.data.db.BookEntity
+import io.github.fianna76.speedread.data.db.BookCollectionEntity
 import io.github.fianna76.speedread.data.db.BookmarkDao
+import io.github.fianna76.speedread.data.db.CollectionDao
+import io.github.fianna76.speedread.data.db.CollectionEntity
 import io.github.fianna76.speedread.data.db.BookmarkEntity
 import io.github.fianna76.speedread.data.db.ChapterEntity
 import io.github.fianna76.speedread.data.pdf.PdfBooks
@@ -14,6 +17,7 @@ import io.github.fianna76.speedread.rsvp.Tokenizer
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
@@ -46,6 +50,21 @@ interface BookRepository {
     suspend fun addBookmark(bookId: Long, position: ReadingPosition, snippet: String) {}
 
     suspend fun deleteBookmark(id: Long) {}
+
+    /** Collections in the order they were made, with their books. */
+    fun observeCollections(): Flow<List<BookCollection>> = flowOf(emptyList())
+
+    /** Makes a collection holding [bookIds]; returns its id. */
+    suspend fun createCollection(name: String, bookIds: Set<Long>): Long = 0
+
+    suspend fun addToCollection(collectionId: Long, bookIds: Set<Long>) {}
+
+    suspend fun removeFromCollection(collectionId: Long, bookIds: Set<Long>) {}
+
+    suspend fun renameCollection(collectionId: Long, name: String) {}
+
+    /** Deletes the collection only; its books stay in the library. */
+    suspend fun deleteCollection(collectionId: Long) {}
 }
 
 /** [BookRepository] backed by Room and the app-private [BookFileStore]. */
@@ -56,6 +75,7 @@ class OfflineBookRepository(
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val clock: () -> Long = System::currentTimeMillis,
     private val bookmarks: BookmarkDao? = null,
+    private val collections: CollectionDao? = null,
 ) : BookRepository {
 
     override fun observeBooks(): Flow<List<Book>> =
@@ -104,6 +124,37 @@ class OfflineBookRepository(
 
     override suspend fun deleteBookmark(id: Long) {
         bookmarks?.delete(id)
+    }
+
+    override fun observeCollections(): Flow<List<BookCollection>> {
+        val dao = collections ?: return flowOf(emptyList())
+        return combine(dao.observeCollections(), dao.observeMemberships()) { all, memberships ->
+            val books = memberships.groupBy({ it.collectionId }, { it.bookId })
+            all.map { BookCollection(it.id, it.name, books[it.id].orEmpty().toSet()) }
+        }
+    }
+
+    override suspend fun createCollection(name: String, bookIds: Set<Long>): Long {
+        val dao = collections ?: return 0
+        val id = dao.insertCollection(CollectionEntity(name = name.trim(), createdAt = clock()))
+        dao.insertMemberships(bookIds.map { BookCollectionEntity(id, it) })
+        return id
+    }
+
+    override suspend fun addToCollection(collectionId: Long, bookIds: Set<Long>) {
+        collections?.insertMemberships(bookIds.map { BookCollectionEntity(collectionId, it) })
+    }
+
+    override suspend fun removeFromCollection(collectionId: Long, bookIds: Set<Long>) {
+        collections?.deleteMemberships(collectionId, bookIds)
+    }
+
+    override suspend fun renameCollection(collectionId: Long, name: String) {
+        collections?.rename(collectionId, name.trim())
+    }
+
+    override suspend fun deleteCollection(collectionId: Long) {
+        collections?.deleteCollection(collectionId)
     }
 
     override suspend fun deleteBooks(ids: Set<Long>) {

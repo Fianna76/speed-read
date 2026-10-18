@@ -24,6 +24,9 @@ data class Book(
         get() = if (totalWords <= 0) 0f else (wordsRead.toFloat() / totalWords).coerceIn(0f, 1f)
 }
 
+/** A user-made group of books. */
+data class BookCollection(val id: Long, val name: String, val bookIds: Set<Long>)
+
 /** A saved place in a book. */
 data class Bookmark(val id: Long, val position: ReadingPosition, val snippet: String, val createdAt: Long)
 

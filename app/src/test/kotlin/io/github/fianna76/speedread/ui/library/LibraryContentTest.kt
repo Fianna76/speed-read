@@ -7,7 +7,9 @@ import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
+import io.github.fianna76.speedread.data.BookCollection
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.github.fianna76.speedread.R
@@ -41,6 +43,7 @@ class LibraryContentTest {
         onOpenBook: (Long) -> Unit = {},
         onToggleSelection: (Long) -> Unit = {},
         onDeleteSelected: () -> Unit = {},
+        organise: LibraryOrganiseActions = LibraryOrganiseActions(),
     ) = compose.setContent {
         SpeedReadTheme(dynamicColor = false) {
             LibraryContent(
@@ -54,8 +57,62 @@ class LibraryContentTest {
                 onClearSelection = {},
                 onDeleteSelected = onDeleteSelected,
                 onMessageShown = {},
+                organise = organise,
             )
         }
+    }
+
+    @Test
+    fun searchFiltersAndCollectionsAreOffered() {
+        val queries = mutableListOf<String>()
+        val filters = mutableListOf<LibraryFilter>()
+        val shownCollections = mutableListOf<Long?>()
+        val clubs = BookCollection(9, "Book club", setOf(1))
+        setContent(
+            LibraryUiState(isLoading = false, books = books, collections = listOf(clubs)),
+            organise = LibraryOrganiseActions(
+                onQueryChange = { queries += it },
+                onFilterChange = { filters += it },
+                onSelectCollection = { shownCollections += it },
+            ),
+        )
+
+        compose.onNodeWithText(context.getString(R.string.library_filter_reading)).performClick()
+        compose.onNodeWithText("Book club (1)").performClick()
+        compose.onNodeWithContentDescription(context.getString(R.string.library_search)).performClick()
+        compose.onNodeWithText(context.getString(R.string.library_search_hint)).performTextInput("austen")
+
+        assertEquals(listOf(LibraryFilter.READING), filters)
+        assertEquals(listOf<Long?>(9), shownCollections)
+        assertEquals(listOf("austen"), queries)
+    }
+
+    @Test
+    fun selectedBooksCanBeAddedToACollection() {
+        val added = mutableListOf<BookCollection>()
+        val clubs = BookCollection(9, "Book club", setOf(2))
+        setContent(
+            LibraryUiState(isLoading = false, books = books, selection = setOf(1), collections = listOf(clubs)),
+            organise = LibraryOrganiseActions(onAddSelectedTo = { added += it }),
+        )
+
+        compose.onNodeWithContentDescription(context.getString(R.string.library_add_to_collection)).performClick()
+        compose.onNodeWithText(context.getString(R.string.library_new_collection_ellipsis)).assertIsDisplayed()
+        compose.onNodeWithText("Book club").performClick()
+
+        assertEquals(listOf(clubs), added)
+    }
+
+    @Test
+    fun noMatchesOffersToShowEverything() {
+        val filters = mutableListOf<LibraryFilter>()
+        setContent(
+            LibraryUiState(isLoading = false, books = emptyList(), totalBooks = 2, filter = LibraryFilter.FINISHED),
+            organise = LibraryOrganiseActions(onFilterChange = { filters += it }),
+        )
+        compose.onNodeWithText(context.getString(R.string.library_no_matches)).assertIsDisplayed()
+        compose.onNodeWithText(context.getString(R.string.library_show_all)).performClick()
+        assertEquals(listOf(LibraryFilter.ALL), filters)
     }
 
     @Test

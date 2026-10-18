@@ -59,6 +59,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.fianna76.speedread.R
 import io.github.fianna76.speedread.data.Book
+import io.github.fianna76.speedread.data.BookCollection
 import io.github.fianna76.speedread.data.ReadingPosition
 import io.github.fianna76.speedread.data.importing.ImportError
 import io.github.fianna76.speedread.data.importing.ImportResult
@@ -94,8 +95,31 @@ fun LibraryScreen(
         onDeleteSelected = viewModel::deleteSelected,
         onMessageShown = viewModel::onMessageShown,
         bottomBar = bottomBar,
+        organise = LibraryOrganiseActions(
+            onQueryChange = viewModel::setQuery,
+            onFilterChange = viewModel::setFilter,
+            onSelectCollection = viewModel::selectCollection,
+            onCreateCollection = viewModel::createCollection,
+            onAddSelectedTo = viewModel::addSelectedTo,
+            onRemoveSelectedFromCollection = viewModel::removeSelectedFromCollection,
+            onRenameCollection = viewModel::renameCollection,
+            onDeleteCollection = viewModel::deleteCollection,
+        ),
     )
 }
+
+/** Search, filters and collections. */
+data class LibraryOrganiseActions(
+    val onQueryChange: (String) -> Unit = {},
+    val onFilterChange: (LibraryFilter) -> Unit = {},
+    val onSelectCollection: (Long?) -> Unit = {},
+    /** Creates a collection from the selected books (if any). */
+    val onCreateCollection: (String) -> Unit = {},
+    val onAddSelectedTo: (BookCollection) -> Unit = {},
+    val onRemoveSelectedFromCollection: () -> Unit = {},
+    val onRenameCollection: (BookCollection, String) -> Unit = { _, _ -> },
+    val onDeleteCollection: (BookCollection) -> Unit = {},
+)
 
 @Composable
 fun LibraryContent(
@@ -111,11 +135,20 @@ fun LibraryContent(
     onMessageShown: (Long) -> Unit,
     modifier: Modifier = Modifier,
     bottomBar: @Composable () -> Unit = {},
+    organise: LibraryOrganiseActions = LibraryOrganiseActions(),
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
+    var searching by rememberSaveable { mutableStateOf(state.query.isNotEmpty()) }
+    var dialog by rememberSaveable { mutableStateOf<CollectionDialog?>(null) }
+
+    fun closeSearch() {
+        searching = false
+        organise.onQueryChange("")
+    }
 
     BackHandler(enabled = state.isSelecting, onBack = onClearSelection)
+    BackHandler(enabled = !state.isSelecting && searching, onBack = ::closeSearch)
 
     state.messages.firstOrNull()?.let { message ->
         val text = message.text()
@@ -131,15 +164,22 @@ fun LibraryContent(
     Scaffold(
         modifier = modifier,
         topBar = {
-            if (state.isSelecting) {
-                SelectionTopBar(
+            when {
+                state.isSelecting -> SelectionTopBar(
                     count = state.selection.size,
                     onClear = onClearSelection,
                     onSelectAll = onSelectAll,
                     onDelete = { confirmDelete = true },
+                    onAddToCollection = { dialog = CollectionDialog.ADD_TO },
+                    onRemoveFromCollection = state.selectedCollection?.let { { organise.onRemoveSelectedFromCollection() } },
                 )
-            } else {
-                LibraryTopBar(sort = state.sort, onSortChange = onSortChange, onOpenSettings = onOpenSettings)
+                searching -> LibrarySearchBar(query = state.query, onQueryChange = organise.onQueryChange, onClose = ::closeSearch)
+                else -> LibraryTopBar(
+                    sort = state.sort,
+                    onSortChange = onSortChange,
+                    onOpenSettings = onOpenSettings,
+                    onSearch = { searching = true }.takeIf { state.totalBooks > 0 },
+                )
             }
         },
         floatingActionButton = {
@@ -156,11 +196,29 @@ fun LibraryContent(
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize()) {
             if (state.importsInProgress > 0) ImportProgressBanner(state.importsInProgress)
+            if (!state.isLoading && state.totalBooks > 0) {
+                LibraryFilters(
+                    state = state,
+                    organise = organise,
+                    onNewCollection = { dialog = CollectionDialog.NEW },
+                    onRenameCollection = { dialog = CollectionDialog.RENAME },
+                    onDeleteCollection = { dialog = CollectionDialog.DELETE },
+                )
+            }
             when {
                 state.isLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
-                state.books.isEmpty() -> EmptyLibrary(onImport = onImport, modifier = Modifier.fillMaxSize())
+                state.totalBooks == 0 -> EmptyLibrary(onImport = onImport, modifier = Modifier.fillMaxSize())
+                state.books.isEmpty() -> NoMatches(
+                    inCollection = state.selectedCollection != null && state.query.isBlank() && state.filter == LibraryFilter.ALL,
+                    onShowAll = {
+                        closeSearch()
+                        organise.onFilterChange(LibraryFilter.ALL)
+                        organise.onSelectCollection(null)
+                    },
+                    modifier = Modifier.fillMaxSize(),
+                )
                 else -> LazyVerticalGrid(
                     columns = GridCells.Adaptive(minSize = 104.dp),
                     contentPadding = PaddingValues(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 96.dp),
@@ -183,6 +241,8 @@ fun LibraryContent(
         }
     }
 
+    CollectionDialogs(dialog, state, organise, onShow = { dialog = it }, onDismiss = { dialog = null })
+
     if (confirmDelete) {
         val count = state.selection.size
         AlertDialog(
@@ -204,11 +264,21 @@ fun LibraryContent(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun LibraryTopBar(sort: LibrarySort, onSortChange: (LibrarySort) -> Unit, onOpenSettings: () -> Unit) {
+private fun LibraryTopBar(
+    sort: LibrarySort,
+    onSortChange: (LibrarySort) -> Unit,
+    onOpenSettings: () -> Unit,
+    onSearch: (() -> Unit)? = null,
+) {
     var sortMenuOpen by remember { mutableStateOf(false) }
     TopAppBar(
         title = { Text(stringResource(R.string.library_title)) },
         actions = {
+            if (onSearch != null) {
+                IconButton(onClick = onSearch) {
+                    Icon(painterResource(R.drawable.ic_search), contentDescription = stringResource(R.string.library_search))
+                }
+            }
             Box {
                 IconButton(onClick = { sortMenuOpen = true }) {
                     Icon(painterResource(R.drawable.ic_sort), contentDescription = stringResource(R.string.library_sort))
@@ -235,7 +305,14 @@ private fun LibraryTopBar(sort: LibrarySort, onSortChange: (LibrarySort) -> Unit
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SelectionTopBar(count: Int, onClear: () -> Unit, onSelectAll: () -> Unit, onDelete: () -> Unit) {
+private fun SelectionTopBar(
+    count: Int,
+    onClear: () -> Unit,
+    onSelectAll: () -> Unit,
+    onDelete: () -> Unit,
+    onAddToCollection: () -> Unit = {},
+    onRemoveFromCollection: (() -> Unit)? = null,
+) {
     TopAppBar(
         navigationIcon = {
             IconButton(onClick = onClear) {
@@ -246,6 +323,14 @@ private fun SelectionTopBar(count: Int, onClear: () -> Unit, onSelectAll: () -> 
         actions = {
             IconButton(onClick = onSelectAll) {
                 Icon(painterResource(R.drawable.ic_select_all), contentDescription = stringResource(R.string.library_select_all))
+            }
+            IconButton(onClick = onAddToCollection) {
+                Icon(painterResource(R.drawable.ic_playlist_add), contentDescription = stringResource(R.string.library_add_to_collection))
+            }
+            if (onRemoveFromCollection != null) {
+                IconButton(onClick = onRemoveFromCollection) {
+                    Icon(painterResource(R.drawable.ic_remove), contentDescription = stringResource(R.string.library_remove_from_collection))
+                }
             }
             IconButton(onClick = onDelete) {
                 Icon(painterResource(R.drawable.ic_delete), contentDescription = stringResource(R.string.action_delete))
@@ -316,6 +401,11 @@ private fun LibrarySort.labelRes(): Int = when (this) {
 @Composable
 private fun LibraryMessage.text(): String = when (this) {
     is LibraryMessage.Deleted -> pluralStringResource(R.plurals.library_deleted, count, count)
+    is LibraryMessage.Collected -> if (removed) {
+        pluralStringResource(R.plurals.library_removed_from_collection, count, count, name)
+    } else {
+        pluralStringResource(R.plurals.library_added_to_collection, count, count, name)
+    }
     is LibraryMessage.Import -> when (val result = result) {
         is ImportResult.Imported -> stringResource(R.string.import_success, result.title)
         is ImportResult.AlreadyInLibrary -> stringResource(R.string.import_duplicate, result.title)
@@ -339,7 +429,7 @@ private fun LibraryMessage.bookToOpen(): Long? = when (val message = this) {
         is ImportResult.AlreadyInLibrary -> result.bookId
         is ImportResult.Failed -> null
     }
-    is LibraryMessage.Deleted -> null
+    is LibraryMessage.Deleted, is LibraryMessage.Collected -> null
 }
 
 @Preview(showBackground = true, widthDp = 400, heightDp = 720)

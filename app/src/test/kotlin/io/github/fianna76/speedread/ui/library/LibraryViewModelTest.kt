@@ -58,6 +58,68 @@ class LibraryViewModelTest {
     private suspend fun LibraryViewModel.awaitState(predicate: (LibraryUiState) -> Boolean) = uiState.first(predicate)
 
     @Test
+    fun `search matches titles and authors, ignoring case and accents`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.awaitState { !it.isLoading }
+
+        viewModel.setQuery("ECLAIR")
+        assertEquals(listOf(3L), viewModel.awaitState { it.query == "ECLAIR" }.books.map { it.id })
+        viewModel.setQuery("zed")
+        val state = viewModel.awaitState { it.query == "zed" }
+        assertEquals(listOf(1L), state.books.map { it.id })
+        assertEquals(3, state.totalBooks)
+        assertTrue(state.isFiltered)
+    }
+
+    @Test
+    fun `reading filters split unread, in progress and finished books`() = runTest {
+        val viewModel = createViewModel()
+        repository.books.value = listOf(
+            testBook(1, totalWords = 100, wordsRead = 0),
+            testBook(2, totalWords = 100, wordsRead = 40),
+            testBook(3, totalWords = 100, wordsRead = 100),
+        )
+        viewModel.awaitState { it.books.size == 3 }
+
+        viewModel.setFilter(LibraryFilter.READING)
+        assertEquals(listOf(2L), viewModel.awaitState { it.filter == LibraryFilter.READING }.books.map { it.id })
+        viewModel.setFilter(LibraryFilter.NOT_STARTED)
+        assertEquals(listOf(1L), viewModel.awaitState { it.filter == LibraryFilter.NOT_STARTED }.books.map { it.id })
+        viewModel.setFilter(LibraryFilter.FINISHED)
+        assertEquals(listOf(3L), viewModel.awaitState { it.filter == LibraryFilter.FINISHED }.books.map { it.id })
+    }
+
+    @Test
+    fun `selected books go into collections, which can be shown, trimmed and deleted`() = runTest {
+        val viewModel = createViewModel()
+        viewModel.awaitState { !it.isLoading }
+        viewModel.toggleSelection(1)
+        viewModel.toggleSelection(3)
+
+        viewModel.createCollection("  Book club ")
+        val shown = viewModel.awaitState { it.selectedCollection != null }
+        assertEquals("Book club", shown.selectedCollection!!.name)
+        assertEquals(setOf(1L, 3L), shown.books.map { it.id }.toSet())
+        assertTrue(shown.selection.isEmpty())
+        assertTrue(shown.messages.any { it is LibraryMessage.Collected && it.count == 2 })
+
+        viewModel.toggleSelection(3)
+        viewModel.removeSelectedFromCollection()
+        assertEquals(listOf(1L), viewModel.awaitState { it.books.size == 1 }.books.map { it.id })
+
+        viewModel.selectCollection(null)
+        viewModel.toggleSelection(2)
+        viewModel.addSelectedTo(viewModel.uiState.value.collections.single())
+        assertEquals(setOf(1L, 2L), viewModel.awaitState { s -> s.collections.single().bookIds.size == 2 }.collections.single().bookIds)
+
+        viewModel.selectCollection(viewModel.uiState.value.collections.single().id)
+        viewModel.deleteCollection(viewModel.uiState.value.collections.single())
+        val after = viewModel.awaitState { it.collections.isEmpty() }
+        assertEquals(null, after.selectedCollection)
+        assertEquals(3, after.books.size) // The books stay.
+    }
+
+    @Test
     fun `recent sort shows recently read books first, then the newest additions`() = runTest {
         val viewModel = createViewModel()
         val state = viewModel.awaitState { !it.isLoading }

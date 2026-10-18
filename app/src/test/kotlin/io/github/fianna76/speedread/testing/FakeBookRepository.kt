@@ -1,6 +1,7 @@
 package io.github.fianna76.speedread.testing
 
 import io.github.fianna76.speedread.data.Book
+import io.github.fianna76.speedread.data.BookCollection
 import io.github.fianna76.speedread.data.BookRepository
 import io.github.fianna76.speedread.data.Bookmark
 import io.github.fianna76.speedread.data.Chapter
@@ -61,6 +62,32 @@ class FakeBookRepository(
 
     override suspend fun deleteBookmark(id: Long) {
         bookmarks.update { list -> list.filterNot { it.id == id } }
+    }
+
+    val collections = MutableStateFlow<List<BookCollection>>(emptyList())
+    private var nextCollectionId = 1L
+
+    override fun observeCollections(): Flow<List<BookCollection>> = collections
+
+    override suspend fun createCollection(name: String, bookIds: Set<Long>): Long {
+        val id = nextCollectionId++
+        collections.update { it + BookCollection(id, name.trim(), bookIds) }
+        return id
+    }
+
+    override suspend fun addToCollection(collectionId: Long, bookIds: Set<Long>) = updateCollection(collectionId) { it.copy(bookIds = it.bookIds + bookIds) }
+
+    override suspend fun removeFromCollection(collectionId: Long, bookIds: Set<Long>) =
+        updateCollection(collectionId) { it.copy(bookIds = it.bookIds - bookIds) }
+
+    override suspend fun renameCollection(collectionId: Long, name: String) = updateCollection(collectionId) { it.copy(name = name.trim()) }
+
+    override suspend fun deleteCollection(collectionId: Long) {
+        collections.update { list -> list.filterNot { it.id == collectionId } }
+    }
+
+    private fun updateCollection(id: Long, change: (BookCollection) -> BookCollection) {
+        collections.update { list -> list.map { if (it.id == id) change(it) else it } }
     }
 
     override suspend fun deleteBooks(ids: Set<Long>) {

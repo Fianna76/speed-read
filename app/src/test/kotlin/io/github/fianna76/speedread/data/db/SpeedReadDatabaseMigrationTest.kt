@@ -48,9 +48,13 @@ class SpeedReadDatabaseMigrationTest {
             assertTrue(database.newsHistoryDao().observeAll().first().isEmpty())
             database.bookmarkDao().insert(BookmarkEntity(bookId = 1, chapterIndex = 0, wordIndex = 42, snippet = "here", createdAt = 1))
             assertEquals(listOf(42), database.bookmarkDao().observe(1).first().map { it.wordIndex })
-            // Bookmarks go with their book.
+            val collection = database.collectionDao().insertCollection(CollectionEntity(name = "Old", createdAt = 1))
+            database.collectionDao().insertMemberships(listOf(BookCollectionEntity(collection, 1)))
+            assertEquals(1, database.collectionDao().observeMemberships().first().size)
+            // Bookmarks and collection memberships go with their book.
             database.bookDao().deleteBooks(listOf(1L))
             assertTrue(database.bookmarkDao().observe(1).first().isEmpty())
+            assertTrue(database.collectionDao().observeMemberships().first().isEmpty())
         } finally {
             database.close()
         }

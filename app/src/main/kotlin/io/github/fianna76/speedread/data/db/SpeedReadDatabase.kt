@@ -11,8 +11,8 @@ import androidx.room.RoomDatabase
  * tested migrations (`@AutoMigration` or `Migration`) instead of destructive upgrades.
  */
 @Database(
-    entities = [BookEntity::class, ChapterEntity::class, NewsHistoryEntity::class, BookmarkEntity::class],
-    version = 5,
+    entities = [BookEntity::class, ChapterEntity::class, NewsHistoryEntity::class, BookmarkEntity::class, CollectionEntity::class, BookCollectionEntity::class],
+    version = 6,
     exportSchema = true,
     autoMigrations = [
         // 1 → 2: books.format column (PDF support); existing rows default to EPUB.
@@ -23,6 +23,8 @@ import androidx.room.RoomDatabase
         AutoMigration(from = 3, to = 4),
         // 4 → 5: bookmarks table.
         AutoMigration(from = 4, to = 5),
+        // 5 → 6: collections and book_collections tables.
+        AutoMigration(from = 5, to = 6),
     ],
 )
 abstract class SpeedReadDatabase : RoomDatabase() {
@@ -32,6 +34,8 @@ abstract class SpeedReadDatabase : RoomDatabase() {
     abstract fun newsHistoryDao(): NewsHistoryDao
 
     abstract fun bookmarkDao(): BookmarkDao
+
+    abstract fun collectionDao(): CollectionDao
 
     companion object {
         private const val NAME = "speedread.db"

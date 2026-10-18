@@ -31,6 +31,46 @@
 
     <!-- Library -->
     <string name="library_title">Library</string>
+    <string name="action_save">Save</string>
+    <string name="library_search">Search library</string>
+    <string name="library_search_hint">Search titles and authors</string>
+    <string name="library_close_search">Close search</string>
+    <string name="library_clear_search">Clear search</string>
+    <string name="library_filter_all">All</string>
+    <string name="library_filter_reading">Reading</string>
+    <string name="library_filter_not_started">Not started</string>
+    <string name="library_filter_finished">Finished</string>
+    <string name="library_no_matches">No books match</string>
+    <string name="library_show_all">Show all books</string>
+    <string name="library_new_collection">New collection</string>
+    <string name="library_new_collection_ellipsis">New collection…</string>
+    <string name="library_collection_name">Name</string>
+    <string name="library_create">Create</string>
+    <string name="library_add_to_collection">Add to collection</string>
+    <string name="library_remove_from_collection">Remove from collection</string>
+    <string name="library_collection_options">Collection options</string>
+    <string name="library_rename_collection">Rename collection</string>
+    <string name="library_delete_collection">Delete collection</string>
+    <string name="library_delete_collection_title">Delete “%1$s”?</string>
+    <string name="library_delete_collection_body">The books stay in your library.</string>
+    <string name="library_collection_empty">This collection is empty</string>
+    <string name="library_collection_empty_body">Long-press books in the library to select them, then add them with the collection button.</string>
+    <plurals name="library_collection_header">
+        <item quantity="one">%1$s · %2$d book</item>
+        <item quantity="other">%1$s · %2$d books</item>
+    </plurals>
+    <plurals name="library_books">
+        <item quantity="one">%1$d book</item>
+        <item quantity="other">%1$d books</item>
+    </plurals>
+    <plurals name="library_added_to_collection">
+        <item quantity="one">Added %1$d book to %2$s</item>
+        <item quantity="other">Added %1$d books to %2$s</item>
+    </plurals>
+    <plurals name="library_removed_from_collection">
+        <item quantity="one">Removed %1$d book from %2$s</item>
+        <item quantity="other">Removed %1$d books from %2$s</item>
+    </plurals>
     <string name="library_import">Import book</string>
     <plurals name="library_importing">
         <item quantity="one">Importing %d book…</item>
