@@ -26,6 +26,7 @@ import io.github.fianna76.speedread.rsvp.Tokenizer
 import io.github.fianna76.speedread.ui.theme.SpeedReadTheme
 import io.github.fianna76.speedread.testing.PHONE
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -172,6 +173,19 @@ class ReaderContentTest {
         )
         compose.onNodeWithText(context.getString(R.string.reader_pasted_text)).assertIsDisplayed()
         compose.onNodeWithContentDescription(context.getString(R.string.news_open_online)).assertDoesNotExist()
+    }
+
+    @Test
+    fun pageViewShowsTheTextAndATappedWordBecomesThePosition() {
+        var seekedTo: Int? = null
+        setContent(ui, PlayerState(text = text, index = 1), ReaderActions(onSeekToWord = { seekedTo = it }))
+
+        compose.onNodeWithContentDescription(context.getString(R.string.reader_page_view)).performClick()
+        compose.onNodeWithText("Hello brave new world.").assertIsDisplayed().performClick()
+
+        assertTrue(seekedTo in 0 until text.size)
+        // Back in RSVP view.
+        compose.onNodeWithContentDescription(context.getString(R.string.reader_page_view)).assertIsDisplayed()
     }
 
     @Test

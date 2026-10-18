@@ -30,6 +30,10 @@ class TokenizedText internal constructor(
     /** First word of the paragraph containing [index]. */
     fun paragraphStartOf(index: Int): Int = floor(paragraphStarts, index)
 
+    /** Word ranges of the paragraphs, in order (for showing the text as pages). */
+    fun paragraphRanges(): List<IntRange> =
+        paragraphStarts.indices.map { i -> paragraphStarts[i] until (paragraphStarts.getOrNull(i + 1) ?: size) }
+
     /** Index just past the last word of the paragraph containing [index]. */
     fun paragraphEndOf(index: Int): Int = higher(paragraphStarts, index) ?: size
 

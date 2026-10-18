@@ -105,4 +105,10 @@ class TokenizerTest {
         assertEquals(0, text.sentenceStartOf(0))
         assertNull(text.nextSentenceStart(0))
     }
+
+    @Test
+    fun `paragraph ranges cover every word in order`() {
+        val text = Tokenizer.tokenize(listOf("One two.", "Three four five.", "Six."))
+        assertEquals(listOf(0..1, 2..4, 5..5), text.paragraphRanges())
+    }
 }

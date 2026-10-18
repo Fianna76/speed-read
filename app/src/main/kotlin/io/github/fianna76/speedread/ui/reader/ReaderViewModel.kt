@@ -227,6 +227,13 @@ class ReaderViewModel(
         player.seekTo(((size - 1) * fraction.coerceIn(0f, 1f)).roundToInt())
     }
 
+    /** Moves to word [index] of the current chapter, paused (e.g. a word tapped in page view). */
+    fun seekToWord(index: Int) {
+        if (!canControlPlayback()) return
+        player.pause()
+        player.seekTo(index)
+    }
+
     /** Bookmarks the current word, or removes the bookmark already there. */
     fun toggleBookmark() {
         if (!canControlPlayback()) return

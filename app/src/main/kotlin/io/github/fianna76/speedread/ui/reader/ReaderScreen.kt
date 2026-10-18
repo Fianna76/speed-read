@@ -114,6 +114,7 @@ fun ReaderScreen(
             onNextChapter = viewModel::nextChapter,
             onSelectChapter = viewModel::selectChapter,
             onScrub = viewModel::scrubTo,
+            onSeekToWord = viewModel::seekToWord,
             onToggleBookmark = viewModel::toggleBookmark,
             onGoToBookmark = viewModel::goToBookmark,
             onDeleteBookmark = viewModel::deleteBookmark,
@@ -150,6 +151,7 @@ class ReaderActions(
     val onReadNext: () -> Unit = {},
     val onCancelAutoContinue: () -> Unit = {},
     val onScrub: (Float) -> Unit = {},
+    val onSeekToWord: (Int) -> Unit = {},
     val onToggleBookmark: () -> Unit = {},
     val onGoToBookmark: (Bookmark) -> Unit = {},
     val onDeleteBookmark: (Bookmark) -> Unit = {},
@@ -176,6 +178,9 @@ private fun ReaderActions.handleKey(event: KeyEvent, ui: ReaderUiState, player: 
 @Composable
 fun ReaderContent(ui: ReaderUiState, player: PlayerState, actions: ReaderActions, modifier: Modifier = Modifier) {
     var showChapters by rememberSaveable { mutableStateOf(false) }
+    var pageView by rememberSaveable { mutableStateOf(false) }
+    // Playing (from the controls or a key) always shows the RSVP view.
+    LaunchedEffect(player.isPlaying) { if (player.isPlaying) pageView = false }
     val progress = ReaderProgress.of(ui, player)
     val canControl = !ui.isLoading && ui.error == null && !ui.isFinished
     val focus = remember { FocusRequester() }
@@ -211,6 +216,19 @@ fun ReaderContent(ui: ReaderUiState, player: PlayerState, actions: ReaderActions
                     }
                 },
                 actions = {
+                    // Page view: the chapter as ordinary text.
+                    IconButton(
+                        onClick = {
+                            if (!pageView && player.isPlaying) actions.onPlayPause()
+                            pageView = !pageView
+                        },
+                        enabled = canControl,
+                    ) {
+                        Icon(
+                            painterResource(if (pageView) R.drawable.ic_bolt else R.drawable.ic_menu_book),
+                            stringResource(if (pageView) R.string.reader_rsvp_view else R.string.reader_page_view),
+                        )
+                    }
                     val sourceUrl = ui.sourceUrl
                     if (ArticleRepository.isPastedText(sourceUrl)) {
                         // Pasted text has no page to open and is a single section.
@@ -270,6 +288,14 @@ fun ReaderContent(ui: ReaderUiState, player: PlayerState, actions: ReaderActions
                         onPrimary = actions.onBack,
                         secondaryLabel = stringResource(R.string.reader_read_again),
                         onSecondary = actions.onRestart,
+                    )
+                    pageView && canControl -> PageView(
+                        text = player.text,
+                        currentIndex = player.index,
+                        onWordTapped = { index ->
+                            actions.onSeekToWord(index)
+                            pageView = false
+                        },
                     )
                     else -> {
                         ReadingSurface(ui, player)
