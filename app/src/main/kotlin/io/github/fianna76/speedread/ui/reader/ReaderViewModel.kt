@@ -17,6 +17,7 @@ import io.github.fianna76.speedread.data.settings.ReaderDisplay
 import io.github.fianna76.speedread.data.news.ArticleResult
 import io.github.fianna76.speedread.data.news.UpNext
 import io.github.fianna76.speedread.data.settings.UserPreferences
+import io.github.fianna76.speedread.data.stats.ReadingStats
 import io.github.fianna76.speedread.data.settings.UserPreferencesRepository
 import io.github.fianna76.speedread.news.FeedItem
 import io.github.fianna76.speedread.news.NewsSources
@@ -99,11 +100,13 @@ class ReaderViewModel(
     private val preferences: UserPreferencesRepository,
     private val externalScope: CoroutineScope,
     // The main thread's scheduling clock, so word deadlines line up with Dispatchers.Main delays.
-    clock: () -> Long = SystemClock::uptimeMillis,
+    private val clock: () -> Long = SystemClock::uptimeMillis,
     /** Offers the next news story after an article; `null` disables it. */
     private val upNext: UpNext? = null,
     /** Start playing as soon as the text is loaded (continuing from the previous story). */
     private val autoPlay: Boolean = false,
+    /** Records reading time for the statistics; `null` records nothing. */
+    private val stats: ReadingStats? = null,
 ) : ViewModel() {
 
     private val player = RsvpPlayer(viewModelScope, clock, onEndReached = ::onEndOfChapter)
@@ -137,12 +140,15 @@ class ReaderViewModel(
             player.state.map { it.isPlaying }.distinctUntilChanged().collectLatest { playing ->
                 if (!playing) {
                     savePosition()
+                    flushSession(restart = false)
                     return@collectLatest
                 }
                 _uiState.update { it.copy(showTapHint = false) }
+                startSession()
                 while (true) {
                     delay(PERIODIC_SAVE_MS)
                     savePosition()
+                    flushSession(restart = true)
                 }
             }
         }
@@ -437,6 +443,27 @@ class ReaderViewModel(
         return !ui.isLoading && ui.error == null && !ui.isFinished && loadedChapterIndex != NO_CHAPTER
     }
 
+    // --- Statistics --------------------------------------------------------------------------
+
+    /** Where and when the current stretch of playing began: chapter, word, clock time. */
+    private var session: Triple<Int, Int, Long>? = null
+
+    private fun startSession() {
+        session = Triple(loadedChapterIndex, player.state.value.index, clock())
+    }
+
+    /** Records the words read since the session started (within one chapter). */
+    private fun flushSession(restart: Boolean) {
+        val (chapter, startIndex, startTime) = session ?: return
+        val now = clock()
+        val index = player.state.value.index
+        if (chapter == loadedChapterIndex && index > startIndex) {
+            val words = index - startIndex
+            stats?.let { recorder -> externalScope.launch { recorder.record(words, now - startTime) } }
+        }
+        session = if (restart) Triple(loadedChapterIndex, index, now) else null
+    }
+
     // --- Persistence -------------------------------------------------------------------------
 
     private fun savePosition() {
@@ -474,6 +501,7 @@ class ReaderViewModel(
                     container.applicationScope,
                     upNext = container.newsUpNext,
                     autoPlay = autoPlay,
+                    stats = container.readingStats,
                 )
             }
         }

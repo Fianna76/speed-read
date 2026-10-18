@@ -31,6 +31,28 @@
 
     <!-- Library -->
     <string name="library_title">Library</string>
+    <string name="stats_title">Reading statistics</string>
+    <string name="stats_empty">Speed-read a book or an article and your reading statistics will appear here.</string>
+    <plurals name="stats_streak">
+        <item quantity="one">%1$d-day streak</item>
+        <item quantity="other">%1$d-day streak</item>
+    </plurals>
+    <string name="stats_streak_today">You’ve read today. Nice work.</string>
+    <string name="stats_streak_keep">Read a little today to keep your streak going.</string>
+    <string name="stats_today">Today</string>
+    <string name="stats_this_week">Last 7 days</string>
+    <string name="stats_words_label">words</string>
+    <string name="stats_average_speed">Average speed</string>
+    <string name="stats_wpm_label">words per minute</string>
+    <string name="stats_time_saved">Time saved</string>
+    <string name="stats_time_saved_detail">vs. reading at %1$d wpm</string>
+    <string name="stats_total">All time</string>
+    <string name="stats_longest_streak">Longest streak</string>
+    <plurals name="stats_days_label">
+        <item quantity="one">day</item>
+        <item quantity="other">days</item>
+    </plurals>
+    <string name="stats_week_chart">Words read, last 7 days</string>
     <string name="action_save">Save</string>
     <string name="library_search">Search library</string>
     <string name="library_search_hint">Search titles and authors</string>

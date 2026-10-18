@@ -18,6 +18,7 @@ import io.github.fianna76.speedread.data.news.NewsQueue
 import io.github.fianna76.speedread.data.news.NewsUpNext
 import io.github.fianna76.speedread.data.news.SharedLinkReader
 import io.github.fianna76.speedread.data.backup.BackupDocuments
+import io.github.fianna76.speedread.data.stats.ReadingStats
 import io.github.fianna76.speedread.data.backup.LibraryBackup
 import io.github.fianna76.speedread.data.news.CustomFeedResolver
 import io.github.fianna76.speedread.news.NewsRegion
@@ -154,6 +155,8 @@ class AppContainer(context: Context) {
             .getWorkInfosForUniqueWork(NewsBackgroundScheduler.BRIEFING_WORK_NAME).get()
             .any { !it.state.isFinished }
     }.getOrDefault(false)
+
+    val readingStats by lazy { ReadingStats(database.readingDayDao()) }
 
     val backupDocuments by lazy {
         val backup = LibraryBackup(database.bookDao(), database.bookmarkDao(), database.collectionDao(), fileStore, preferencesRepository)

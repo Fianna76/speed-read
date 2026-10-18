@@ -20,6 +20,7 @@ import io.github.fianna76.speedread.ui.news.BriefingRequest
 import io.github.fianna76.speedread.ui.news.NewsstandScreen
 import io.github.fianna76.speedread.ui.reader.ReaderScreen
 import io.github.fianna76.speedread.ui.settings.SettingsScreen
+import io.github.fianna76.speedread.ui.stats.StatsScreen
 import kotlinx.serialization.Serializable
 
 /** Library of imported books; the start destination. */
@@ -36,6 +37,10 @@ data class ReaderRoute(val bookId: Long, val autoPlay: Boolean = false) : NavKey
 
 @Serializable
 data object SettingsRoute : NavKey
+
+/** Reading statistics. */
+@Serializable
+data object StatsRoute : NavKey
 
 /** A destination requested from outside the navigation (widget taps, notifications). */
 sealed interface NavigationRequest {
@@ -94,6 +99,7 @@ fun SpeedReadNavigation(
                 LibraryScreen(
                     onOpenBook = { bookId -> backStack.navigate(ReaderRoute(bookId)) },
                     onOpenSettings = { backStack.navigate(SettingsRoute) },
+                    onOpenStats = { backStack.navigate(StatsRoute) },
                     bottomBar = { TopLevelNavigationBar(TopLevelDestination.LIBRARY, backStack::navigateTopLevel) },
                 )
             }
@@ -124,6 +130,9 @@ fun SpeedReadNavigation(
                         backStack.add(ReaderRoute(next, autoPlay = true))
                     },
                 )
+            }
+            entry<StatsRoute> {
+                StatsScreen(onBack = { backStack.removeLastOrNull() })
             }
             entry<SettingsRoute> {
                 SettingsScreen(onBack = { backStack.removeLastOrNull() })

@@ -146,6 +146,32 @@ class ReaderViewModelTest {
         }
 
     @Test
+    fun `reading time is recorded for the statistics`() = runTest(mainDispatcherRule.dispatcher) {
+        val database = androidx.room.Room.inMemoryDatabaseBuilder(
+            androidx.test.core.app.ApplicationProvider.getApplicationContext(),
+            io.github.fianna76.speedread.data.db.SpeedReadDatabase::class.java,
+        ).allowMainThreadQueries().build()
+        try {
+            createViewModel()
+            val stats = io.github.fianna76.speedread.data.stats.ReadingStats(database.readingDayDao())
+            val viewModel = ReaderViewModel(
+                BOOK_ID, repository, preferences, backgroundScope, clock = { testScheduler.currentTime }, stats = stats,
+            ).also { awaitReady(it) }
+
+            viewModel.togglePlayPause()
+            advance(250)
+            viewModel.togglePlayPause()
+            runCurrent()
+
+            val summary = stats.observe().first { it.totalWords > 0 }
+            assertEquals(2, summary.totalWords) // Two words passed in 250 ms at 600 wpm.
+            assertEquals(250, summary.totalMillis)
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
     fun `scrubbing pauses and moves through the chapter`() = runTest(mainDispatcherRule.dispatcher) {
         val viewModel = createViewModel()
         viewModel.togglePlayPause()

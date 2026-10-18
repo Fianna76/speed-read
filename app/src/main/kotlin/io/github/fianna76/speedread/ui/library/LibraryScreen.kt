@@ -77,6 +77,7 @@ fun LibraryScreen(
     onOpenBook: (Long) -> Unit,
     onOpenSettings: () -> Unit,
     bottomBar: @Composable () -> Unit = {},
+    onOpenStats: () -> Unit = {},
     viewModel: LibraryViewModel = viewModel(factory = LibraryViewModel.Factory),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -95,6 +96,7 @@ fun LibraryScreen(
         onDeleteSelected = viewModel::deleteSelected,
         onMessageShown = viewModel::onMessageShown,
         bottomBar = bottomBar,
+        onOpenStats = onOpenStats,
         organise = LibraryOrganiseActions(
             onQueryChange = viewModel::setQuery,
             onFilterChange = viewModel::setFilter,
@@ -136,6 +138,7 @@ fun LibraryContent(
     modifier: Modifier = Modifier,
     bottomBar: @Composable () -> Unit = {},
     organise: LibraryOrganiseActions = LibraryOrganiseActions(),
+    onOpenStats: () -> Unit = {},
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     var confirmDelete by rememberSaveable { mutableStateOf(false) }
@@ -179,6 +182,7 @@ fun LibraryContent(
                     onSortChange = onSortChange,
                     onOpenSettings = onOpenSettings,
                     onSearch = { searching = true }.takeIf { state.totalBooks > 0 },
+                    onOpenStats = onOpenStats,
                 )
             }
         },
@@ -269,6 +273,7 @@ private fun LibraryTopBar(
     onSortChange: (LibrarySort) -> Unit,
     onOpenSettings: () -> Unit,
     onSearch: (() -> Unit)? = null,
+    onOpenStats: () -> Unit = {},
 ) {
     var sortMenuOpen by remember { mutableStateOf(false) }
     TopAppBar(
@@ -295,6 +300,9 @@ private fun LibraryTopBar(
                         )
                     }
                 }
+            }
+            IconButton(onClick = onOpenStats) {
+                Icon(painterResource(R.drawable.ic_bar_chart), contentDescription = stringResource(R.string.stats_title))
             }
             IconButton(onClick = onOpenSettings) {
                 Icon(painterResource(R.drawable.ic_settings), contentDescription = stringResource(R.string.action_settings))

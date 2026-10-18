@@ -214,6 +214,14 @@ class ScreenRenderTest {
     }
 
     @Test
+    fun stats() = capture("stats") {
+        val today = java.time.LocalDate.of(2026, 10, 18)
+        val days = listOf(6 to 1_800L, 5 to 0L, 4 to 2_400L, 3 to 3_100L, 2 to 900L, 1 to 4_200L, 0 to 2_700L, 12 to 9_000L)
+            .map { (ago, words) -> io.github.fianna76.speedread.data.stats.ReadingDay(today.minusDays(ago.toLong()), words, words * 60_000 / 340) }
+        io.github.fianna76.speedread.ui.stats.StatsContent(io.github.fianna76.speedread.data.stats.ReadingSummary.of(days, today), onBack = {})
+    }
+
+    @Test
     fun settings() = capture("settings") {
         SettingsContent(
             preferences = UserPreferences(),
