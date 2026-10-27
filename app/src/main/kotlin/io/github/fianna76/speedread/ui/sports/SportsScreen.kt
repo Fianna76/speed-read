@@ -29,6 +29,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -201,6 +202,10 @@ fun SportsContent(
 ) {
     var tab by rememberSaveable { mutableIntStateOf(initialTab) }
     var choosing by rememberSaveable { mutableStateOf(false) }
+    // First visit: the picker fills the screen until the user is done choosing, so following
+    // the first team doesn't whisk it away mid-choice.
+    var settingUp by rememberSaveable { mutableStateOf(state.followsNothing) }
+    if (state.followsNothing) settingUp = true
     val snackbar = remember { SnackbarHostState() }
 
     state.message?.let { message ->
@@ -220,7 +225,7 @@ fun SportsContent(
                     IconButton(onClick = actions.onBack) { Icon(painterResource(R.drawable.ic_arrow_back), stringResource(R.string.action_back)) }
                 },
                 actions = {
-                    if (!state.followsNothing) {
+                    if (!settingUp) {
                         IconButton(onClick = actions.onRefresh) { Icon(painterResource(R.drawable.ic_refresh), stringResource(R.string.news_refresh)) }
                         IconButton(onClick = { choosing = true }) { Icon(painterResource(R.drawable.ic_tune), stringResource(R.string.sports_following)) }
                     }
@@ -230,8 +235,8 @@ fun SportsContent(
         snackbarHost = { SnackbarHost(snackbar) },
     ) { padding ->
         Column(Modifier.padding(padding).fillMaxSize()) {
-            if (state.followsNothing) {
-                Column(Modifier.verticalScroll(rememberScrollState())) {
+            if (settingUp) {
+                Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
                     Text(
                         text = stringResource(R.string.sports_intro),
                         style = MaterialTheme.typography.bodyLarge,
@@ -239,6 +244,11 @@ fun SportsContent(
                     )
                     FollowPicker(state, actions)
                 }
+                Button(
+                    onClick = { settingUp = false },
+                    enabled = !state.followsNothing,
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                ) { Text(stringResource(R.string.sports_done)) }
                 return@Column
             }
             PrimaryTabRow(selectedTabIndex = tab) {

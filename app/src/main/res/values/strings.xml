@@ -408,6 +408,7 @@
     <string name="sports_title">Sports</string>
     <string name="sports_following">Following</string>
     <string name="sports_intro">Follow NBA teams and motorsport series to get their news and an events calendar in your local time.</string>
+    <string name="sports_done">Done</string>
     <string name="sports_latest">Latest</string>
     <string name="sports_calendar">Calendar</string>
     <string name="sports_loading">Loading…</string>

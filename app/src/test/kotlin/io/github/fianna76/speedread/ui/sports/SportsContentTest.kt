@@ -1,5 +1,9 @@
 package io.github.fianna76.speedread.ui.sports
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -78,15 +82,25 @@ class SportsContentTest {
     }
 
     @Test
-    fun `with nothing followed, the picker is shown and choosing follows`() {
+    fun `with nothing followed, the picker stays up until the user is done choosing`() {
+        var state by mutableStateOf(SportsUiState(hasLoaded = true))
         val follows = mutableListOf<Pair<String, Boolean>>()
-        show(
-            state = SportsUiState(hasLoaded = true),
-            actions = SportsActions(onTeamFollowed = { id, on -> follows += id to on }, onSeriesFollowed = { id, on -> follows += id to on }),
-        )
+        fun follow(id: String, on: Boolean) {
+            follows += id to on
+            state = if (id.first().isUpperCase()) state.copy(teams = state.teams + id) else state.copy(series = state.series + id)
+        }
+        compose.setContent {
+            SpeedReadTheme(dynamicColor = false) {
+                SportsContent(state, TestSports.NOW, ZoneId.of("Europe/Dublin"), SportsActions(onTeamFollowed = ::follow, onSeriesFollowed = ::follow))
+            }
+        }
+        compose.onNodeWithText("Done").assertIsNotEnabled()
         compose.onNodeWithText("Formula 1").performClick()
         compose.onNodeWithText("Boston Celtics").performScrollTo().performClick()
         assertEquals(listOf("f1" to true, "BOS" to true), follows)
+
+        compose.onNodeWithText("Done").performClick()
+        compose.onNodeWithText("Calendar").assertExists()
     }
 
     @Test
