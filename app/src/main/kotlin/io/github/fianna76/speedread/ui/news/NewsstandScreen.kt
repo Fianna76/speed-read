@@ -28,6 +28,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
@@ -122,6 +123,7 @@ data class NewsstandActions(
     val onHideSource: (NewsSource) -> Unit = {},
     val onUndoHideSource: (NewsSource) -> Unit = {},
     val onOpenSettings: () -> Unit = {},
+    val onOpenSports: () -> Unit = {},
     val onMessageShown: (Long) -> Unit = {},
 )
 
@@ -134,6 +136,7 @@ fun NewsstandScreen(
     onOpenBook: (bookId: Long, autoPlay: Boolean) -> Unit,
     onOpenSettings: () -> Unit,
     bottomBar: @Composable () -> Unit,
+    onOpenSports: () -> Unit = {},
     scrollToTop: Int = 0,
     /** A story (canonical URL) to preview as soon as it is in the list, e.g. tapped in the widget. */
     previewRequest: String? = null,
@@ -182,6 +185,7 @@ fun NewsstandScreen(
             onHideSource = viewModel::hideSource,
             onUndoHideSource = viewModel::undoHideSource,
             onOpenSettings = onOpenSettings,
+            onOpenSports = onOpenSports,
             onMessageShown = viewModel::onMessageShown,
         ),
         bottomBar = bottomBar,
@@ -582,6 +586,13 @@ private fun SearchTopBar(query: String, onQueryChange: (String) -> Unit, onClose
 @Composable
 private fun FilterRows(state: NewsstandUiState, actions: NewsstandActions) {
     ChipRow {
+        item(key = "sports") {
+            AssistChip(
+                onClick = actions.onOpenSports,
+                leadingIcon = { Icon(painterResource(R.drawable.ic_flag), contentDescription = null, modifier = Modifier.size(18.dp)) },
+                label = { Text(stringResource(R.string.sports_title)) },
+            )
+        }
         item(key = "all") {
             FilterChip(
                 selected = !state.showingSaved && state.selectedRegion == null,

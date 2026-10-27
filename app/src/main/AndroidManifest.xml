@@ -12,6 +12,9 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- Opt-in only: breaking-news alerts and the morning briefing. Asked for when switched on. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Only asked for when adding the sports calendar to one of the user's calendars. -->
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
+    <uses-permission android:name="android.permission.WRITE_CALENDAR" />
 
     <application
         android:name=".SpeedReadApplication"

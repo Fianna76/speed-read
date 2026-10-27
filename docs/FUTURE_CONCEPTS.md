@@ -1,6 +1,6 @@
 # SpeedRead: future concepts
 
-This is the full list of ideas for SpeedRead, gathered in one place. ✅ marks concepts already shipped (v1.8–v1.10). It covers
+This is the full list of ideas for SpeedRead, gathered in one place. ✅ marks concepts already shipped (v1.8–v1.11). It covers
 the reader, the library, the Newsstand, the platform and the project itself. Nothing here
 is committed work. [`PROJECT_PLAN.md`](PROJECT_PLAN.md) §6 holds the prioritised backlog,
 and items move there when they are scheduled.
@@ -80,6 +80,9 @@ share-a-link (v1.6); breaking Irish news alerts and the morning briefing (v1.7).
 | Offline edition | "Download today's edition": the top 30 stories with images, for flights. | Medium | S |
 | Widget v2 | A resizable widget with a briefing-play button, region tabs and a Material You dynamic-colour theme. | Medium | M |
 | Wear OS tile | Today's top 3 headlines, and tap to read on the phone. | Low | M |
+| ✅ Sports section | **Done in v1.11:** NBA teams and motorsport series to follow, their news, a calendar in local time, and adding events to the calendar. Still to come: live scores, race-start reminders, more sports. | High | L |
+| Sports reminders | An optional notification 15 minutes before a followed race or game, from the cached calendar. | Medium | S |
+| Supercars and Super Formula calendars | Parse the official sites' event pages, if they stay stable, so these series get calendars too. | Low | M |
 | Feed health monitor | A weekly in-app check that flags sources whose feeds broke or went paywalled, with one-tap disable. | Low | S |
 
 ## 5. Text-to-speech and audio
@@ -139,7 +142,8 @@ share-a-link (v1.6); breaking Irish news alerts and the morning briefing (v1.7).
 v1.8 shipped shortcuts and the clipboard tile, custom feeds, the scrubber, bookmarks, hardware
 controls, chunk mode and speed training. v1.9 added library search and collections, briefing
 and alert options, backup and restore, and page view. v1.10 added statistics, highlights and
-notes, an accessibility audit, a baseline profile and store-ready metadata. Next:
+notes, an accessibility audit, a baseline profile and store-ready metadata. v1.11 added the
+Sports section. Next:
 
 1. **Play Store and F-Droid release.** The listing, screenshots and privacy policy are ready;
    this needs an upload key and the store accounts.

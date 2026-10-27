@@ -403,4 +403,44 @@
     <string name="settings_about_body">SpeedRead uses Rapid Serial Visual Presentation (RSVP): words appear one at a time at a fixed focal point, so your eyes don’t have to travel across the page. Your books stay on this device; the internet is used only to load the Newsstand. No tracking or analytics.</string>
     <string name="settings_licenses">Open-source licences</string>
     <string name="settings_licenses_body">Built with Kotlin, Jetpack Compose, AndroidX (Room, DataStore, Navigation 3, Lifecycle), Coil, OkHttp, PdfBox-Android and Material Symbols under the Apache License 2.0, jsoup under the MIT License, and Bouncy Castle under the Bouncy Castle (MIT) licence.</string>
+
+    <!-- Sports -->
+    <string name="sports_title">Sports</string>
+    <string name="sports_following">Following</string>
+    <string name="sports_intro">Follow NBA teams and motorsport series to get their news and an events calendar in your local time.</string>
+    <string name="sports_latest">Latest</string>
+    <string name="sports_calendar">Calendar</string>
+    <string name="sports_loading">Loading…</string>
+    <string name="sports_no_stories">No recent stories about what you follow.</string>
+    <string name="sports_no_events">No upcoming events.</string>
+    <string name="sports_times_local">Times in your time zone (%1$s)</string>
+    <string name="sports_calendar_failed">Couldn’t update: %1$s</string>
+    <string name="sports_news_only">News only, no public calendar: %1$s</string>
+    <string name="sports_news_only_hint">FRECA, F4, Super Formula and Supercars have news but no public calendar to follow.</string>
+    <string name="sports_all_day">All day</string>
+    <string name="sports_add_event">Add %1$s to calendar</string>
+    <string name="sports_add">Add</string>
+    <string name="sports_pick_calendar">Choose a calendar. Google calendars sync to Google Calendar. Events added before are updated, not duplicated.</string>
+    <string name="sports_no_calendar_app">No calendar app is installed.</string>
+    <string name="sports_no_calendars">No calendar on this device can take new events. Add a Google account in Settings.</string>
+    <string name="sports_calendar_permission_denied">Calendar access is needed to add every event at once. You can still add events one by one.</string>
+    <string name="sports_export_up_to_date">%1$s is already up to date.</string>
+    <string name="sports_export_failed">Couldn’t add the events to the calendar.</string>
+    <string name="sports_motorsport">Motorsport</string>
+    <string name="sports_nba">NBA</string>
+    <string name="sports_group_formula">Single-seaters</string>
+    <string name="sports_group_endurance">Endurance</string>
+    <string name="sports_group_touring">Touring cars</string>
+    <string name="sports_east">Eastern Conference</string>
+    <string name="sports_west">Western Conference</string>
+    <string name="sports_today">Today, %1$s</string>
+    <string name="sports_tomorrow">Tomorrow, %1$s</string>
+    <plurals name="sports_add_all">
+        <item quantity="one">Add %1$d event to calendar</item>
+        <item quantity="other">Add %1$d events to calendar</item>
+    </plurals>
+    <plurals name="sports_exported">
+        <item quantity="one">%1$d event added to %2$s</item>
+        <item quantity="other">%1$d events added to %2$s</item>
+    </plurals>
 </resources>

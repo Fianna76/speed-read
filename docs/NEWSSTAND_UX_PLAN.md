@@ -128,6 +128,21 @@ the existing upgrade test from version 1.
   downloaded first, so it reads offline. The notification's **Speed-read** action starts
   it directly.
 
+### Sports section (v1.11)
+
+A **Sports** chip leads the Newsstand's filter row and opens a separate section, so sports
+fans get depth without filling the general feed. It has two tabs:
+
+- **Latest**: stories about followed NBA teams and motorsport series, each card labelled
+  with what it's about ("Lakers · ESPN · 2h"), with Speed-read and Open online;
+- **Calendar**: upcoming games and sessions grouped by local day ("Tomorrow, Wednesday 28
+  October"), times in the device's time zone (named at the top), chips per team or series,
+  and add-to-calendar per event or for everything shown.
+
+With nothing followed, the section opens straight to the picker (series by type, NBA teams
+by conference); afterwards the tune icon reopens it as a sheet. Series without a public
+calendar say so in the picker and on the calendar.
+
 ### Later ideas
 
 The complete list of future concepts, for the Newsstand and the rest of the app, is in

@@ -21,6 +21,7 @@ import io.github.fianna76.speedread.rsvp.PlayerState
 import io.github.fianna76.speedread.rsvp.Tokenizer
 import io.github.fianna76.speedread.testing.PHONE
 import io.github.fianna76.speedread.testing.TestNews
+import io.github.fianna76.speedread.testing.TestSports
 import io.github.fianna76.speedread.testing.testBook
 import io.github.fianna76.speedread.ui.library.LibraryContent
 import io.github.fianna76.speedread.ui.library.LibraryUiState
@@ -34,6 +35,9 @@ import io.github.fianna76.speedread.ui.reader.ReaderActions
 import io.github.fianna76.speedread.ui.reader.ReaderContent
 import io.github.fianna76.speedread.ui.reader.ReaderUiState
 import io.github.fianna76.speedread.ui.settings.SettingsContent
+import io.github.fianna76.speedread.ui.sports.SportsActions
+import io.github.fianna76.speedread.ui.sports.SportsContent
+import io.github.fianna76.speedread.ui.sports.SportsUiState
 import io.github.fianna76.speedread.ui.stats.StatsContent
 import io.github.fianna76.speedread.ui.theme.SpeedReadTheme
 import org.junit.Assert.assertTrue
@@ -43,6 +47,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import java.time.LocalDate
+import java.time.ZoneId
 
 /**
  * Checks every main screen, at normal and 200 % font size, for the two most common
@@ -150,6 +155,10 @@ class AccessibilityAuditTest {
         StatsContent(ReadingSummary.of(listOf(ReadingDay(today, 2_000, 400_000)), today), onBack = {})
     }
 
+    private fun sports(tab: Int, state: SportsUiState = TestSports.state()) = @Composable {
+        SportsContent(state, TestSports.NOW, ZoneId.of("Europe/Dublin"), SportsActions(), initialTab = tab)
+    }
+
     @Test fun library_normal() = audit(content = library())
 
     @Test fun library_large_text() = audit(2f, library())
@@ -169,4 +178,12 @@ class AccessibilityAuditTest {
     @Test fun stats_normal() = audit(content = stats())
 
     @Test fun stats_large_text() = audit(2f, stats())
+
+    @Test fun sports_news_normal() = audit(content = sports(0))
+
+    @Test fun sports_calendar_normal() = audit(content = sports(1))
+
+    @Test fun sports_calendar_large_text() = audit(2f, sports(1))
+
+    @Test fun sports_follow_large_text() = audit(2f, sports(0, SportsUiState(hasLoaded = true)))
 }

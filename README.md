@@ -58,6 +58,21 @@ so your eyes stay still while you read.
     new story.
   Subscriber-only articles always open on the outlet's site. Paywalled outlets (The Irish
   Times, Irish Examiner, NYT, FT…) and Reuters and AP (no public feeds) aren't included.
+- **Sports.** A Sports section in the Newsstand for the NBA and motorsport. Follow any NBA
+  teams and any of Formula 1, F2, F3, F1 Academy, FRECA, F4, Formula E, IndyCar, Super
+  Formula, the WEC, ELMS, Asian Le Mans and Supercars to get:
+  - **Latest:** their news from ESPN, CBS Sports, Yahoo Sports, Hoops Rumors,
+    Motorsport.com, Autosport, Formula Scout, Feeder Series, RACER, Sportscar365 and
+    Speedcafe, ready to speed-read;
+  - **Calendar:** upcoming games and every session (practice, qualifying, races), grouped by
+    day, with start times in your own time zone, filterable by team or series;
+  - **Add to calendar:** one event at a time through your calendar app, or every event shown
+    at once into a calendar you choose. Google calendars sync to Google Calendar, and adding
+    again updates events instead of duplicating them.
+
+  Calendars come from ESPN's public schedules, the open-source
+  [sportstimes](https://github.com/sportstimes/f1) calendars and the Le Mans series' race
+  pages. FRECA, F4, Super Formula and Supercars publish no free calendar, so they are news-only.
 - **Reader extras.** A chapter scrubber that previews where you'll land; bookmarks; keyboard,
   Bluetooth page-turner and headset controls (and, optionally, volume keys); chunk mode (2–3
   short words at a time); and optional speed training that raises the speed as you read.
@@ -87,7 +102,7 @@ so your eyes stay still while you read.
 - **Never lose your place.** Progress is saved continuously, playback pauses in the
   background, and the screen stays on while reading.
 - **Private by design.** No accounts, analytics or tracking. Books never leave the device.
-  The internet is used only by the Newsstand.
+  The internet is used only by the Newsstand and its Sports section.
 - Material You theming with light, dark or system theme. Adjustable text size and font.
   TalkBack support throughout.
 
@@ -98,7 +113,7 @@ The full design (goals, architecture, data model, testing strategy, roadmap and 
 
 ## Install the APK
 
-1. Copy `SpeedRead-1.10.0-release.apk` to your phone (Android 8.0 or newer). The APK comes
+1. Copy `SpeedRead-1.11.0-release.apk` to your phone (Android 8.0 or newer). The APK comes
    from a [CI run's](../../actions) artifacts or from a local build (below).
 2. Open it and allow installs from that source when prompted.
 3. Tap **Import book** and pick an EPUB or PDF, or open the **News** tab. Public-domain EPUBs are available from
@@ -114,7 +129,7 @@ Requirements: JDK 17+ (JDK 21 recommended) and the Android SDK with platform 37
 (`ANDROID_HOME` or `local.properties`). The Gradle wrapper downloads everything else.
 
 ```bash
-./gradlew assembleRelease   # → app/build/outputs/apk/release/SpeedRead-1.10.0-release.apk
+./gradlew assembleRelease   # → app/build/outputs/apk/release/SpeedRead-1.11.0-release.apk
 ./gradlew assembleDebug     # → debug build (installs alongside release as "…speedread.debug")
 ./gradlew lint test         # static analysis + all unit, Robolectric and Compose UI tests
 ```

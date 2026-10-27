@@ -5,7 +5,7 @@ SpeedRead is an Android e-reader for EPUB and PDF books that uses **Rapid Serial
 *optimal recognition point* (ORP), so the eyes don't have to travel across lines and pages.
 
 This document is the plan for the app. The repository already contains a working
-first release (v1.0.0) built from it, plus PDF support added in v1.1.0, the Newsstand in v1.2.0, 69 news sources in v1.3.0 Newsstand quality-of-life features in v1.4.0–v1.6.0, breaking-news alerts and the morning briefing in v1.7.0, reader and convenience features in v1.8.0 (shortcuts, clipboard reading, custom feeds, a scrubber, bookmarks, hardware keys, chunk mode and speed training), library search, collections, backup and restore, page view and briefing/alert options in v1.9.0, and statistics, highlights and notes, an accessibility audit and store metadata in v1.10.0 ([`NEWSSTAND_UX_PLAN.md`](NEWSSTAND_UX_PLAN.md)). §6 marks what is done and what comes next.
+first release (v1.0.0) built from it, plus PDF support added in v1.1.0, the Newsstand in v1.2.0, 69 news sources in v1.3.0 Newsstand quality-of-life features in v1.4.0–v1.6.0, breaking-news alerts and the morning briefing in v1.7.0, reader and convenience features in v1.8.0 (shortcuts, clipboard reading, custom feeds, a scrubber, bookmarks, hardware keys, chunk mode and speed training), library search, collections, backup and restore, page view and briefing/alert options in v1.9.0, and statistics, highlights and notes, an accessibility audit and store metadata in v1.10.0, and the Sports section (NBA and motorsport news, a local-time calendar and calendar export) in v1.11.0 ([`NEWSSTAND_UX_PLAN.md`](NEWSSTAND_UX_PLAN.md)). §6 marks what is done and what comes next.
 
 ---
 
@@ -284,9 +284,40 @@ Steps 1, 2 and 7 are shared with EPUB. The format is identified from the file's 
   progress therefore work unchanged. The library query excludes articles, the Newsstand
   shows their progress by URL, and articles not opened for 30 days are pruned.
 - **Network etiquette.** The User-Agent is browser-compatible but names the app
-  (`Mozilla/5.0 (Linux; Android …) SpeedRead/1.10.0`); one firewall rejects anything else.
+  (`Mozilla/5.0 (Linux; Android …) SpeedRead/1.11.0`); one firewall rejects anything else.
   Pages are fetched only when the user asks to read them. Requests use 15 s connect /
   45 s call timeouts and a 5 MB response cap, and are cancelled with their screen.
+
+### 4.3.3 Sports section
+
+- **Catalogue.** `NbaTeams` (all 30 teams, with ESPN ids) and `MotorsportCatalog` (13
+  series in `:core:news`). Each series lists its news feeds, optionally with a pattern
+  that picks its stories out of a shared feed, and its calendar source if one exists.
+- **Following.** Followed teams and series live in preferences. Story feeds are the union
+  of the followed teams' and series' feeds, cached separately from the Newsstand. NBA
+  stories are kept only if they name a followed team (capitalised nickname, so "the heat"
+  isn't Miami).
+- **Calendars.** Each source becomes `SportsEvent`s with UTC instants and is only converted
+  to the device's zone on screen:
+  - NBA: ESPN's team schedule (`site.api.espn.com/.../teams/{id}/schedule`, ~35 KB per
+    team, the whole season, with broadcasters);
+  - F1, F2, F3, F1 Academy, Formula E and IndyCar: the MIT-licensed sportstimes JSON
+    (`raw.githubusercontent.com/sportstimes/f1`), one event per session; next season's
+    file is also read from October;
+  - WEC, ELMS and Asian Le Mans: the season page lists race pages, whose JSON-LD
+    `SportsEvent` gives each session with its offset. Weekends with no session times yet
+    become all-day entries. Season pages are re-read weekly, race pages every 12 h in the
+    three weeks before the race and weekly before that;
+  - an iCalendar parser (time zones, all-day dates, folding) for future sources.
+
+  FRECA, F4, Super Formula and Supercars publish no free calendar and are news-only.
+  Calendars refresh at most every 12 h, fail independently (older events are kept) and are
+  cached on disk.
+- **Calendar export.** One event: `ACTION_INSERT` into the user's calendar app, which needs
+  no permission. All events: after `READ_CALENDAR`/`WRITE_CALENDAR` are granted, the user
+  picks a writable calendar (Google accounts first) and events are written through
+  `CalendarContract` with `UID_2445 = speedread-sports:<event id>`, so adding again updates
+  changed events instead of duplicating them.
 
 ### 4.4 RSVP engine (`:core:rsvp`)
 
@@ -328,7 +359,8 @@ responses in `cache/http/`.
 
 ### 4.6 Security and privacy
 
-- No runtime permissions. Files come in only through the Storage Access Framework or
+- The only runtime permissions are notifications (opt-in alerts and briefing) and calendar
+  (only when adding every sports event at once). Files come in only through the Storage Access Framework or
   intents with temporary URI grants. `INTERNET` (install-time) serves the Newsstand and shared links only;
   `ACCESS_NETWORK_STATE` lets the data saver and background sync tell Wi-Fi from mobile
   data. Network access happens only on a user action, except the opt-in background sync.
@@ -396,10 +428,11 @@ without covers, large books).
 8. ~~Hardware controls: volume keys, Bluetooth page turners.~~ Done in v1.8. Optional haptics.
 9. CJK segmentation (ICU `BreakIterator`), RTL ORP mirroring, more languages
    (strings are already externalised).
-10. News: ~~user-added RSS feeds~~ (done in v1.8), briefing and alert options, a reorderable reading queue,
+10. ~~Sports: NBA and motorsport news, a calendar in local time, and calendar export.~~ Done in v1.11.
+11. News: ~~user-added RSS feeds~~ (done in v1.8), briefing and alert options, a reorderable reading queue,
     Reuters/AP if they ever offer a licensed feed. (Sharing links, topics and offline
     pre-download shipped in v1.5–v1.6.)
-11. Platform: Hilt if the graph grows, convention plugins in `build-logic`, Roborazzi screenshot diffs.
+12. Platform: Hilt if the graph grows, convention plugins in `build-logic`, Roborazzi screenshot diffs.
 
 The complete, unprioritised list of future concepts is in [`FUTURE_CONCEPTS.md`](FUTURE_CONCEPTS.md).
 
@@ -431,7 +464,7 @@ The complete, unprioritised list of future concepts is in [`FUTURE_CONCEPTS.md`]
 ./gradlew assembleRelease  # app/build/outputs/apk/release/SpeedRead-1.6.0-release.apk
 ```
 
-- **Versioning.** Semantic `versionName` (`1.10.0`) and a monotonically increasing
+- **Versioning.** Semantic `versionName` (`1.11.0`) and a monotonically increasing
   `versionCode`.
 - **Signing.** Put `storeFile`, `storePassword`, `keyAlias` and `keyPassword` in
   `keystore.properties`, or set the `SPEEDREAD_KEYSTORE_*` / `SPEEDREAD_KEY_*` environment

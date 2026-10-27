@@ -29,7 +29,6 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.time.Instant
-import java.time.LocalDate
 import java.time.ZoneOffset
 
 /** Calendars by source (`nba:<team>` or a series id), with when each was fetched. */
@@ -124,9 +123,10 @@ class SportsCalendarRepository(
     }
 
     private suspend fun fetchSeries(series: MotorsportSeries, now: Long): List<SportsEvent> {
-        val year = Instant.ofEpochMilli(now).atZone(ZoneOffset.UTC).year
+        val today = Instant.ofEpochMilli(now).atZone(ZoneOffset.UTC)
+        val year = today.year
         // From October, next season's calendar is usually out (missing files are fine).
-        val years = if (LocalDate.ofInstant(Instant.ofEpochMilli(now), ZoneOffset.UTC).monthValue >= 10) listOf(year, year + 1) else listOf(year)
+        val years = if (today.monthValue >= 10) listOf(year, year + 1) else listOf(year)
         return when (val source = series.calendar) {
             is CalendarSource.SportsTimes -> {
                 val texts = years.mapIndexedNotNull { index, y ->

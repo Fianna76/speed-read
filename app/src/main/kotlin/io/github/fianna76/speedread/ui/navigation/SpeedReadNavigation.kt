@@ -20,6 +20,7 @@ import io.github.fianna76.speedread.ui.news.BriefingRequest
 import io.github.fianna76.speedread.ui.news.NewsstandScreen
 import io.github.fianna76.speedread.ui.reader.ReaderScreen
 import io.github.fianna76.speedread.ui.settings.SettingsScreen
+import io.github.fianna76.speedread.ui.sports.SportsScreen
 import io.github.fianna76.speedread.ui.stats.StatsScreen
 import kotlinx.serialization.Serializable
 
@@ -37,6 +38,10 @@ data class ReaderRoute(val bookId: Long, val autoPlay: Boolean = false) : NavKey
 
 @Serializable
 data object SettingsRoute : NavKey
+
+/** NBA and motorsport news and calendar for followed teams and series. */
+@Serializable
+data object SportsRoute : NavKey
 
 /** Reading statistics. */
 @Serializable
@@ -107,6 +112,7 @@ fun SpeedReadNavigation(
                 NewsstandScreen(
                     onOpenBook = { bookId, autoPlay -> backStack.navigate(ReaderRoute(bookId, autoPlay)) },
                     onOpenSettings = { backStack.navigate(SettingsRoute) },
+                    onOpenSports = { backStack.navigate(SportsRoute) },
                     bottomBar = {
                         TopLevelNavigationBar(TopLevelDestination.NEWS) { destination ->
                             if (destination == TopLevelDestination.NEWS) newsReselected++ else backStack.navigateTopLevel(destination)
@@ -129,6 +135,12 @@ fun SpeedReadNavigation(
                         backStack.removeLastOrNull()
                         backStack.add(ReaderRoute(next, autoPlay = true))
                     },
+                )
+            }
+            entry<SportsRoute> {
+                SportsScreen(
+                    onBack = { backStack.removeLastOrNull() },
+                    onOpenBook = { bookId -> backStack.navigate(ReaderRoute(bookId)) },
                 )
             }
             entry<StatsRoute> {

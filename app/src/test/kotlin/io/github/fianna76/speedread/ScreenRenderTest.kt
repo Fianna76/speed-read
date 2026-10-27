@@ -17,6 +17,7 @@ import io.github.fianna76.speedread.rsvp.PlayerState
 import io.github.fianna76.speedread.rsvp.Tokenizer
 import io.github.fianna76.speedread.testing.PHONE
 import io.github.fianna76.speedread.testing.TestNews
+import io.github.fianna76.speedread.testing.TestSports
 import io.github.fianna76.speedread.testing.testBook
 import io.github.fianna76.speedread.ui.library.LibraryContent
 import io.github.fianna76.speedread.ui.library.LibraryUiState
@@ -32,6 +33,9 @@ import io.github.fianna76.speedread.ui.reader.ReaderContent
 import io.github.fianna76.speedread.ui.reader.ReaderUiState
 import io.github.fianna76.speedread.ui.reader.UpNextStory
 import io.github.fianna76.speedread.ui.settings.SettingsContent
+import io.github.fianna76.speedread.ui.sports.SportsActions
+import io.github.fianna76.speedread.ui.sports.SportsContent
+import io.github.fianna76.speedread.ui.sports.SportsUiState
 import io.github.fianna76.speedread.ui.theme.SpeedReadTheme
 import org.junit.Rule
 import org.junit.Test
@@ -219,6 +223,21 @@ class ScreenRenderTest {
         val days = listOf(6 to 1_800L, 5 to 0L, 4 to 2_400L, 3 to 3_100L, 2 to 900L, 1 to 4_200L, 0 to 2_700L, 12 to 9_000L)
             .map { (ago, words) -> io.github.fianna76.speedread.data.stats.ReadingDay(today.minusDays(ago.toLong()), words, words * 60_000 / 340) }
         io.github.fianna76.speedread.ui.stats.StatsContent(io.github.fianna76.speedread.data.stats.ReadingSummary.of(days, today), onBack = {})
+    }
+
+    @Test
+    fun sportsNews() = capture("sports_news") {
+        SportsContent(TestSports.state(), TestSports.NOW, java.time.ZoneId.of("Europe/Dublin"), SportsActions())
+    }
+
+    @Test
+    fun sportsCalendar() = capture("sports_calendar") {
+        SportsContent(TestSports.state(), TestSports.NOW, java.time.ZoneId.of("Europe/Dublin"), SportsActions(), initialTab = 1)
+    }
+
+    @Test
+    fun sportsFollow() = capture("sports_follow") {
+        SportsContent(SportsUiState(hasLoaded = true), TestSports.NOW, java.time.ZoneId.of("Europe/Dublin"), SportsActions())
     }
 
     @Test
