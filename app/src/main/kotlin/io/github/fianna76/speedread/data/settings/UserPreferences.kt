@@ -47,6 +47,10 @@ data class UserPreferences(
     val disabledNewsSources: Set<String> = emptySet(),
     /** Ids of [NewsSources] the user switched on (sources not enabled by default). */
     val addedNewsSources: Set<String> = emptySet(),
+    /** NBA teams the Sports section follows (abbreviations, see `NbaTeams`). */
+    val followedNbaTeams: Set<String> = emptySet(),
+    /** Motorsport series the Sports section follows (ids, see `MotorsportCatalog`). */
+    val followedSeries: Set<String> = emptySet(),
     /** Feeds the user added themselves, in the order added. */
     val customNewsSources: List<NewsSource> = emptyList(),
 ) {

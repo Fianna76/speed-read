@@ -18,6 +18,7 @@ import io.github.fianna76.speedread.data.news.NewsQueue
 import io.github.fianna76.speedread.data.news.NewsUpNext
 import io.github.fianna76.speedread.data.news.SharedLinkReader
 import io.github.fianna76.speedread.data.backup.BackupDocuments
+import io.github.fianna76.speedread.data.sports.SportsCalendarRepository
 import io.github.fianna76.speedread.data.stats.ReadingStats
 import io.github.fianna76.speedread.data.backup.LibraryBackup
 import io.github.fianna76.speedread.data.news.CustomFeedResolver
@@ -80,6 +81,11 @@ class AppContainer(context: Context) {
     val newsRepository by lazy {
         NewsRepository(webClient, NewsCache(File(appContext.cacheDir, "news/headlines.json")), onUpdated = ::onHeadlinesUpdated)
     }
+
+    /** Sports news (NBA and motorsport feeds), kept apart from the Newsstand's outlets. */
+    val sportsNewsRepository by lazy { NewsRepository(webClient, NewsCache(File(appContext.cacheDir, "news/sports.json"))) }
+
+    val sportsCalendarRepository by lazy { SportsCalendarRepository(webClient, File(appContext.cacheDir, "sports")) }
 
     val articleRepository by lazy { ArticleRepository(database.bookDao(), fileStore, webClient) }
 

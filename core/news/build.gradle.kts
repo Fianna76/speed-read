@@ -25,6 +25,7 @@ tasks.withType<JavaCompile>().configureEach {
 
 dependencies {
     implementation(libs.jsoup)
+    implementation(libs.kotlinx.serialization.json)
 
     testImplementation(libs.junit)
 }

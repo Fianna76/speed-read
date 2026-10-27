@@ -1,0 +1,34 @@
+{
+ "races": [
+  {
+   "name": "Australian",
+   "location": "Melbourne",
+   "latitude": -37.8373,
+   "longitude": 144.9666,
+   "round": 1,
+   "slug": "melbourne",
+   "localeKey": "melbourne",
+   "sessions": {
+    "practice": "2026-03-05T23:00:00Z",
+    "qualifying": "2026-03-06T03:55:00Z",
+    "sprint": "2026-03-07T03:30:00Z",
+    "feature": "2026-03-08T00:25:00Z"
+   }
+  },
+  {
+   "name": "USA",
+   "location": "Miami",
+   "latitude": 0,
+   "longitude": 0,
+   "round": 2,
+   "slug": "miami",
+   "localeKey": "miami",
+   "sessions": {
+    "practice": "2026-05-01T13:30:00Z",
+    "qualifying": "2026-05-01T18:30:00Z",
+    "sprint": "2026-05-02T14:00:00Z",
+    "feature": "2026-05-03T13:25:00Z"
+   }
+  }
+ ]
+}

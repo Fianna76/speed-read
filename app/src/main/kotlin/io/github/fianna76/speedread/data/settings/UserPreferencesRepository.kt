@@ -124,6 +124,16 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
 
     suspend fun setNewsSourceEnabled(sourceId: String, enabled: Boolean) = setNewsSourcesEnabled(listOf(sourceId), enabled)
 
+    suspend fun setNbaTeamFollowed(abbreviation: String, followed: Boolean) = update {
+        val current = it[Keys.FOLLOWED_NBA_TEAMS].orEmpty()
+        it[Keys.FOLLOWED_NBA_TEAMS] = if (followed) current + abbreviation else current - abbreviation
+    }
+
+    suspend fun setSeriesFollowed(seriesId: String, followed: Boolean) = update {
+        val current = it[Keys.FOLLOWED_SERIES].orEmpty()
+        it[Keys.FOLLOWED_SERIES] = if (followed) current + seriesId else current - seriesId
+    }
+
     /** Adds (or replaces, by id) a feed the user found; it starts switched on. */
     suspend fun addCustomNewsSource(source: NewsSource) = update {
         val sources = decodeSources(it[Keys.CUSTOM_NEWS_SOURCES]).filterNot { old -> old.id == source.id } + source
@@ -215,6 +225,8 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
             disabledNewsSources = this[Keys.DISABLED_NEWS_SOURCES] ?: defaults.disabledNewsSources,
             addedNewsSources = this[Keys.ADDED_NEWS_SOURCES] ?: defaults.addedNewsSources,
             customNewsSources = decodeSources(this[Keys.CUSTOM_NEWS_SOURCES]),
+            followedNbaTeams = this[Keys.FOLLOWED_NBA_TEAMS] ?: defaults.followedNbaTeams,
+            followedSeries = this[Keys.FOLLOWED_SERIES] ?: defaults.followedSeries,
         )
     }
 
@@ -278,6 +290,8 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
         val DISABLED_NEWS_SOURCES = stringSetPreferencesKey("disabled_news_sources")
         val ADDED_NEWS_SOURCES = stringSetPreferencesKey("added_news_sources")
         val CUSTOM_NEWS_SOURCES = stringPreferencesKey("custom_news_sources")
+        val FOLLOWED_NBA_TEAMS = stringSetPreferencesKey("followed_nba_teams")
+        val FOLLOWED_SERIES = stringSetPreferencesKey("followed_series")
     }
 
     private companion object {

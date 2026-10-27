@@ -1,0 +1,248 @@
+{
+ "events": [
+  {
+   "id": "401909092",
+   "date": "2026-10-22T02:00Z",
+   "name": "Golden State Warriors at Los Angeles Lakers",
+   "competitions": [
+    {
+     "venue": {
+      "fullName": "crypto.com Arena"
+     },
+     "broadcasts": [
+      {
+       "type": {
+        "id": "1",
+        "shortName": "TV"
+       },
+       "market": {
+        "id": "1",
+        "type": "National"
+       },
+       "media": {
+        "shortName": "ESPN"
+       },
+       "lang": "en",
+       "region": "us",
+       "partnered": false
+      }
+     ],
+     "competitors": [
+      {
+       "homeAway": "home",
+       "team": {
+        "abbreviation": "LAL"
+       }
+      },
+      {
+       "homeAway": "away",
+       "team": {
+        "abbreviation": "GS"
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "401909851",
+   "date": "2026-10-24T02:00Z",
+   "name": "LA Clippers at Los Angeles Lakers",
+   "competitions": [
+    {
+     "venue": {
+      "fullName": "crypto.com Arena"
+     },
+     "broadcasts": [
+      {
+       "type": {
+        "id": "6",
+        "shortName": "Subscription Package"
+       },
+       "market": {
+        "id": "3",
+        "type": "Away"
+       },
+       "media": {
+        "shortName": "NBA League Pass"
+       },
+       "lang": "en",
+       "region": "us",
+       "partnered": false
+      },
+      {
+       "type": {
+        "id": "1",
+        "shortName": "TV"
+       },
+       "market": {
+        "id": "2",
+        "type": "Home"
+       },
+       "media": {
+        "shortName": "Spectrum Sports Net"
+       },
+       "lang": "en",
+       "region": "us",
+       "partnered": false
+      },
+      {
+       "type": {
+        "id": "4",
+        "shortName": "Streaming"
+       },
+       "market": {
+        "id": "2",
+        "type": "Home"
+       },
+       "media": {
+        "shortName": "Spectrum Sports Net +"
+       },
+       "lang": "en",
+       "region": "us",
+       "partnered": false
+      },
+      {
+       "type": {
+        "id": "4",
+        "shortName": "Streaming"
+       },
+       "market": {
+        "id": "3",
+        "type": "Away"
+       },
+       "media": {
+        "shortName": "ClipperVision"
+       },
+       "lang": "en",
+       "region": "us",
+       "partnered": false
+      }
+     ],
+     "competitors": [
+      {
+       "homeAway": "home",
+       "team": {
+        "abbreviation": "LAL"
+       }
+      },
+      {
+       "homeAway": "away",
+       "team": {
+        "abbreviation": "LAC"
+       }
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "401909861",
+   "date": "2026-10-25T21:00Z",
+   "name": "Los Angeles Lakers at Utah Jazz",
+   "competitions": [
+    {
+     "venue": {
+      "fullName": "Delta Center"
+     },
+     "broadcasts": [
+      {
+       "type": {
+        "id": "6",
+        "shortName": "Subscription Package"
+       },
+       "market": {
+        "id": "3",
+        "type": "Away"
+       },
+       "media": {
+        "shortName": "NBA League Pass"
+       },
+       "lang": "en",
+       "region": "us",
+       "partnered": false
+      },
+      {
+       "type": {
+        "id": "1",
+        "shortName": "TV"
+       },
+       "market": {
+        "id": "3",
+        "type": "Away"
+       },
+       "media": {
+        "shortName": "Spectrum Sports Net"
+       },
+       "lang": "en",
+       "region": "us",
+       "partnered": false
+      },
+      {
+       "type": {
+        "id": "4",
+        "shortName": "Streaming"
+       },
+       "market": {
+        "id": "3",
+        "type": "Away"
+       },
+       "media": {
+        "shortName": "Spectrum Sports Net +"
+       },
+       "lang": "en",
+       "region": "us",
+       "partnered": false
+      },
+      {
+       "type": {
+        "id": "1",
+        "shortName": "TV"
+       },
+       "market": {
+        "id": "2",
+        "type": "Home"
+       },
+       "media": {
+        "shortName": "KJZZ-TV"
+       },
+       "lang": "en",
+       "region": "us",
+       "partnered": false
+      },
+      {
+       "type": {
+        "id": "4",
+        "shortName": "Streaming"
+       },
+       "market": {
+        "id": "2",
+        "type": "Home"
+       },
+       "media": {
+        "shortName": "Jazz+"
+       },
+       "lang": "en",
+       "region": "us",
+       "partnered": false
+      }
+     ],
+     "competitors": [
+      {
+       "homeAway": "home",
+       "team": {
+        "abbreviation": "UTAH"
+       }
+      },
+      {
+       "homeAway": "away",
+       "team": {
+        "abbreviation": "LAL"
+       }
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}
