@@ -3,21 +3,13 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <!--
-        Books need no permissions: they are picked through the Storage Access Framework (or
-        received via "Open with"/"Share") and copied into app-private storage. Internet access is
-        used only by the Newsstand, to fetch headline feeds and the articles the user opens.
+        No permissions at all. Packs and notes are picked through the Storage Access Framework
+        (or received via "Open with" / "Share") and copied into app-private storage, and nothing
+        ever goes over the network.
     -->
-    <uses-permission android:name="android.permission.INTERNET" />
-    <!-- Data saver (news images on Wi-Fi only) and background downloads on unmetered networks. -->
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <!-- Opt-in only: breaking-news alerts and the morning briefing. Asked for when switched on. -->
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!-- Only asked for when adding the sports calendar to one of the user's calendars. -->
-    <uses-permission android:name="android.permission.READ_CALENDAR" />
-    <uses-permission android:name="android.permission.WRITE_CALENDAR" />
 
     <application
-        android:name=".SpeedReadApplication"
+        android:name=".StudyPackApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:enableOnBackInvokedCallback="true"
@@ -26,72 +18,53 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.SpeedRead"
+        android:theme="@style/Theme.StudyPack"
         tools:targetApi="33">
 
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTask"
-            android:theme="@style/Theme.SpeedRead.Starting">
+            android:theme="@style/Theme.StudyPack.Starting">
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- "Open with SpeedRead" from file managers, browsers' download lists, etc. -->
+            <!-- "Open with StudyPack" from file managers, Drive, OneDrive, download lists. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:scheme="content" />
-                <data android:mimeType="application/epub+zip" />
+                <data android:mimeType="application/json" />
                 <data android:mimeType="application/pdf" />
             </intent-filter>
 
-            <!-- "Share to SpeedRead" with a web link: speed-read the article. -->
-            <intent-filter>
-                <action android:name="android.intent.action.SEND" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="text/plain" />
-            </intent-filter>
-
-            <!-- "Share to SpeedRead" for one or more EPUB or PDF files. -->
+            <!--
+                "Share to StudyPack" for one or more packs or PDFs. Some cloud apps label .json
+                files application/octet-stream; the importer sniffs the first bytes to tell.
+            -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <action android:name="android.intent.action.SEND_MULTIPLE" />
                 <category android:name="android.intent.category.DEFAULT" />
-                <data android:mimeType="application/epub+zip" />
+                <data android:mimeType="application/json" />
                 <data android:mimeType="application/pdf" />
+                <data android:mimeType="application/octet-stream" />
             </intent-filter>
         </activity>
 
-        <!-- Quick Settings tile: speed-read the clipboard. -->
-        <service
-            android:name=".shortcuts.ClipboardTileService"
-            android:exported="true"
-            android:icon="@drawable/ic_bolt"
-            android:label="@string/tile_clipboard"
-            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
-            <intent-filter>
-                <action android:name="android.service.quicksettings.action.QS_TILE" />
-            </intent-filter>
+        <!-- Hands notes PDFs to another viewer ("Open in another app"), read-only. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.files"
+            android:exported="false"
+            android:grantUriPermissions="true">
             <meta-data
-                android:name="android.service.quicksettings.ACTIVE_TILE"
-                android:value="false" />
-        </service>
-
-        <receiver
-            android:name=".widget.NewsWidgetReceiver"
-            android:exported="true"
-            android:label="@string/widget_name">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/news_widget_info" />
-        </receiver>
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 
 </manifest>

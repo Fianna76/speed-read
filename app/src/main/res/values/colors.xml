@@ -2,5 +2,4 @@
 <resources>
     <color name="window_background">#FFFEFBFF</color>
     <color name="ic_launcher_background">#FF1B2440</color>
-    <color name="shortcut_background">#FF1B2440</color>
 </resources>

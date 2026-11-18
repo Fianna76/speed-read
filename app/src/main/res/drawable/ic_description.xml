@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A page with a folded corner and text lines: a notes PDF. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FF000000"
+        android:fillType="evenOdd"
+        android:pathData="M7,2h7l6,6v12a2,2 0,0 1,-2 2h-11a2,2 0,0 1,-2 -2v-16a2,2 0,0 1,2 -2zM13,3.5v5.5h5.5zM8,12.5v1.5h8v-1.5zM8,16v1.5h8v-1.5z" />
+</vector>

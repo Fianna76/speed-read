@@ -1,0 +1,3665 @@
+{
+  "format": "studypack-mcq",
+  "schemaVersion": 1,
+  "pack": {
+    "id": "ee5105-ecg-amp",
+    "title": "ECG Amplifier: Single-Supply Bench Demo",
+    "moduleCode": "EE5105",
+    "moduleName": "Applied Circuit Design for Medical Electronics",
+    "version": "1.0.0",
+    "created": "2026-11-18",
+    "description": "Every component, corner and derivation of the final single-supply ECG amplifier, plus test methods and the debugging log.",
+    "notes": [
+      "EE5105-ecg-amp-overview.pdf"
+    ]
+  },
+  "topics": [
+    {
+      "id": "topology-gain",
+      "name": "Topology & gain",
+      "description": "Topology, gain split, overall gain and the signal chain"
+    },
+    {
+      "id": "input-network",
+      "name": "Input network",
+      "description": "C_c and R_c: DC blocking, time constant, electrode-mismatch CMRR"
+    },
+    {
+      "id": "stage-1",
+      "name": "Stage 1 (A1, A2)",
+      "description": "A1/A2 with R1, C1, R2: gain, lead network, pole-zero cancellation"
+    },
+    {
+      "id": "stage-2",
+      "name": "Stage 2 (A3) & low-pass",
+      "description": "A3 difference amplifier, R3/R4 and the C4 low-pass"
+    },
+    {
+      "id": "corners-phase",
+      "name": "Corners, phase & poles",
+      "description": "Cutoff frequencies, phase spec, transfer function and step response"
+    },
+    {
+      "id": "cmrr",
+      "name": "CMRR",
+      "description": "CMRR mechanisms, budget, measured curve and its shape"
+    },
+    {
+      "id": "dc-offset",
+      "name": "DC offset & headroom",
+      "description": "Bias-current offset, C1's role, headroom on each supply"
+    },
+    {
+      "id": "noise",
+      "name": "Noise",
+      "description": "Noise sources, noise bandwidth, mains pickup and measurement"
+    },
+    {
+      "id": "single-supply",
+      "name": "Single supply",
+      "description": "7.5 V reference, placement rule, windows, start-up procedure"
+    },
+    {
+      "id": "testing-debugging",
+      "name": "Test method & debugging",
+      "description": "Fixture, test scripts, measurement pitfalls and the debugging log"
+    }
+  ],
+  "questions": [
+    {
+      "id": "topology-gain-001",
+      "topic": "topology-gain",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "What topology is the amplifier?",
+      "correct": "Three-op-amp instrumentation amp with AC-coupled inputs (handout Fig. 2)",
+      "distractors": [
+        "Unity-gain followers into a difference amp that carries all of the gain",
+        "Two-op-amp instrumentation amp with a DC servo integrator on its output",
+        "Single difference amplifier fed straight from the electrodes via 10 kΩ"
+      ],
+      "explanation": "2): A1 and A2 as a gain stage sharing R1–C1, then A3 as a difference amplifier. The board is Fig. 2 from the handout: AC-coupled inputs (C_c into R_c), stage 1 = A1/A2 non-inverting amps with R2 feedback and R1–C1 between their inverting inputs, stage 2 = A3 difference amp with R3/R4 and C4. The follower version with all gain in stage 2 was Rev C, which was never built.",
+      "modelAnswer": "A three-op-amp instrumentation amplifier with AC-coupled inputs (the handout's Fig.",
+      "sayIt": "Three-op-amp instrumentation amplifier with AC-coupled inputs. Stage 1 gain 10.7, stage 2 gain 12.1, total 130 or 42.3 dB.",
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "topology-gain-002",
+      "topic": "topology-gain",
+      "type": "single",
+      "difficulty": 1,
+      "prompt": "What is the designed mid-band differential gain?",
+      "correct": "129.8, i.e. 42.3 dB",
+      "distractors": [
+        "140.0, i.e. 42.9 dB",
+        "136.0, i.e. 42.7 dB",
+        "134.7, i.e. 42.6 dB"
+      ],
+      "explanation": "42.3 dB. A0 = α·G1·G2 = 0.9985 × 10.71 × 12.14 = 129.8 → 42.27 dB. 140 was the 12 Oct design with R3 = 52 kΩ; 136 was Rev C; 134.7 (42.59 dB) is what was measured on ±15 V, 0.3 dB high from resistor tolerance.",
+      "modelAnswer": "About 130 (129.8), i.e.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "topology-gain-003",
+      "topic": "topology-gain",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Why was a total gain of about 130 chosen?",
+      "correct": "100–200 is needed for ≈2 V pk from a 10–20 mV QRS; 130 sits mid-window",
+      "distractors": [
+        "It is the most gain that keeps the worst-case 7.7 V offset inside 3–12 V",
+        "It is where OP27 current noise and resistor noise are equal at the output",
+        "It gives exactly 60 dB of CMRR with 1 % resistors in stage 2"
+      ],
+      "explanation": "2 V / 20 mV = 100 and 2 V / 10 mV = 200. 130 sits in that window and 42.3 dB is 2.3 dB above the 40 dB floor. The 7.7 V worst-case offset does not fit the single-supply window at any useful gain.",
+      "modelAnswer": "The Brief wants ≈2 V pk out for a 10–20 mV pk QRS, so gain must be 100–200; 130 gives 1.3–2.6 V pk and sits inside the 40–54 dB gain spec.",
+      "sayIt": "2 V out from 10–20 mV in needs 100 to 200. 130 gives 1.3 to 2.6 V and is inside 40–54 dB.",
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "topology-gain-004",
+      "topic": "topology-gain",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Explain the stage-1 gain. What is the formula and value?",
+      "correct": "1 + 2R2/R1 = 10.71",
+      "distractors": [
+        "1 + R2/R1 = 5.85",
+        "2R2/R1 = 9.71",
+        "R2/R1 = 4.85"
+      ],
+      "explanation": "Each inverting input follows its + input, so V2 − V1 appears across R1 (C1 shorted at signal frequencies). That current i = (V2−V1)/R1 flows through both R2s, so V_O2 − V_O1 = (V2 − V1)(1 + 2R2/R1). Both R2s count, hence the 2.",
+      "modelAnswer": "G1 = 1 + 2R2/R1 = 1 + 6.6 MΩ / 680 kΩ = 10.71 (above 23 mHz).",
+      "sayIt": "Stage 1 has gain 10.7 for signals and gain 1 at DC and for common-mode.",
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": [
+        "demo-asked"
+      ]
+    },
+    {
+      "id": "topology-gain-005",
+      "topic": "topology-gain",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Explain the stage-2 gain. What is the formula and value?",
+      "correct": "R4/R3 = 12.14 (21.7 dB)",
+      "distractors": [
+        "1 + R4/R3 = 13.14 (22.4 dB)",
+        "680 k / 52 k = 13.08 (22.3 dB)",
+        "R3/(R3 + R4) = 0.076 (−22.4 dB)"
+      ],
+      "explanation": "With matched arms Vo = (Z4/R3)(V_O2 − V_O1), and at mid-band Z4 = R4, so G2 = R4/R3 = 12.14. 13.14 is the noise gain 1 + G2 (sets A3's bandwidth), and 13.08 used the old 52 kΩ R3 from the 12 Oct page.",
+      "modelAnswer": "G2 = R4/R3 = 680 kΩ / 56 kΩ = 12.14 (21.7 dB).",
+      "sayIt": "Stage 2 is Z4 over R3 times the difference: 12.1 at mid-band.",
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": [
+        "demo-asked"
+      ]
+    },
+    {
+      "id": "topology-gain-006",
+      "topic": "topology-gain",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Why put gain in stage 1 at all instead of using followers and all 130 in stage 2?",
+      "correct": "Stage 1 passes common-mode at 1, so its gain multiplies the CMRR",
+      "distractors": [
+        "The OP27 can't hold a closed-loop gain of 130 out to 150 Hz",
+        "Stage-1 gain keeps the A1/A2 outputs away from their swing limits",
+        "Gain in stage 1 divides the output DC offset down by G1"
+      ],
+      "explanation": "Stage 1 lifts the wanted signal 10.7× above the common-mode before the difference amp has to separate them. It also follows the Brief's recommendation. The OP27 at gain 130 would still have ~60 kHz bandwidth, and stage-1 outputs only swing ±0.1 V, so those are not the reasons.",
+      "modelAnswer": "Stage 1 amplifies differential signals by G1 but passes common-mode at exactly 1, so its gain multiplies the CMRR (CMRR_R = G1(1 + G2)/4t).",
+      "sayIt": "Stage 1 amplifies differential signals and passes common-mode at 1, so its gain multiplies CMRR.",
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "topology-gain-007",
+      "topic": "topology-gain",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "What limits how much gain stage 1 can take?",
+      "correct": "The 10 µF limit on C1 forces R1 high, so more G1 needs a bigger R2",
+      "distractors": [
+        "The OP27 input common-mode range shrinks as stage-1 gain rises",
+        "Above G1 ≈ 11 the 30 mV p-p noise limit is always exceeded",
+        "The A1/A2 outputs would clip, since they carry G1 × electrode DC"
+      ],
+      "explanation": "R1 = 1/(2π f C1). With C1 ≤ 10 µF and f ≈ 23 mHz, R1 ≈ 680 kΩ. G1 = 1 + 2R2/R1 then needs R2 in megohms; 3.3 MΩ already gives the stray-C slope above 20 Hz and dominates the noise.",
+      "modelAnswer": "C1 is capped at 10 µF (largest stock part), which forces R1 up to 680 kΩ for a 23 mHz corner; more G1 then needs a bigger R2, which raises offset, noise and the stray-capacitance CMRR error.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "topology-gain-008",
+      "topic": "topology-gain",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Why was Rev C (followers in stage 1, ×136 in stage 2) not used?",
+      "correct": "Offset would be multiplied by 136, and CMRR loses the G1 multiplier",
+      "distractors": [
+        "It fails the ±20° phase spec at 0.5 Hz with followers in stage 1",
+        "It needs a fourth op-amp, breaking the stock-parts-only rule",
+        "Stage 2 alone cannot reach 40 dB with stock resistor values"
+      ],
+      "explanation": "Rev C removed the 3.3 MΩ nodes (and the stray-C error) but its DC gain on offset was 136 with no C1 to block it, and stage 1 at unity means CMRR gets no G1 multiplier. Its phase was +1.8°/−8.2°, which passes, and it used stock parts.",
+      "modelAnswer": "It multiplies the stage-1 DC offset difference by 136 instead of 12 (up to ~9.5 V) and gives up the CMRR benefit of stage-1 gain.",
+      "sayIt": "It removes the high-impedance nodes but multiplies DC offset by 136 and gives up the CMRR benefit of stage-1 gain.",
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "topology-gain-009",
+      "topic": "topology-gain",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "At 15 Hz with the fixture's V_id ≈ 19 mV pk (9.5 mV on each input), what is at each stage-1 output?",
+      "correct": "≈102 mV pk each, 203 mV pk differential",
+      "distractors": [
+        "≈9.5 mV pk each; stage 1 is a follower at 15 Hz",
+        "≈1.02 V pk each, 2.03 V pk differential",
+        "≈203 mV pk each, 406 mV pk differential"
+      ],
+      "explanation": "Each output is G1 × its own input: 10.71 × 9.5 mV ≈ 102 mV, opposite in phase, so V_O2 − V_O1 ≈ 203 mV. Stage 2 then gives 12.14 × 203 mV ≈ 2.47 V pk.",
+      "modelAnswer": "About 102 mV pk each (10.71 × 9.5 mV), 203 mV pk differential.",
+      "sayIt": "9.5 mV at each input, 102 mV at each stage-1 output, 203 mV differential, 2.5 V at Vo.",
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "topology-gain-010",
+      "topic": "topology-gain",
+      "type": "single",
+      "difficulty": 1,
+      "prompt": "Which node limits the signal headroom?",
+      "correct": "Vo; the stage-1 outputs only swing about ±0.1 V",
+      "distractors": [
+        "The stage-1 outputs, which carry G1 × electrode DC",
+        "A3's + pin, which sits at 0.924 × V_O2",
+        "The A1/A2 + inputs, because of the 68 mV bias drop"
+      ],
+      "explanation": "Stage 1 only has to deliver ~102 mV pk. All the swing (2.6 V pk for a 20 mV QRS) plus the output offset lands on Vo, which is why the single-supply headroom check is done at Vo against the 3–12 V window.",
+      "modelAnswer": "Vo, the A3 output; the stage-1 outputs only swing about ±0.1 V.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "topology-gain-011",
+      "topic": "topology-gain",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "The measured gain was 42.59 dB against 42.27 dB designed. What explains the 0.3 dB?",
+      "correct": "Resistor tolerance: a constant gain error at every frequency",
+      "distractors": [
+        "Finite OP27 gain-bandwidth lifting the mid-band",
+        "The 0.15 % input-network loss being smaller than modelled",
+        "Coupling-capacitor tolerance shifting the mid-band level"
+      ],
+      "explanation": "Gain depends only on R1, R2, R3, R4 (a 10 % error in one moves gain by 0.75–0.83 dB). A constant offset across the whole sweep means the corners are right and only the mid-band ratio is off. Capacitors only move corners; the OP27 adds 0.0013 % gain error.",
+      "modelAnswer": "Resistor tolerance on R1–R4: the error is a constant 0.3–0.5 dB at every frequency, so it is a pure gain error, not a corner error.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "topology-gain-012",
+      "topic": "topology-gain",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Is the amplifier inverting or non-inverting with respect to V2?",
+      "correct": "Non-inverting: Vo is in phase with V2 (−0.7° at 15 Hz)",
+      "distractors": [
+        "Inverting: Vo is 180° from V2",
+        "Inverting at low frequency, non-inverting above 5 Hz",
+        "It depends on which input the fixture's inverter drives"
+      ],
+      "explanation": "V2 drives A2's + input, V_O2 drives A3's + input through R3_a, so the path is non-inverting. The −0.7° at 15 Hz is the low-pass lag (−0.82°) minus a little high-pass lead (+0.09°).",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "input-network-001",
+      "topic": "input-network",
+      "type": "single",
+      "difficulty": 1,
+      "prompt": "What is the job of the coupling capacitors C_ca and C_cb (10 µF)?",
+      "correct": "Block electrode half-cell DC and set the input high-pass",
+      "distractors": [
+        "Filter out 50 Hz mains interference before it reaches stage 1",
+        "Set the 1054 Hz low-pass corner together with R_c",
+        "Provide the DC bias-current path into the op-amp + inputs"
+      ],
+      "explanation": "Electrodes carry hundreds of mV of DC. C_c blocks it so it is never amplified. With R_c it forms a high-pass at 2.3 mHz. The bias path is R_c's job; the low-pass is R4–C4.",
+      "modelAnswer": "Block the electrodes' DC half-cell potential and set the input high-pass; on one supply they also let the amplifier side sit at 7.5 V while the source side is at 0 V.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "input-network-002",
+      "topic": "input-network",
+      "type": "single",
+      "difficulty": 1,
+      "prompt": "What is the job of R_ca and R_cb (6.8 MΩ)?",
+      "correct": "Give the + pins a DC bias path and set their DC level",
+      "distractors": [
+        "Set the stage-1 differential gain together with R1",
+        "Match the electrode impedance for maximum power transfer",
+        "Form the 1054 Hz low-pass together with C_c"
+      ],
+      "explanation": "After C_c there is no DC path to the op-amp + pin except R_c. Without it the bias current would charge C_c until the input saturated. It is returned to 0 V (dual) or VREF (single), so the pin sits at VREF − I_b·R_c ≈ 7.43 V.",
+      "modelAnswer": "Give the + inputs a DC path for their bias current, set their DC level, and set the input impedance.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "input-network-003",
+      "topic": "input-network",
+      "type": "single",
+      "difficulty": 1,
+      "prompt": "What is the input network's time constant and corner?",
+      "correct": "(R_s + R_c)C_c = 68.1 s → 2.34 mHz",
+      "distractors": [
+        "R1C1 = 6.8 s → 23.4 mHz",
+        "(R1 + 2R2)C1 = 72.8 s → 2.19 mHz",
+        "0.33 µF × 10 MΩ = 3.3 s → 48 mHz"
+      ],
+      "explanation": "H_in(s) = sR_cC_c / (1 + s(R_s + R_c)C_c). Pole at 1/(2π·68.1 s) = 2.34 mHz. 72.8 s is the stage-1 zero that cancels this pole; 6.8 s is the R1C1 pole that is the real lower corner; 3.3 s was the old 0.33 µF / 10 MΩ network.",
+      "modelAnswer": "τ = (R_s + R_c)C_c = 6.81 MΩ × 10 µF = 68.1 s, corner 2.34 mHz.",
+      "sayIt": "10 µF into 6.8 MΩ is a 68 second high-pass at 2.3 millihertz.",
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "input-network-004",
+      "topic": "input-network",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Why is R_c 6.8 MΩ?",
+      "correct": "69.8 dB electrode-mismatch CMRR, and 68 s with 10 µF for cancellation",
+      "distractors": [
+        "It equals 2 × R2, which balances the A1/A2 bias-current drops",
+        "It is the largest stock resistor, giving maximum input impedance",
+        "With C1 it sets the 23 mHz lower corner of the whole amplifier"
+      ],
+      "explanation": "R_c forms a divider with each electrode impedance; mismatched electrodes then convert common-mode to differential, and the error scales as R_s/R_c. 10 MΩ would give 73.2 dB but τ = 100 s and more offset (I_b·R_c). 6.8 MΩ × 10 µF = 68 s ≈ 72.8 s.",
+      "modelAnswer": "Electrode-mismatch CMRR R_c/[2R_s(Δ_c + Δ_s)] gives 69.8 dB; with 10 µF it gives 68 s to meet the pole-zero condition; and it has 32 % less bias-current offset than 10 MΩ.",
+      "sayIt": "Electrode mismatch: CMRR = R_c over 2 R_s (Δ_c + Δ_s) = 69.8 dB. And 6.8 MΩ × 10 µF matches the cancellation condition.",
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "input-network-005",
+      "topic": "input-network",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "What electrode-mismatch CMRR does R_c = 6.8 MΩ give with 10 kΩ sources, 10 % electrode and 1 % resistor mismatch?",
+      "correct": "3091, i.e. 69.8 dB",
+      "distractors": [
+        "4545, i.e. 73.2 dB",
+        "3518, i.e. 70.9 dB",
+        "1645, i.e. 64.3 dB"
+      ],
+      "explanation": "69.8 dB. CMRR_e = Z_c / [2 Z_s (Δ_c + Δ_s)]. 73.2 dB is the 10 MΩ version, 70.9 dB is the stage-2 resistor term, and 64.3 dB is those two combined (in real use). This term never appears on the bench because the Brief's CMRR test drives both inputs directly.",
+      "modelAnswer": "6.8 M / (2 × 10 k × 0.11) = 3091, i.e.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "input-network-006",
+      "topic": "input-network",
+      "type": "single",
+      "difficulty": 1,
+      "prompt": "How much signal does the input network lose in the passband?",
+      "correct": "About 0.15 % (−0.013 dB), from the R_s–R_c divider",
+      "distractors": [
+        "About 3 dB at 0.5 Hz, from the high-pass corner",
+        "About 10 %, from the 10 kΩ source impedance",
+        "None; a high-pass has unity gain in its passband"
+      ],
+      "explanation": "Above ~0.02 Hz the capacitor is a short, leaving the R_s–R_c divider. That is the α = 0.9985 in A0 = α·G1·G2.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "input-network-007",
+      "topic": "input-network",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Why do the test scripts wait 300 s before measuring?",
+      "correct": "The input nodes settle with τ = 68 s; 5τ ≈ 340 s",
+      "distractors": [
+        "The OP27 bias current drifts for ~5 minutes after power-up",
+        "C_ref needs 300 s to charge VREF to 7.5 V",
+        "The generator's DC offset takes 300 s to stabilise"
+      ],
+      "explanation": "After any disturbance the + pin returns to VREF − I_b·R_c through the 68 s time constant. VREF itself settles in 5 × 34 ms = 0.17 s.",
+      "modelAnswer": "The input nodes settle with τ = 68 s; 1 % settling takes about 5τ ≈ 340 s.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "input-network-008",
+      "topic": "input-network",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Why was the input network changed from 0.33 µF / 10 MΩ to 10 µF / 6.8 MΩ between 30 Oct and 2 Nov?",
+      "correct": "To meet C_cR_c ≈ C1(R1 + 2R2), which also fixed 0.5 Hz CMRR",
+      "distractors": [
+        "To reduce the thermal noise that the 10 MΩ R_c was contributing",
+        "The 0.33 µF parts leaked and slowly drifted the input DC levels",
+        "To move the lower −3 dB corner up to exactly 0.5 Hz"
+      ],
+      "explanation": "With τ = 3.3 s the input pole sat far from the stage-1 zero, leaving a shelf and +38° at 0.1 Hz. Time-constant CMRR is |1 + jωτ|/δ; at 0.5 Hz that factor went from 10.4 to 214, which is the 55 → 76 dB jump.",
+      "modelAnswer": "To meet the Brief's pole-zero condition C_cR_c ≈ C1(R1 + 2R2) (3.3 s → 68 s vs 72.8 s), which also lifted 0.5 Hz CMRR from 55 dB to 76 dB.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "input-network-009",
+      "topic": "input-network",
+      "type": "single",
+      "difficulty": 1,
+      "prompt": "What DC voltage drop does the OP27 bias current produce across R_c?",
+      "correct": "≈68 mV typical (10 nA × 6.8 MΩ)",
+      "distractors": [
+        "≈6.8 V (1 µA × 6.8 MΩ)",
+        "≈0.68 mV (0.1 nA × 6.8 MΩ)",
+        "None, because C_c blocks all DC"
+      ],
+      "explanation": "C_c blocks source DC but not the bias current, which flows through R_c. On one supply that puts the + pins at 7.5 − 0.068 ≈ 7.43 V.",
+      "modelAnswer": "About 68 mV typical (10 nA × 6.8 MΩ), up to 272 mV at the 40 nA maximum.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "input-network-010",
+      "topic": "input-network",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Why is C_c 10 µF rather than larger?",
+      "correct": "It is the largest capacitor the Brief's parts list allows",
+      "distractors": [
+        "Anything larger would push the high-pass corner above 0.5 Hz",
+        "Anything larger would also cancel the stage-1 R1C1 pole",
+        "10 µF with 6.8 MΩ makes the input impedance exactly 10 MΩ"
+      ],
+      "explanation": "The Brief allows capacitors up to 10 µF. The largest C_c lets R_c be as small as possible (less offset) for a given τ. The same limit is why C1 is 10 µF and R1 is 680 kΩ.",
+      "modelAnswer": "10 µF is the largest capacitor allowed by the Brief's materials list (stock parts only).",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "stage-1-001",
+      "topic": "stage-1",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "What is C1 for?",
+      "correct": "Opens R1 at DC so stage-1 DC gain is 1, not 10.7",
+      "distractors": [
+        "Sets the 1054 Hz low-pass corner together with R1",
+        "Blocks electrode DC from reaching the op-amp inputs",
+        "Cancels the input-network pole on its own, without R2"
+      ],
+      "explanation": "At DC, Z1 = R1 + 1/(sC1) is infinite, so G1 = 1 and A1/A2 are followers. Only stage 2's 12.14 multiplies the offset difference. Without C1 the offset would see the full 130.",
+      "modelAnswer": "It opens the R1 branch at DC so stage-1 DC gain is 1; the A1/A2 offset difference is then multiplied by 12, not 130.",
+      "sayIt": "It makes stage-1 gain 1 at DC, so the offset difference is multiplied by 12, not 130.",
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "stage-1-002",
+      "topic": "stage-1",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "What is stage 1's common-mode gain?",
+      "correct": "Exactly 1, whatever the resistor values",
+      "distractors": [
+        "10.71, the same as the differential gain",
+        "1 + R2/R1, about 5.9",
+        "Zero, since stage 1 rejects common-mode"
+      ],
+      "explanation": "If V1 = V2, both inverting inputs sit at the same voltage, so no current flows in R1–C1, none flows in R2, and each output equals its input. This is why the common-mode is not amplified and CMRR gets the G1 multiplier.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "stage-1-003",
+      "topic": "stage-1",
+      "type": "single",
+      "difficulty": 1,
+      "prompt": "Which expression is stage 1's differential transfer function G1(s)?",
+      "correct": "[1 + s(R1 + 2R2)C1] / [1 + sR1C1]",
+      "distractors": [
+        "[1 + sR1C1] / [1 + s(R1 + 2R2)C1]",
+        "(1 + 2R2/R1) · sR1C1 / (1 + sR1C1)",
+        "1 + 2R2/R1 · 1/(1 + sR1C1)"
+      ],
+      "explanation": "G1 = 1 + 2R2/Z1 with Z1 = R1 + 1/(sC1) = (1 + sR1C1)/(sC1). So G1 = 1 + 2R2·sC1/(1 + sR1C1) = [1 + s(R1 + 2R2)C1]/(1 + sR1C1). DC gain 1, high-frequency gain (R1 + 2R2)/R1 = 10.71: a lead network.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "stage-1-004",
+      "topic": "stage-1",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Where are stage 1's pole and zero?",
+      "correct": "Pole 23.4 mHz (R1C1); zero 2.19 mHz ((R1 + 2R2)C1)",
+      "distractors": [
+        "Pole 2.19 mHz ((R1 + 2R2)C1); zero 23.4 mHz (R1C1)",
+        "Pole 23.4 mHz (R1C1); zero at the origin (C1)",
+        "Pole 1054 Hz (R4C4); zero 23.4 mHz (R1C1)"
+      ],
+      "explanation": "τ_p = 680 k × 10 µ = 6.8 s → 23.4 mHz. τ_z = 7.28 M × 10 µ = 72.8 s → 2.19 mHz. The zero sits below the pole by exactly G1 (f_p/f_z = 10.71), which is the step up in gain.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "stage-1-005",
+      "topic": "stage-1",
+      "type": "single",
+      "difficulty": 1,
+      "prompt": "What is the pole-zero cancellation condition and how close is the build?",
+      "correct": "C1(R1 + 2R2) = C_cR_c: 72.8 s vs 68.0 s",
+      "distractors": [
+        "R1C1 = C_cR_c: 6.8 s vs 68.0 s, 90 % apart",
+        "C1R2 = C_cR_c: 33 s vs 68.0 s, 51 % apart",
+        "R1C1 = R4C4: 6.8 s vs 151 µs"
+      ],
+      "explanation": "The stage-1 zero at −1/τ_z must land on the input pole at −1/τ_in. The Brief states it as C1(R1 + 2R2) = C_cR_c. The leftover pole-zero pair is 0.15 mHz apart near 2.3 mHz and adds 0.09° at 0.1 Hz.",
+      "modelAnswer": "C1(R1 + 2R2) = C_cR_c: 72.8 s against 68.0 s, 7 % apart.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "stage-1-006",
+      "topic": "stage-1",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "After pole-zero cancellation, what sets the amplifier's lower −3 dB corner?",
+      "correct": "R1C1 alone: 23.4 mHz",
+      "distractors": [
+        "R_cC_c alone: 2.34 mHz",
+        "The stage-1 zero: 2.19 mHz",
+        "√(2.34 × 23.4) mHz ≈ 7.4 mHz"
+      ],
+      "explanation": "The input pole (cut below 2.34 mHz) and stage-1 zero (boost below 2.19 mHz) undo each other, leaving R1C1. The exact model gives 23.6 mHz at −3 dB.",
+      "modelAnswer": "Stage 1's pole alone: 1/(2πR1C1) = 23.4 mHz.",
+      "sayIt": "Its zero at 2.2 millihertz cancels the input pole, so the only high-pass corner left is 1 over 2π R1 C1, 23 millihertz.",
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "stage-1-007",
+      "topic": "stage-1",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "If the input pole and stage-1 zero were far apart (as with the old 0.33 µF network), what would you see?",
+      "correct": "A shelf in the low-frequency gain and extra lead at 0.5 Hz",
+      "distractors": [
+        "Ringing in the step response near the lower corner",
+        "A notch in the gain response close to 50 Hz",
+        "Higher mid-band gain, by roughly the pole-zero ratio"
+      ],
+      "explanation": "Uncancelled, the response has two separate high-pass corners with a step between them. On 30 Oct the 3.3 s network gave +41° at 0.1 Hz against +14.9° after the change.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "stage-1-008",
+      "topic": "stage-1",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Why is R1 680 kΩ?",
+      "correct": "C1 is capped at 10 µF, so R1 must be ≈680 kΩ for 23 mHz",
+      "distractors": [
+        "It matches R4 so both stages share a time constant",
+        "It gives the lowest thermal noise for the stage",
+        "It sets the input impedance together with R_c"
+      ],
+      "explanation": "R1C1 is the only low-frequency corner after cancellation. The 10 µF ceiling on C1 forces R1 high. R1 thermal noise is actually the second-largest noise source.",
+      "modelAnswer": "With C1 capped at 10 µF, R1 = 1/(2π · 23 mHz · 10 µF) ≈ 680 kΩ for the lower corner, and it sets G1 with R2.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "stage-1-009",
+      "topic": "stage-1",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "How was R2 = 3.3 MΩ chosen?",
+      "correct": "From the gain: R2 = (G1 − 1)R1/2 ≈ 3.3 MΩ",
+      "distractors": [
+        "Set to R_c/2 so the bias-current drops cancel",
+        "Set by the stray-capacitance limit at the stage-1 nodes",
+        "Chosen for minimum current-noise contribution"
+      ],
+      "explanation": "(10.71 − 1) × 680 k / 2 = 3.3 MΩ. Larger R2 raises offset (I_os·R2), noise (i_n·R2 dominates) and the stray-capacitance CMRR slope.",
+      "modelAnswer": "From the gain: R2 = (G1 − 1)R1/2 for G1 ≈ 10.7 with R1 = 680 kΩ; it also sets the stage-1 zero τ_z = C1(R1 + 2R2) = 72.8 s.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "stage-1-010",
+      "topic": "stage-1",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "What would a larger R2 cost?",
+      "correct": "More offset, more noise and a worse stray-C CMRR slope",
+      "distractors": [
+        "Lower input impedance seen by the electrodes, so more loading",
+        "A higher low-pass corner and therefore less phase lag at 150 Hz",
+        "Higher common-mode gain through stage 1"
+      ],
+      "explanation": "i_n × R2 is the largest noise term (174 nV/√Hz referred to input). CMRR_stray = G1/(ωR2ΔC), so it worsens with R2. Offset includes I_b(R2 − R_c) and (I_os/2)(R2 + R_c).",
+      "modelAnswer": "More DC offset, more noise (OP27 current noise × R2) and a steeper stray-capacitance CMRR error.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "stage-1-011",
+      "topic": "stage-1",
+      "type": "single",
+      "difficulty": 1,
+      "prompt": "What is the closed-loop bandwidth of A1 and A2?",
+      "correct": "8 MHz / 10.71 ≈ 747 kHz",
+      "distractors": [
+        "8 MHz / 13.14 ≈ 609 kHz",
+        "8 MHz / 130 ≈ 62 kHz",
+        "1054 Hz"
+      ],
+      "explanation": "OP27 GBW ≈ 8 MHz; noise gain of each stage-1 amp at signal frequencies is G1. 609 kHz is A3 (noise gain 1 + G2). These poles are three decades above the low-pass and add 0.03° at 150 Hz.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "stage-1-012",
+      "topic": "stage-1",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Why is the stage-1 lead network's pole-zero spacing exactly the stage-1 gain?",
+      "correct": "τ_z/τ_p = (R1 + 2R2)/R1, which is G1",
+      "distractors": [
+        "C1 equals C_c, so the time constants scale together",
+        "The zero is at the origin, so the spacing is G1",
+        "The OP27 GBW sets both the pole and the zero"
+      ],
+      "explanation": "A lead network steps from DC gain 1 to HF gain τ_z/τ_p. Here that ratio is 72.8/6.8 = 10.71.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "stage-2-001",
+      "topic": "stage-2",
+      "type": "single",
+      "difficulty": 1,
+      "prompt": "What is the upper (low-pass) cutoff and what sets it?",
+      "correct": "1/(2πR4C4) ≈ 1054 Hz",
+      "distractors": [
+        "1/(2πR3C4) ≈ 12.8 kHz",
+        "1/(R4C4) ≈ 6.6 kHz",
+        "GBW/(1 + G2) ≈ 609 kHz"
+      ],
+      "explanation": "Z4 = R4 ∥ 1/(sC4) gives Vo = (R4/R3)/(1 + sR4C4) × (V_O2 − V_O1). τ_4 = 151 µs, pole at −6624 rad/s = 1054 Hz. 6624 is the rad/s figure; divide by 2π.",
+      "modelAnswer": "1/(2πR4C4) = 1/(2π × 680 kΩ × 222 pF) ≈ 1054 Hz.",
+      "sayIt": "Rolling off at 1 over 2π R4 C4, about 1 kilohertz, which costs 8 degrees at 150 hertz.",
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "stage-2-002",
+      "topic": "stage-2",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Why is C4 222 pF?",
+      "correct": "Nearest stock part to the 195 pF a 1.2 kHz target needed",
+      "distractors": [
+        "It puts the corner at exactly 150 Hz, the band edge",
+        "It cancels the A3 gain-bandwidth pole at 609 kHz",
+        "It matches the stray capacitance at the stage-1 nodes"
+      ],
+      "explanation": "The corner must be above 412 Hz for the phase spec and low enough to limit noise bandwidth (ENBW = π/2 × 1054 = 1656 Hz). 297 pF would give 788 Hz and 10.8°.",
+      "modelAnswer": "The 12 Oct design targeted 1.2 kHz (195 pF ideal); 222 pF was the nearest stock part, giving 1054 Hz and 8.1° of lag at 150 Hz.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "stage-2-003",
+      "topic": "stage-2",
+      "type": "single",
+      "difficulty": 1,
+      "prompt": "How much phase and gain does the low-pass cost at 150 Hz?",
+      "correct": "8.1° of lag, 0.09 dB of droop",
+      "distractors": [
+        "45° of lag, 3 dB of droop",
+        "0.81° of lag, 0.01 dB of droop",
+        "20° of lag, 1 dB of droop"
+      ],
+      "explanation": "A single pole lags by arctan(f/f_c) and droops by 10log(1 + (f/f_c)²). With f/f_c = 0.142 that is 8.1° and 0.09 dB.",
+      "modelAnswer": "arctan(150/1054) = 8.1° of lag and about 0.09 dB of droop.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "stage-2-004",
+      "topic": "stage-2",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Why is there a 222 pF capacitor across R4_a (the reference leg) as well as across R4_b (the feedback)?",
+      "correct": "To keep both halves identical (Z4A = Z4B) at all frequencies",
+      "distractors": [
+        "To make the low-pass second order, rolling off at 40 dB/decade",
+        "To decouple VREF to 0 V on the single supply",
+        "To stop A3 oscillating with 680 kΩ of feedback resistance"
+      ],
+      "explanation": "A_c2 = (a − b)/(1 + a) with a and b the two arm ratios. If only one arm had C4, the ratios would differ above ~1 kHz and CMRR would collapse there. The filter is still first-order.",
+      "modelAnswer": "So both halves of the difference amplifier stay identical (Z4A = Z4B) at all frequencies; otherwise the ratios diverge with frequency and common-mode leaks through.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "stage-2-005",
+      "topic": "stage-2",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "What is A3's noise gain and closed-loop bandwidth?",
+      "correct": "1 + G2 = 13.14, giving 8 MHz / 13.14 ≈ 609 kHz",
+      "distractors": [
+        "G2 = 12.14, giving 8 MHz / 12.14 ≈ 659 kHz",
+        "G1·G2 = 130, giving 8 MHz / 130 ≈ 62 kHz",
+        "1, since A3 is a difference amp, giving 8 MHz"
+      ],
+      "explanation": "For a difference amp the feedback factor is R3/(R3 + R4), so noise gain = 1 + R4/R3. That pole at 609 kHz is negligible.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "stage-2-006",
+      "topic": "stage-2",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "At 15 Hz what is the signal on A3's + pin?",
+      "correct": "≈94 mV pk: 0.924 × V_O2 via the R3_a/R4_a divider",
+      "distractors": [
+        "≈2.47 V pk, the same as Vo, as A3 is a follower",
+        "≈102 mV pk, the full V_O2 with no divider",
+        "≈0 V, since A3's inputs form a virtual ground"
+      ],
+      "explanation": "R3_a and R4_a form a divider from V_O2 to the reference. The − pin follows it, which is a quick check that A3 is in its linear range. It is not a virtual ground: only an inverting amp with the + pin grounded has that.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "stage-2-007",
+      "topic": "stage-2",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "What does matching between the A and B halves of stage 2 control?",
+      "correct": "The mid-band CMRR floor",
+      "distractors": [
+        "The differential gain only",
+        "The low-pass corner only",
+        "The DC offset of A1 and A2"
+      ],
+      "explanation": "A_c2 = (a − b)/(1 + a). With tolerance t, worst case |A_c2| ≈ 4tG2/(1 + G2), giving CMRR_stage2 = (1 + G2)/4t and CMRR_R = G1(1 + G2)/4t.",
+      "modelAnswer": "The mid-band CMRR floor: any R4/R3 ratio mismatch turns common-mode into output.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "stage-2-008",
+      "topic": "stage-2",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "How does stage 2 reject common-mode in its derivation?",
+      "correct": "Matched arms give Vo = (Z4/R3)(V_O2 − V_O1), so common parts cancel",
+      "distractors": [
+        "C4 shorts the common-mode component straight to the reference",
+        "R3 ≪ R4, so common-mode is attenuated by the ratio R3/R4",
+        "A3's own 114 dB CMRR removes any common-mode at the output"
+      ],
+      "explanation": "Superposition: V+ = V_O2·Z4/(R3 + Z4); Vo = V+(1 + Z4/R3) − V_O1·Z4/R3. With matched arms the first term becomes V_O2·Z4/R3, leaving the difference only.",
+      "modelAnswer": "With matched arms, Vo = (Z4/R3)(V_O2 − V_O1), so any voltage common to V_O2 and V_O1 cancels.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "corners-phase-001",
+      "topic": "corners-phase",
+      "type": "single",
+      "difficulty": 1,
+      "prompt": "What were the cutoff frequencies of the design?",
+      "correct": "23.4 mHz and 1054 Hz",
+      "distractors": [
+        "0.5 Hz and 150 Hz",
+        "2.34 mHz and 1054 Hz",
+        "23.4 mHz and 1.2 kHz"
+      ],
+      "explanation": "Lower: 1/(2πR1C1) after the input pole is cancelled. Upper: 1/(2πR4C4). 0.5–150 Hz is the spec band, not our corners. 2.34 mHz is the cancelled input pole. 1.2 kHz was the original target before the stock 222 pF part.",
+      "modelAnswer": "23.4 mHz and 1054 Hz (the exact model gives −3 dB at 23.6 mHz and 1048 Hz).",
+      "sayIt": "One high-pass at 23 millihertz, one low-pass at 1.05 kilohertz.",
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": [
+        "demo-asked"
+      ]
+    },
+    {
+      "id": "corners-phase-002",
+      "topic": "corners-phase",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Why are the corners so far outside the 0.5–150 Hz band?",
+      "correct": "The ±20° phase spec forces f_HP < 0.18 Hz and f_LP > 412 Hz",
+      "distractors": [
+        "To cut the noise bandwidth well below the 30 mV limit",
+        "Stock capacitors could not place them any closer",
+        "Corners nearer the band would make the step response ring"
+      ],
+      "explanation": "tan 20° = 0.364. High-pass lead at 0.5 Hz is arctan(f_c/0.5) → f_c < 0.18 Hz. Low-pass lag at 150 Hz is arctan(150/f_c) → f_c > 412 Hz. A corner at the band edge would give 45° there.",
+      "modelAnswer": "The ±20° phase spec is tighter than the −3 dB spec: a single high-pass must be below 0.18 Hz and a single low-pass above 412 Hz.",
+      "sayIt": "The phase spec. A single corner must be below 0.18 Hz or above 412 Hz to stay within 20°; ours give +3.4° and −7.4°.",
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "corners-phase-003",
+      "topic": "corners-phase",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Where does the 0.18 Hz limit on the high-pass corner come from?",
+      "correct": "f_HP < 0.5 × tan 20° = 0.18 Hz",
+      "distractors": [
+        "f_HP < 0.5 / 2π ≈ 0.08 Hz, rounded up",
+        "One decade below 0.5 Hz, rounded up",
+        "f_HP < 0.5 × sin 20° ≈ 0.17 Hz"
+      ],
+      "explanation": "A first-order high-pass leads by arctan(f_c/f). Setting arctan(f_c/0.5) ≤ 20° gives f_c ≤ 0.5 tan 20°.",
+      "modelAnswer": "tan 20° = 0.364, so f_HP < 0.364 × 0.5 Hz = 0.18 Hz.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "corners-phase-004",
+      "topic": "corners-phase",
+      "type": "single",
+      "difficulty": 1,
+      "prompt": "What phase (relative to 15 Hz) does the model predict at 0.5 Hz and at 150 Hz?",
+      "correct": "+3.4° and −7.4°",
+      "distractors": [
+        "+2.7° and −8.1°",
+        "+45° and −45°",
+        "+13.3° and −8.1°"
+      ],
+      "explanation": "φ(f) = arctan(0.0234/f) − arctan(f/1054). Absolute: +2.67° at 0.5 Hz, −8.11° at 150 Hz, −0.73° at 15 Hz. Relative to 15 Hz: +3.40° and −7.39°. +2.7/−8.1 are the absolute values. Measured: +3.5°/−7.0° (dual), +3.66°/−7.52° (single).",
+      "modelAnswer": "+3.4° at 0.5 Hz and −7.4° at 150 Hz.",
+      "sayIt": "Phase is arctan of 0.0234 over f, minus arctan of f over 1054: plus 3.4 degrees at 0.5 hertz and minus 7.4 at 150, against a 20 degree limit.",
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "corners-phase-005",
+      "topic": "corners-phase",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Why does the relative phase at 0.5 Hz (+3.40°) differ from the absolute phase (+2.67°)?",
+      "correct": "15 Hz itself sits at −0.73°, mostly low-pass lag",
+      "distractors": [
+        "The scope's AC coupling adds 0.73° at 0.5 Hz",
+        "The cancelled input pole still adds 0.73°",
+        "The OP27 poles add 0.73° at every frequency"
+      ],
+      "explanation": "At 15 Hz the high-pass gives +0.09° and the low-pass −0.82°. The Brief asks for phase relative to mid-band, so we subtract −0.73°.",
+      "modelAnswer": "The reference point 15 Hz is itself at −0.73° (mostly low-pass lag), so every relative value is shifted by +0.73°.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "corners-phase-006",
+      "topic": "corners-phase",
+      "type": "single",
+      "difficulty": 1,
+      "prompt": "At what frequency does the absolute phase cross zero?",
+      "correct": "√(0.0234 × 1054) ≈ 5 Hz, the geometric mean",
+      "distractors": [
+        "15 Hz, the reference frequency",
+        "(0.0234 + 1054)/2 ≈ 527 Hz, the arithmetic mean",
+        "0.5 Hz, the bottom of the spec band"
+      ],
+      "explanation": "Lead = arctan(f_L/f), lag = arctan(f/f_H). They are equal when f_L/f = f/f_H, i.e. f = √(f_L f_H).",
+      "modelAnswer": "At the geometric mean of the corners, √(0.0234 × 1054) ≈ 5 Hz.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "corners-phase-007",
+      "topic": "corners-phase",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "How is phase converted from the scope's time shift, and what is Δt at 0.5 Hz?",
+      "correct": "Δt = φ/(360° f): 3.4° ≈ 19 ms, output early",
+      "distractors": [
+        "Δt = φ/(2π f): 3.4° ≈ 1.1 s, output late",
+        "Δt = φ/(180° f): 3.4° ≈ 38 ms, output early",
+        "Δt = φ·f/360°: 3.4° ≈ 4.7 ms, output late"
+      ],
+      "explanation": "Δt = φ/(360 f) = 3.4/(360 × 0.5) = 0.019 s. Lead means the output is early. At 150 Hz, 7.4° is 0.14 ms late.",
+      "modelAnswer": "φ = 360° × f × Δt; at 0.5 Hz, 3.4° is about 19 ms, with the output early.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "corners-phase-008",
+      "topic": "corners-phase",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "In the full transfer function A_d(s) = K·s(s + 0.01374)/[(s + 0.01468)(s + 0.1471)(s + 6624)], which pair nearly cancels?",
+      "correct": "Zero −0.01374 (stage 1) and pole −0.01468 (input)",
+      "distractors": [
+        "Zero at 0 (C_c) and pole −0.1471 (R1C1)",
+        "Zero −0.01374 (stage 1) and pole −0.1471 (R1C1)",
+        "Pole −0.1471 (R1C1) and pole −6624 (R4C4)"
+      ],
+      "explanation": "−1/72.8 s = −0.01374, −1/68.1 s = −0.01468: 7 % apart. The zero at 0 is C_c blocking DC. −0.1471 (R1C1) and −6624 (R4C4) are the two corners that remain.",
+      "modelAnswer": "The zero at −0.01374 rad/s (stage-1 zero) and the pole at −0.01468 rad/s (input network).",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "corners-phase-009",
+      "topic": "corners-phase",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "How do you know the amplifier is stable and will not ring?",
+      "correct": "All poles are real and in the left half-plane",
+      "distractors": [
+        "The phase margin at 150 Hz is over 80°",
+        "The closed-loop gain is below the OP27 GBW",
+        "The CMRR stays above 60 dB in the passband"
+      ],
+      "explanation": "Every pole comes from an RC time constant around an op-amp, so each sits at −1/τ on the negative real axis. Complex pole pairs would be needed for ringing.",
+      "modelAnswer": "All poles are real and in the left half-plane, so the step response has no overshoot.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "corners-phase-010",
+      "topic": "corners-phase",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "What does the step response to a 1 mV differential step look like?",
+      "correct": "Rises in ≈0.33 ms to 130 mV, then decays with τ = 6.8 s",
+      "distractors": [
+        "Rises with τ = 6.8 s to 130 mV, then decays in ≈0.33 ms",
+        "Overshoots to ≈150 mV, then rings at about 1 kHz before settling",
+        "Rises in ≈0.33 ms to 130 mV and holds there indefinitely"
+      ],
+      "explanation": "Rise 2.2τ_4 = 0.33 ms. Decay τ_1 = R1C1 = 6.8 s. No overshoot because all poles are real.",
+      "modelAnswer": "Rises with the 151 µs low-pass time constant (10–90 % in 0.33 ms) to 130 mV, then decays back with the 6.8 s high-pass time constant.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "corners-phase-011",
+      "topic": "corners-phase",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Does a 23 mHz lower corner distort the ST segment of an ECG?",
+      "correct": "Barely: ≈3 % sag over 0.2 s, and 23 mHz < 0.05 Hz",
+      "distractors": [
+        "Yes: a 23 mHz high-pass removes the ST level",
+        "Yes: the corner must be above 0.5 Hz for ST",
+        "No: the ST segment's content is above 150 Hz"
+      ],
+      "explanation": "Sag ≈ t/τ = 0.2/6.8 ≈ 3 %. Diagnostic ECG asks for 0.05 Hz to preserve ST levels; 23 mHz is below that.",
+      "modelAnswer": "Hardly: it is below the 0.05 Hz usually quoted for diagnostic ECG; over a 0.2 s segment the level sags by about 3 %.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "corners-phase-012",
+      "topic": "corners-phase",
+      "type": "single",
+      "difficulty": 1,
+      "prompt": "Which parts can move the mid-band gain?",
+      "correct": "R1, R2, R3 and R4 only",
+      "distractors": [
+        "R1–R4 plus C1 and C4",
+        "C_c and R_c only",
+        "R4 and C4 only"
+      ],
+      "explanation": "Fig. R9: a 10 % error in any of R1–R4 moves gain by 0.75–0.83 dB. Capacitors only move corners. Phase at 0.5 Hz depends on R1, C1; phase at 150 Hz on R4, C4.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "corners-phase-013",
+      "topic": "corners-phase",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Why does the input network barely affect phase at 0.5 Hz (≈0.02° per 10 %)?",
+      "correct": "Its pole is cancelled by the stage-1 zero",
+      "distractors": [
+        "C_c is electrolytic, so its value hardly matters",
+        "R_c is far larger than the 10 kΩ source",
+        "Its corner sits above 0.5 Hz, not below"
+      ],
+      "explanation": "With the cancellation, 0.5 Hz phase is set by R1C1 alone (0.2° per 10 %).",
+      "modelAnswer": "Its pole is cancelled by the stage-1 zero, which is the practical benefit of meeting the pole-zero condition.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "corners-phase-014",
+      "topic": "corners-phase",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "The measured phase at 0.1 Hz was +14.9°. Is that a problem?",
+      "correct": "No: the model predicts ≈ +14°, and 0.1 Hz is off-spec",
+      "distractors": [
+        "Yes: +14.9° exceeds the allowance once tolerance is included",
+        "Yes: it shows the input pole-zero cancellation has failed",
+        "No: phase is only specified at the 15 Hz reference point"
+      ],
+      "explanation": "Relative to 15 Hz the model gives +13.98°. The spec points are 0.5 Hz and 150 Hz only.",
+      "modelAnswer": "No: the model predicts about +13–14° (arctan(0.0234/0.1) = 13.2°), and 0.1 Hz is outside the 0.5–150 Hz spec band.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "corners-phase-015",
+      "topic": "corners-phase",
+      "type": "single",
+      "difficulty": 1,
+      "prompt": "What is the Brief's rule of thumb for phase from a single corner?",
+      "correct": "≈6° a decade into the passband, 45° at the corner",
+      "distractors": [
+        "≈20° a decade into the passband, 90° at the corner",
+        "3 dB and 45° one decade from the corner",
+        "0° at the corner, 90° one decade beyond it"
+      ],
+      "explanation": "arctan(0.1) = 5.7°, arctan(1) = 45°. Our corners sit 1.3 decades below 0.5 Hz and 0.85 decades above 150 Hz.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "corners-phase-016",
+      "topic": "corners-phase",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "The ECG test measured a delay of 0.09–0.15 ms and correlations above 0.998. Why so faithful?",
+      "correct": "Group delay is nearly constant (≈0.15–0.17 ms) over the QRS band",
+      "distractors": [
+        "The corners sit exactly at the 0.5 Hz and 150 Hz spec edges",
+        "The 12 k/1.2 k ECG divider compensates the amplifier's phase",
+        "The amplifier has zero phase shift anywhere from 1 Hz to 100 Hz"
+      ],
+      "explanation": "A first-order low-pass has group delay τ_4/(1 + (ωτ_4)²) ≈ 151 µs at low frequencies, nearly flat well below 1 kHz.",
+      "modelAnswer": "Group delay is nearly constant (≈0.17 ms at 15 Hz, 0.15 ms at 150 Hz) across the QRS frequencies, so all components are delayed equally.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "cmrr-001",
+      "topic": "cmrr",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "Why does the CMRR graph have its shape (rising, peaking near 5 Hz, then falling)?",
+      "correct": "Time-constant mismatch at low f, resistor ratio mid-band, stray C at high f",
+      "distractors": [
+        "It follows A_d: CMRR falls wherever the differential gain falls off",
+        "The OP27's own CMRR rolls off above about 5 Hz, setting the peak",
+        "The 50 Hz notch used in the analysis creates the peak near 5 Hz"
+      ],
+      "explanation": "A_c is a bowl: |A_c,τ| ≈ A0Δτ/(ωτ_in²) falls with f; |A_c,stray| ≈ G2ωR2ΔC rises with f; A_c,R is flat. They add as RSS. The floor (best CMRR) sits between 1 and 20 Hz: 84.9 dB dual, 86.6 dB single at 5 Hz.",
+      "modelAnswer": "Three mechanisms: input time-constant mismatch limits it at low frequency (CMRR rises 20 dB/dec), stage-2 resistor ratio sets a flat mid-band ceiling, and stray-capacitance imbalance at the 3.3 MΩ nodes limits it at high frequency (falls 20 dB/dec).",
+      "sayIt": "Below 5 hertz it is limited by the mismatch of the two 68 second input time constants, about 3 %. Above 20 hertz it falls because of a couple of picofarads of imbalance on the 3.3 megohm nodes.",
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": [
+        "demo-asked"
+      ]
+    },
+    {
+      "id": "cmrr-002",
+      "topic": "cmrr",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "What limits CMRR below about 5 Hz?",
+      "correct": "Input time-constant mismatch: |1 + jωτ|/δ",
+      "distractors": [
+        "Stray capacitance at the stage-1 nodes: G1/(ωR2ΔC)",
+        "The 3.4 kΩ reference leg: about 68 dB",
+        "The OP27's own CMRR: 114 dB minimum"
+      ],
+      "explanation": "Each input is sτ/(1 + sτ). If one side has τ(1 + δ), a common-mode input comes out slightly different on each side; that difference is amplified like ECG. The error falls as the capacitors look more like shorts. The data fits δ ≈ 3.3 %.",
+      "modelAnswer": "Mismatch between the two input time constants R_cC_c: CMRR_τ = |1 + jωτ|/δ.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "cmrr-003",
+      "topic": "cmrr",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "What limits CMRR above about 20 Hz?",
+      "correct": "≈2 pF stray imbalance at the 3.3 MΩ nodes: G1/(ωR2ΔC)",
+      "distractors": [
+        "Input time-constant mismatch: |1 + jωτ|/δ, falling with f",
+        "A mismatched C4 pair: about 2 pF out of the 222 pF",
+        "OP27 slew-rate limiting on the 1 Vpp common-mode drive"
+      ],
+      "explanation": "A stray C_s from an inverting node draws jωC_sV_c through R2, so that output becomes V_c(1 + jωR2C_s). A ΔC between sides makes a differential jωR2ΔCV_c which stage 2 amplifies. An unequal C4 pair would need 124 pF of difference in 222 pF to give the same slope, so the stage-1 nodes are more likely.",
+      "modelAnswer": "Stray-capacitance imbalance (≈2 pF) at the 3.3 MΩ stage-1 inverting nodes: CMRR_stray = G1/(ωR2ΔC).",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "cmrr-004",
+      "topic": "cmrr",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "What sets the flat, mid-band CMRR ceiling?",
+      "correct": "Stage-2 resistor ratios: G1(1 + G2)/4t = 70.9 dB",
+      "distractors": [
+        "Electrode mismatch: R_c/[2R_s(Δ_c + Δ_s)] = 69.8 dB",
+        "Input time constants: |1 + jωτ|/δ = 80.6 dB",
+        "OP27 CMRR: 114 dB minimum, from the datasheet"
+      ],
+      "explanation": "10.71 × 13.14 / 0.04 = 3518 → 70.9 dB. The fit to the bench gives about 86 dB, so the actual resistors match better than the 1 % worst case.",
+      "modelAnswer": "Stage-2 resistor ratio matching: CMRR_R = G1(1 + G2)/4t = 70.9 dB worst case at 1 %.",
+      "sayIt": "CMRR is G1 times 1 plus G2 over 4t: 71 dB for 1 % resistors.",
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "cmrr-005",
+      "topic": "cmrr",
+      "type": "single",
+      "difficulty": 1,
+      "prompt": "What is the stage-2-only CMRR at 1 % resistors, before the stage-1 multiplier?",
+      "correct": "(1 + G2)/4t = 329, i.e. 50.3 dB",
+      "distractors": [
+        "G2/4t = 304, i.e. 49.6 dB",
+        "G1(1 + G2)/4t = 3518, i.e. 70.9 dB",
+        "(1 + G2)/2t = 657, i.e. 56.3 dB"
+      ],
+      "explanation": "50.3 dB. Worst case: R3A high, R4A low, R3B low, R4B high, so a = G2(1 − 2t), b = G2(1 + 2t). |A_c2| ≈ 4tG2/(1 + G2). CMRR_stage2 = G2/|A_c2| = (1 + G2)/4t. Stage 1 then multiplies by G1 = 10.71 → 70.9 dB.",
+      "modelAnswer": "(1 + G2)/4t = 13.14/0.04 = 329, i.e.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "cmrr-006",
+      "topic": "cmrr",
+      "type": "single",
+      "difficulty": 1,
+      "prompt": "What CMRR was measured in the passband?",
+      "correct": "69–85 dB from 0.5 to 100 Hz",
+      "distractors": [
+        "About 44 dB, flat across the band",
+        "55–61 dB, marginal at 0.5 Hz",
+        "90–114 dB, limited by the OP27"
+      ],
+      "explanation": "44 dB flat was 19 Oct with C4 missing. 55 dB at 0.5 Hz was 30 Oct with the 3.3 s input network. The final board passes 60 dB with at least 9 dB to spare.",
+      "modelAnswer": "69–85 dB from 0.5 to 100 Hz on ±15 V (peak 84.9 dB at 5 Hz); 69–87 dB on the single supply.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "cmrr-007",
+      "topic": "cmrr",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "With 1 Vpp common-mode applied, what output amplitude is the 60 dB pass line?",
+      "correct": "≈134 mV p-p (A_d / 1000)",
+      "distractors": [
+        "≈1 mV p-p (1 Vpp / 1000)",
+        "≈60 mV p-p (60 dB → 60 mV)",
+        "≈1.34 V p-p (A_d / 100)"
+      ],
+      "explanation": "60 dB = 1000. A_c must be below A_d/1000 = 0.134 (measured A_d ≈ 134.7). Measured Vo was 8–47 mV p-p.",
+      "modelAnswer": "Vo = A_d/1000 × 1 Vpp ≈ 134 mV p-p; anything smaller passes.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "cmrr-008",
+      "topic": "cmrr",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "How was CMRR measured on the bench?",
+      "correct": "Inputs tied to one 1 Vpp source; CMRR = A_d / (Vo/V_cm)",
+      "distractors": [
+        "Fixture fitted, generator at 1 Vpp; CMRR = Vo / V2 directly",
+        "Both inputs grounded via 10 kΩ; CMRR taken from the noise floor",
+        "Inputs driven in antiphase at 1 Vpp; CMRR = V_O2 / V_O1"
+      ],
+      "explanation": "cmrr_sweep.py takes A_d from phase_results.csv. Without that file it falls back to a nominal 42.3 dB (a 19 Oct bug). Averaged captures need Normal trigger.",
+      "modelAnswer": "Fixture and source resistors removed, both inputs tied to one generator output at 1 Vpp; A_c = Vo/V_cm and CMRR = A_d/A_c using the measured A_d.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "cmrr-009",
+      "topic": "cmrr",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Why did changing τ_in from 3.3 s to 68 s raise 0.5 Hz CMRR from 55 dB to 76 dB?",
+      "correct": "|1 + jωτ| at 0.5 Hz rose from 10.4 to 214",
+      "distractors": [
+        "The 10 µF parts have a much tighter tolerance",
+        "It removed the stray capacitance at the nodes",
+        "It raised the stage-1 gain by a factor of 20"
+      ],
+      "explanation": "ωτ = 2π × 0.5 × 3.3 = 10.4 vs 2π × 0.5 × 68 = 214. A longer time constant pushes the whole time-constant error further down in frequency. 214/10.4 ≈ 26 dB of potential improvement; 21 dB was seen.",
+      "modelAnswer": "CMRR_τ = |1 + jωτ|/δ grows with τ: at 0.5 Hz the factor went from 10.4 to 214.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "cmrr-010",
+      "topic": "cmrr",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "CMRR at 200, 500 and 1000 Hz was below 60 dB. Does the design fail?",
+      "correct": "No: the 60 dB limit applies in 0.5–150 Hz only",
+      "distractors": [
+        "Yes: CMRR must exceed 60 dB at every frequency",
+        "Yes, but only the 1000 Hz point is a fail",
+        "No: those three readings were declared invalid"
+      ],
+      "explanation": "The stray-C term falls at 20 dB/dec, so CMRR drops at high frequency as expected. 150 Hz itself was not measured, which is on the improvement list.",
+      "modelAnswer": "No: the 60 dB requirement applies in the 0.5–150 Hz passband; those points are outside it.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "cmrr-011",
+      "topic": "cmrr",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "What does the shape of a CMRR curve tell you when debugging?",
+      "correct": "Flat: resistor ratio. Rising: time constants. Falling: capacitance",
+      "distractors": [
+        "Flat: capacitance. Rising: resistor ratio. Falling: time constants",
+        "Flat: time constants. Rising: capacitance. Falling: resistor ratio",
+        "The shape depends only on the op-amp, not the circuit"
+      ],
+      "explanation": "This is the lesson from 19 Oct: CMRR flat at 44 dB pointed to an imbalance in the difference stage, and −10.5° at 1 kHz showed C4 missing.",
+      "modelAnswer": "Flat means resistor ratio; rising with frequency means time-constant mismatch; falling with frequency means capacitance.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "cmrr-012",
+      "topic": "cmrr",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Why does stage-1 gain multiply CMRR?",
+      "correct": "Differential is lifted by G1 while common-mode passes at 1",
+      "distractors": [
+        "Stage 1 subtracts the common-mode before passing it to stage 2",
+        "Stage 1's high input impedance blocks the common-mode signal",
+        "The R1–C1 branch shorts the common-mode signal to ground"
+      ],
+      "explanation": "CMRR_R = G1 × CMRR_stage2. Same reason the Brief recommends gain in the input stage.",
+      "modelAnswer": "Stage 1 lifts the differential signal by G1 while common-mode passes at exactly 1, so the signal is 10.7× further above the common-mode before stage 2 has to reject it.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "cmrr-013",
+      "topic": "cmrr",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "In real use with electrodes, what combined CMRR do the resistor and electrode terms give?",
+      "correct": "1/(1/3518 + 1/3091) = 1645, ≈64.3 dB",
+      "distractors": [
+        "3518 + 3091 = 6609, ≈76.4 dB",
+        "The smaller of the two: 3091, ≈69.8 dB",
+        "√(3518 × 3091) ≈ 3298, ≈70.4 dB"
+      ],
+      "explanation": "Errors add in the worst case, so the reciprocals of CMRR add. The electrode term does not show on the bench because the CMRR test removes the source resistors.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "cmrr-014",
+      "topic": "cmrr",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "How do the three CMRR mechanisms combine in the model fitted to the bench data?",
+      "correct": "Root-sum-square, because they are not in phase",
+      "distractors": [
+        "Only the largest term counts at each frequency",
+        "Their dB values add directly",
+        "The three CMRRs multiply together"
+      ],
+      "explanation": "Model: 3.3 % time-constant mismatch, 2 pF stray imbalance, 86 dB resistor residual, combined RSS. It passes through both bench sweeps from 0.5 Hz to 1 kHz.",
+      "modelAnswer": "Root-sum-square, because they are not in phase with each other (worst-case budget adds the reciprocals).",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "cmrr-015",
+      "topic": "cmrr",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Does the OP27's own CMRR matter?",
+      "correct": "No: 114 dB minimum, far above the other limits",
+      "distractors": [
+        "Yes: it is the main limit in the mid-band",
+        "Yes: it dominates below 1 Hz",
+        "Only on the single supply, where it halves"
+      ],
+      "explanation": "The other terms sit around 70–90 dB, so 114 dB is negligible in the reciprocal sum.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "cmrr-016",
+      "topic": "cmrr",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "What time-constant mismatch δ does the low-frequency CMRR data imply?",
+      "correct": "About 3.3 % (3.2–3.5 %)",
+      "distractors": [
+        "About 20 %, typical for electrolytics",
+        "About 0.1 %, like matched resistors",
+        "Exactly 7 %, the pole-zero spacing"
+      ],
+      "explanation": "δ = |1 + jωτ|/CMRR. All three points give the same δ, which confirms the mechanism. 7 % is the τ_in vs τ_z gap, a different thing.",
+      "modelAnswer": "About 3.2–3.5 % (≈3.3 %), from 62.6, 76.1 and 81.8 dB at 0.1, 0.5 and 1 Hz.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "cmrr-017",
+      "topic": "cmrr",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Why is the stray capacitance blamed on the stage-1 nodes rather than unequal C4s?",
+      "correct": "Unequal C4s would need a 124 pF difference to give that slope",
+      "distractors": [
+        "C4 was confirmed missing on 19 Oct, so it cannot contribute",
+        "C4 is in the feedback path, so it cannot affect CMRR at all",
+        "The stray slope only appears on the single supply, not on ±15 V"
+      ],
+      "explanation": "The impedance at the stage-1 nodes (3.3 MΩ) is ~5× higher than R4 and multiplied by G2 afterward, so tiny capacitance differences matter there. Fix: keep R1–C1 wiring short and symmetric.",
+      "modelAnswer": "Unequal C4s would need about 124 pF of difference in 222 pF to give the measured slope; 2 pF at the 3.3 MΩ nodes gives it.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "dc-offset-001",
+      "topic": "dc-offset",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Where does the DC offset at Vo come from?",
+      "correct": "A1/A2 bias-current mismatch in R2 and R_c, × G2",
+      "distractors": [
+        "Electrode half-cell potentials amplified by 130",
+        "OP27 input offset voltage amplified by 130",
+        "VREF error from the 1 % divider resistors"
+      ],
+      "explanation": "V_O − V_ref = V_os + I_b(R2 − R_c) − (I_os/2)(R2 + R_c). With megohm resistors the current terms dominate. Electrode DC is blocked by C_c; V_os sees only gain 1 in stage 1.",
+      "modelAnswer": "Bias-current mismatch between A1 and A2 flowing in R2 and R_c (≈35 mV each), whose difference is multiplied by stage 2's 12.14.",
+      "sayIt": "C1 keeps stage-1 DC gain at 1, so only stage 2's 12 multiplies the offset difference. Typical 0.86 volts, worst case 7.7.",
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "dc-offset-002",
+      "topic": "dc-offset",
+      "type": "single",
+      "difficulty": 1,
+      "prompt": "What are the typical and worst-case output offsets?",
+      "correct": "0.86 V typical, 7.7 V worst case",
+      "distractors": [
+        "0.086 V typical, 0.77 V worst case",
+        "8.6 V typical, 77 V worst case",
+        "0.32 V typical, 0.63 V worst case"
+      ],
+      "explanation": "Typical: 12.14 × 70.7 mV + 4.9 mV = 0.86 V. Worst case: 12.14 × 0.634 V + 24 mV = 7.7 V. ±0.32 V is each stage-1 output at the datasheet maxima.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "dc-offset-003",
+      "topic": "dc-offset",
+      "type": "single",
+      "difficulty": 1,
+      "prompt": "Which expression gives a stage-1 output's DC level relative to the reference?",
+      "correct": "V_os + I_b(R2 − R_c) − (I_os/2)(R2 + R_c)",
+      "distractors": [
+        "G1·V_os + I_b·R1 − (I_os/2)·R2",
+        "V_os + I_b(R2 + R_c) + (I_os/2)(R2 − R_c)",
+        "(1 + 2R2/R1)(V_os + I_b·R_c)"
+      ],
+      "explanation": "At DC C1 is open, so each amp is a follower with R2 in feedback and R_c on its + input. Take I_b+ = I_b + I_os/2 into the + pin and I_b− = I_b − I_os/2 into the − pin. Typical: I_b term −35 mV, I_os term +35 mV.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "dc-offset-004",
+      "topic": "dc-offset",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "Without C1, what gain would multiply the stage-1 offset difference?",
+      "correct": "About 130 instead of 12",
+      "distractors": [
+        "About 10.7 instead of 12",
+        "About 1 instead of 12",
+        "Still 12, since C_c blocks DC"
+      ],
+      "explanation": "Without C1, stage 1 has DC gain 10.71, so the offset is multiplied by G1·G2 ≈ 130. Rev C had the same problem (×136).",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "dc-offset-005",
+      "topic": "dc-offset",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "If the output offset is too large, what can you do without adding parts?",
+      "correct": "Swap the A1 and A2 chips between sockets",
+      "distractors": [
+        "Add a DC servo integrator around A3",
+        "Increase R_c from 6.8 MΩ up to 10 MΩ",
+        "Replace C1 with a wire link to lower DC gain"
+      ],
+      "explanation": "The no-extra-parts rule excludes a servo. A larger R_c increases offset. Shorting C1 would multiply offset by 130.",
+      "modelAnswer": "Swap the A1 and A2 chips between sockets, since the offset comes from how well their bias currents match.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "dc-offset-006",
+      "topic": "dc-offset",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Why does LTspice show essentially zero output offset?",
+      "correct": "All model op-amps are identical, so no bias mismatch",
+      "distractors": [
+        "LTspice's OP27 model has zero bias current",
+        "The simulation uses ideal, leak-free capacitors",
+        "The simulation was run on ±15 V, not 15 V"
+      ],
+      "explanation": "The common part of the offset is common-mode and rejected by stage 2. Only the mismatch reaches Vo, and identical models have none. The 0.3–1 V on the bench is chip mismatch.",
+      "modelAnswer": "All the model op-amps are identical, so there is no bias-current mismatch between A1 and A2.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "dc-offset-007",
+      "topic": "dc-offset",
+      "type": "single",
+      "difficulty": 1,
+      "prompt": "How much room is there for offset on ±15 V compared with a single 15 V rail (20 mV QRS)?",
+      "correct": "9.4 V on ±15 V, 1.9 V on one rail",
+      "distractors": [
+        "9.4 V on both supplies",
+        "12 V on ±15 V, 4.5 V on one rail",
+        "2.6 V on both supplies"
+      ],
+      "explanation": "±15 V: ±12 V swing − 2.6 V = 9.4 V. Single: ±4.5 V about VREF − 2.6 V = 1.9 V. The typical 0.86 V fits both; the worst-case 7.7 V only fits ±15 V.",
+      "modelAnswer": "9.4 V on ±15 V against 1.9 V on the single supply.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "dc-offset-008",
+      "topic": "dc-offset",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Why wasn't a DC servo used to null the output offset?",
+      "correct": "Stock-parts-only rule, and 0.86 V typical already fits",
+      "distractors": [
+        "A servo would lift the lower corner above the 0.5 Hz spec point",
+        "A servo integrator cannot work from a single 15 V supply",
+        "The OP27 already nulls its own offset internally, so it is redundant"
+      ],
+      "explanation": "A servo would need another op-amp and integrator. Since 0.86 V typical < 1.9 V spare, it is not needed; the measured single-supply offset was +0.3 to +1.05 V.",
+      "modelAnswer": "The group rule was no parts beyond the stock list, and the typical offset already fits the single-supply window.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "dc-offset-009",
+      "topic": "dc-offset",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "On 13 Nov Vo − VREF drifted from +1.05 V to +0.32 V over the sweep. What does that mean?",
+      "correct": "Still settling (τ = 68 s), but inside the ±1.9 V budget",
+      "distractors": [
+        "VREF was collapsing under the load of the five op-amps",
+        "The offset exceeded the 7.7 V worst case and was clipping",
+        "One op-amp was overheating, so its bias current was drifting"
+      ],
+      "explanation": "After power-up only the ~70 mV bias drop has to settle through 68 s. Both numbers are near the 0.86 V typical figure.",
+      "modelAnswer": "The circuit had not finished settling (68 s input time constant), but both values are inside the ±1.9 V budget.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "noise-001",
+      "topic": "noise",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "What dominates the intrinsic noise?",
+      "correct": "OP27 current noise through R2, then R1 thermal noise",
+      "distractors": [
+        "OP27 voltage noise of 3 nV/√Hz, from all three amplifiers",
+        "Thermal noise of the two 10 kΩ source resistors",
+        "Thermal noise of R4 in the stage-2 feedback, times G2"
+      ],
+      "explanation": "Input-referred: √2·i_n·R2/G1 = 174 nV/√Hz, R1 thermal 96 nV/√Hz, R2 thermal 31, sources 18, op-amp voltage noise 4.2. Total RSS 202.5 nV/√Hz.",
+      "modelAnswer": "The megohm resistors around stage 1: OP27 current noise flowing through R2, then R1 thermal noise.",
+      "sayIt": "The megohm resistors around stage 1 set the noise: OP27 current noise through R2 and thermal noise of R1.",
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "noise-002",
+      "topic": "noise",
+      "type": "single",
+      "difficulty": 1,
+      "prompt": "What is the noise bandwidth of the amplifier?",
+      "correct": "(π/2) × 1054 ≈ 1656 Hz",
+      "distractors": [
+        "1054 Hz, the −3 dB corner",
+        "150 Hz, the top of the spec band",
+        "609 kHz, A3's closed-loop bandwidth"
+      ],
+      "explanation": "For a single-pole low-pass the equivalent noise bandwidth is π/2 × f_c.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "noise-003",
+      "topic": "noise",
+      "type": "single",
+      "difficulty": 1,
+      "prompt": "What output noise does the hand estimate give?",
+      "correct": "≈1.1 mV rms, ≈7 mV p-p",
+      "distractors": [
+        "≈4.5 mV rms, ≈30 mV p-p",
+        "≈1.1 µV rms, ≈7 µV p-p",
+        "≈30 mV rms, ≈200 mV p-p"
+      ],
+      "explanation": "v_rms = e_in·A_d·√ENBW = 202.5 n × 130 × 40.7 = 1.07 mV. Gaussian p-p ≈ 6.6 × rms.",
+      "modelAnswer": "About 1.1 mV rms (202.5 nV/√Hz × 130 × √1656), about 7 mV p-p.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "noise-004",
+      "topic": "noise",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Why does the measured raw noise fail the 30 mV p-p limit?",
+      "correct": "50 Hz pickup dominates; after a notch it is 15–18 mV p-p",
+      "distractors": [
+        "OP27 current noise was underestimated by about a factor of ten",
+        "The 1054 Hz corner lets in far too much noise bandwidth",
+        "VREF's divider resistors add about 30 mV p-p of thermal noise"
+      ],
+      "explanation": "Removing the 50 Hz part in quadrature leaves ~1.4 mV rms, close to the 1.1 mV estimate. The Brief (FAQ 6) allows a digital notch if PSD plots before and after are shown.",
+      "modelAnswer": "50 Hz mains pickup dominates (3.1–3.4 mV rms of the 3.4–3.7 mV); after a 50 Hz notch it is 15–18 mV p-p.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "noise-005",
+      "topic": "noise",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "How is the noise test set up?",
+      "correct": "Inputs to the reference via 10 kΩ; max − min of Vo, Normal mode",
+      "distractors": [
+        "Inputs left open-circuit; rms of Vo with the scope in High-Res mode",
+        "Inputs shorted together; Vo averaged over 64 frames, then p-p",
+        "1 Vpp common-mode applied; rms of Vo after a 50 Hz notch"
+      ],
+      "explanation": "Averaging or High-Res hides noise. Records of 10 s, 1 s and 0.1 s, three each.",
+      "modelAnswer": "Generator off, each input to the reference through 10 kΩ, Vo captured in Normal acquisition; noise = max(Vo) − min(Vo).",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "noise-006",
+      "topic": "noise",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "For Gaussian noise, roughly how many times the rms is the peak-to-peak?",
+      "correct": "About 6.6",
+      "distractors": [
+        "About 2.8 (2√2)",
+        "Exactly 2",
+        "About 50 to 100"
+      ],
+      "explanation": "2.8 is for a sine wave. The 2 Nov records showed 50–100× the rms, which meant isolated spikes, not Gaussian noise.",
+      "modelAnswer": "About 6.6 (covering 99.9 % of peaks).",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "noise-007",
+      "topic": "noise",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "What noise does the VREF network add?",
+      "correct": "≈20 nV rms, negligible",
+      "distractors": [
+        "≈7.5 mV rms, a quarter of the limit",
+        "About the same as R1's thermal noise",
+        "Enough to double the output noise"
+      ],
+      "explanation": "e_n = √(4kT·3.4 kΩ) = 7.5 nV/√Hz, filtered by C_ref to √(π/2 × 4.68 Hz). That is 0.13 µV p-p at the output.",
+      "modelAnswer": "About 20 nV rms (7.5 nV/√Hz in a 4.68 Hz bandwidth), negligible.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "noise-008",
+      "topic": "noise",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "The Lab 2 page gave 3.9 mV p-p noise. What did it leave out?",
+      "correct": "OP27 current noise flowing through R2",
+      "distractors": [
+        "Thermal noise of R4 in stage 2",
+        "The 50 Hz mains component",
+        "Noise of the 10 kΩ source resistors"
+      ],
+      "explanation": "That term is the biggest one. And 0.4 pA/√Hz is the 1 kHz figure; the datasheet gives 1.0 pA at 30 Hz and 1.7 pA at 10 Hz, so the real total is higher still.",
+      "modelAnswer": "The OP27 inverting-input current noise flowing through R2 (i_n × 3.3 MΩ = 1.3 µV/√Hz at each stage-1 output).",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "single-supply-001",
+      "topic": "single-supply",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "How was the design converted to a single supply?",
+      "correct": "Two 6.8 kΩ + 10 µF make 7.5 V; signal returns go to it",
+      "distractors": [
+        "Every 0 V node, op-amp pin 4 included, moves to VREF",
+        "A Zener and a buffer op-amp make a 7.5 V reference",
+        "The rail goes to 30 V and signal ground stays at 0 V"
+      ],
+      "explanation": "R_ca, R_cb, the R4_a/C4_a leg, U2 pin 3 and the ECG divider shunt move to VREF. Pin 4 never goes to VREF. No extra chips (no buffer).",
+      "modelAnswer": "A 7.5 V mid-rail reference from two 6.8 kΩ resistors and 10 µF; every signal return that went to 0 V goes to VREF; op-amp pins go to 15 V and 0 V.",
+      "sayIt": "Two 6.8 k resistors and 10 microfarads make a 7.5 volt reference with 3.4 kΩ output resistance. Three returns move to it.",
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "single-supply-002",
+      "topic": "single-supply",
+      "type": "single",
+      "difficulty": 1,
+      "prompt": "Which of these does NOT move to VREF on the single supply?",
+      "correct": "Pin 4 (V−) of the OP27s",
+      "distractors": [
+        "The bottom ends of R_ca and R_cb",
+        "The R4_a / C4_a reference leg",
+        "U2 pin 3 in the fixture"
+      ],
+      "explanation": "Supply pins go to 15 V and 0 V. Pin 4 on VREF with an input near 0 V is what overheated U2 on 11 Nov.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "single-supply-003",
+      "topic": "single-supply",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Why does the conversion work without redesigning the signal path?",
+      "correct": "The inputs are AC-coupled, and VREF is an AC ground like 0 V",
+      "distractors": [
+        "The OP27 is rail-to-rail, so the output swing is unchanged",
+        "The gain was recalculated to fit the smaller single-supply swing",
+        "C_c doubles as the reference decoupling capacitor for VREF"
+      ],
+      "explanation": "An AC signal only cares that the return node does not move. The transfer function is literally the same equation; the DC level everything rides on moves from 0 V to 7.5 V. The OP27 is not rail-to-rail (3 V output, 4 V input margins).",
+      "modelAnswer": "The inputs are AC-coupled, so nothing needs a DC path to the source, and every return sits at the same AC potential (held still by C_ref) as 0 V was.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "single-supply-004",
+      "topic": "single-supply",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Why 15 V and not 30 V?",
+      "correct": "VREF must be 7.5 V; the generator's offset stops at 10 V",
+      "distractors": [
+        "15 V gives more output swing about VREF than 30 V would",
+        "The OP27 is rated for 15 V total supply at most",
+        "The 16 V capacitors would see the full 30 V rail and fail"
+      ],
+      "explanation": "30 V was also ruled out as too much for the parts. Half of 30 V is 15 V, beyond the generator's 10 V offset limit. C_ref sees only 7.5 V.",
+      "modelAnswer": "The fixture input must sit at VREF and the generator's DC offset stops at 10 V; 7.5 V is reachable, 15 V is not.",
+      "sayIt": "The fixture has to sit at VREF and the generator's DC offset stops at 10 V.",
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "single-supply-005",
+      "topic": "single-supply",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "What are VREF's value, Thévenin resistance and decoupling corner?",
+      "correct": "7.5 V, 3.4 kΩ, 4.68 Hz (τ = 34 ms)",
+      "distractors": [
+        "7.5 V, 13.6 kΩ, 1.17 Hz (τ = 136 ms)",
+        "7.5 V, 6.8 kΩ, 2.34 Hz (τ = 68 ms)",
+        "15 V, 3.4 kΩ, 4.68 Hz (τ = 34 ms)"
+      ],
+      "explanation": "15 × 6.8/13.6 = 7.5 V; R_th = 6.8 k ∥ 6.8 k = 3.4 kΩ; f = 1/(2π × 3.4 k × 10 µ) = 4.68 Hz. Measured VREF 7.467 V.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "single-supply-006",
+      "topic": "single-supply",
+      "type": "single",
+      "difficulty": 1,
+      "prompt": "What is the output window and how much is spare for offset with a 20 mV QRS?",
+      "correct": "3–12 V; 1.9 V spare",
+      "distractors": [
+        "0–15 V; 4.9 V spare",
+        "1.2–13.8 V; 3.7 V spare",
+        "4–11 V; 0.9 V spare"
+      ],
+      "explanation": "OP27 output guaranteed 3 V inside each rail (1.2 V typical). 4–11 V is the input window. With a 10 mV QRS, 3.2 V spare.",
+      "modelAnswer": "3 V to 12 V (±4.5 V about VREF); 4.5 − 2.6 = 1.9 V spare.",
+      "sayIt": "15 V rail, 7.5 V reference, 4–11 V input window, 3–12 V output window, 2.6 V signal, 1.9 V spare.",
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "single-supply-007",
+      "topic": "single-supply",
+      "type": "single",
+      "difficulty": 1,
+      "prompt": "What is the input common-mode window on the single supply and where do the + pins sit?",
+      "correct": "4–11 V; pins at ≈7.43 V",
+      "distractors": [
+        "3–12 V; pins at 7.50 V exactly",
+        "0–15 V; pins at 0 V",
+        "4–11 V; pins at ≈0.68 V"
+      ],
+      "explanation": "OP27 inputs stay 4 V inside each rail. 7.5 − 10 nA × 6.8 MΩ = 7.43 V typical (7.23 V at max I_b), more than 3 V clear either side.",
+      "modelAnswer": "4 V to 11 V; the pins sit at about 7.43 V (VREF − I_b·R_c).",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "single-supply-008",
+      "topic": "single-supply",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Does the reference's 3.4 kΩ hurt CMRR?",
+      "correct": "Barely: ≈89 dB below 5 Hz, invisible in the data",
+      "distractors": [
+        "Yes: it caps CMRR at 50 dB at all frequencies",
+        "Yes: it is the main limit above 20 Hz",
+        "No: it has no effect at any frequency"
+      ],
+      "explanation": "δ = 3.4 k/680 k = 0.5 %. A_c2 ≈ G2/(1 + G2)·δ → CMRR_stage2 = 12.14/(0.924 × 0.005) = 2630 (68 dB), × 10.7 ≈ 89 dB. Above 4.68 Hz C_ref shorts it out.",
+      "modelAnswer": "Barely: below 5 Hz it makes R4_a 0.5 % 'longer', limiting stage 2 to 68 dB, which stage 1 lifts to about 89 dB; not visible in the data.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "single-supply-009",
+      "topic": "single-supply",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Why are wires fitted across the coupling capacitors at start-up?",
+      "correct": "To stop a 7.5 V step lifting the inputs to the rail",
+      "distractors": [
+        "To discharge C_c so the patient never sees DC",
+        "To bypass the high-pass so DC gain can be read",
+        "To short the inputs together for the noise test"
+      ],
+      "explanation": "The capacitor can hold a DC difference. With wires, both sides are one node, so nothing steps. VREF itself ramps in 0.17 s.",
+      "modelAnswer": "Without them the amplifier-side nodes spend ~52 s below the 4 V input floor, and when the generator's 7.5 V offset arrives the step passes through C_c and lifts the node to ~14.7 V, the supply rail.",
+      "sayIt": "They stop a 7.5 V step passing through the capacitors and lifting the inputs to the supply rail.",
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "single-supply-010",
+      "topic": "single-supply",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "Without the start-up wires, how long are the inputs below their 4 V floor?",
+      "correct": "t = −τ ln(1 − 4/7.5) = 0.76τ ≈ 52 s",
+      "distractors": [
+        "5τ = 5 × 68 s ≈ 340 s",
+        "τ = (R_c + R_s)C_c ≈ 68 s",
+        "5 × R_thC_ref = 5 × 34 ms ≈ 0.17 s"
+      ],
+      "explanation": "The node charges as V_REF(1 − e^(−t/τ)) with τ = 68.1 s. 0.17 s is VREF's own settling.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "single-supply-011",
+      "topic": "single-supply",
+      "type": "single",
+      "difficulty": 1,
+      "prompt": "What is the correct power-on order?",
+      "correct": "Gen off, wires on, supply on, gen on, wait 5 s, wires off",
+      "distractors": [
+        "Supply on, gen on, wait 300 s, then fit both wires",
+        "Wires on, gen on, supply on, then wires off straight away",
+        "Supply on, wires off, gen on, wait 5 s, then start the sweep"
+      ],
+      "explanation": "Shut-down: fit both wires, generator off, supply off. With real electrodes the wires go from VREF to the amplifier side of each capacitor.",
+      "modelAnswer": "Generator output off, fit both wires, supply on, generator output on, wait 5 s, remove wires.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "single-supply-012",
+      "topic": "single-supply",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Why must the generator's DC offset be set to VREF (≈7.5 V)?",
+      "correct": "U1's input must sit inside 4–11 V or the fixture saturates",
+      "distractors": [
+        "It cancels the amplifier's own output DC offset at Vo",
+        "The coupling capacitors need 7.5 V across them to charge",
+        "It sets the fixture inverter's gain to exactly −1"
+      ],
+      "explanation": "V2 − V1 = 2v(t) + 2(V_offset − V_REF). The differential signal is still 2v; the DC term is blocked by C_c and is near zero when V_offset = V_REF.",
+      "modelAnswer": "U1 buffers the generator, so its input must sit inside the 4–11 V window; at 0 V DC the fixture saturates (the 11 Nov failure).",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "single-supply-013",
+      "topic": "single-supply",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Why did U2 run hot on 11 Nov?",
+      "correct": "Pin 4 on VREF while its input sat at 0 V",
+      "distractors": [
+        "Its output was driving C_ref directly",
+        "The supply had been set to 30 V",
+        "It was oscillating at about 1 kHz"
+      ],
+      "explanation": "Lesson: pin 4 always to 0 V. Replace that chip.",
+      "modelAnswer": "Its pin 4 (V−) was on VREF while its pin 3 input was at 0 V, outside its supply range.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "single-supply-014",
+      "topic": "single-supply",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Why do gain, corners, phase and CMRR not change on the single supply?",
+      "correct": "Same AC potential at every return; only DC levels move",
+      "distractors": [
+        "The gain was recalculated for the 15 V rail to compensate",
+        "Because VREF is exactly 7.5 V, so no error can enter",
+        "They do change: about 4 dB of gain, as the logs show"
+      ],
+      "explanation": "The lower supply changes open-loop gain by a negligible 0.0013 %. Same pole-zero diagrams for both builds. The logged 4 dB excess was a scope-resolution artefact on V2.",
+      "modelAnswer": "Every signal-path part keeps its value and returns to a node at the same AC potential; only DC levels move.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "single-supply-015",
+      "topic": "single-supply",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "The single-supply logs show 46 dB of gain. What is going on?",
+      "correct": "V2 was digitised in 8.44 mV steps, so it was under-read",
+      "distractors": [
+        "The 3.4 kΩ reference impedance adds about 4 dB of gain",
+        "R3 was the wrong value on the single-supply board",
+        "The OP27 has more open-loop gain on 15 V, lifting the gain"
+      ],
+      "explanation": "Do not quote 46 dB. Fix: read the scope in 16-bit mode or measure V2 another way. Phase survived because the fit locks onto the timing.",
+      "modelAnswer": "V2 (9.5 mV pk sitting on 7.5 V) was digitised in three 8.44 mV steps at 210 mV/div, so V2 was under-read; Vo itself matched ±15 V within 0.6 dB.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "single-supply-016",
+      "topic": "single-supply",
+      "type": "single",
+      "difficulty": 1,
+      "prompt": "How much 50 Hz supply ripple reaches VREF?",
+      "correct": "≈0.047 of it, and it cancels when Vo is read against VREF",
+      "distractors": [
+        "Half of it, since the divider is unfiltered at 50 Hz",
+        "None, because C_ref blocks 50 Hz completely",
+        "130 × the ripple, because it enters the signal path"
+      ],
+      "explanation": "The divider halves it and C_ref low-passes it at 4.68 Hz.",
+      "modelAnswer": "0.5/√(1 + (50/4.68)²) ≈ 0.047 of the ripple; it reaches Vo at gain 1 through the R4_a leg and cancels when Vo is read against VREF.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "single-supply-017",
+      "topic": "single-supply",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Why wasn't a buffer op-amp added to drive VREF?",
+      "correct": "Stock parts only, and 3.4 kΩ costs just ≈89 dB of CMRR",
+      "distractors": [
+        "A buffer would oscillate driving the 10 µF C_ref load",
+        "An OP27 cannot output 7.5 V from a 15 V rail",
+        "A buffer would add about 30 mV p-p of noise at the output"
+      ],
+      "explanation": "A buffer would take the reference impedance to near zero, but it isn't needed.",
+      "modelAnswer": "No parts beyond the stock list, and the 3.4 kΩ reference impedance only costs about 89 dB of CMRR, far above the other limits.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "single-supply-018",
+      "topic": "single-supply",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Why does the ECG divider's 1.2 kΩ shunt return to VREF on the single supply?",
+      "correct": "At 0 V the shunt would put U1's input at ≈0.68 V",
+      "distractors": [
+        "It sets the divider ratio to exactly 1/11.04",
+        "It low-pass filters the synthetic ECG waveform",
+        "It turns the ECG into a common-mode test signal"
+      ],
+      "explanation": "Same placement rule: anything that was a signal return goes to VREF. The divider ratio 1.2 k/(12 k + 1.2 k + 50 Ω) = 1/11.04.",
+      "modelAnswer": "With the shunt at 0 V, U1's input would sit at about 0.68 V, below its 4 V input floor.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "single-supply-019",
+      "topic": "single-supply",
+      "type": "single",
+      "difficulty": 1,
+      "prompt": "What is the 'placement rule' for every connection on the single supply?",
+      "correct": "Signal returns go to VREF; only supply pins and the divider touch 0 V",
+      "distractors": [
+        "Every node that touched 0 V on ±15 V, pin 4 included, moves to VREF",
+        "Only the stage-2 parts move to VREF; stage 1 stays on 0 V",
+        "Every electrolytic capacitor's negative side is tied to 0 V"
+      ],
+      "explanation": "Four kinds of node: floating between signal nodes (unchanged), signal returns (to VREF), supply pins (15 V / 0 V), the reference network (new).",
+      "modelAnswer": "Any return that carried the signal reference on ±15 V goes to VREF; only the op-amp supply pins and the reference divider touch 0 V.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "single-supply-020",
+      "topic": "single-supply",
+      "type": "single",
+      "difficulty": 1,
+      "prompt": "Which way round do the electrolytic capacitors go?",
+      "correct": "+ side towards VREF / the amplifier side, 16 V",
+      "distractors": [
+        "+ side to 0 V, with a 16 V rating",
+        "Either way round, as 7.5 V is too little to matter",
+        "+ side to the 15 V rail, with a 25 V rating"
+      ],
+      "explanation": "C_ref + to VREF. C_c + towards the amplifier. With real electrodes at 0 V, C_c sees up to 7.5 V, hence 16 V parts.",
+      "modelAnswer": "+ side towards VREF / the amplifier side (higher DC potential); 16 V rating.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "single-supply-021",
+      "topic": "single-supply",
+      "type": "single",
+      "difficulty": 1,
+      "prompt": "Roughly how much current does the single-supply board draw?",
+      "correct": "About 11 mA",
+      "distractors": [
+        "About 1.1 mA",
+        "About 110 mA",
+        "About 50 mA"
+      ],
+      "explanation": "Divider 15 V/13.6 kΩ = 1.1 mA, 8.3 mW per resistor. OP27 ≈ 2 mA each at 15 V total.",
+      "modelAnswer": "About 11 mA (10 mA for five OP27s + 1.1 mA divider), 14 mA hot.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "single-supply-022",
+      "topic": "single-supply",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "What does the single supply cost compared with ±15 V?",
+      "correct": "Margin: 1.9 V offset room instead of 9.4 V, plus start-up care",
+      "distractors": [
+        "About 6 dB of gain, because the supply has been halved",
+        "CMRR drops below 60 dB at low frequency from the VREF leg",
+        "The low-pass corner moves down to about 500 Hz"
+      ],
+      "explanation": "Gain, corners, phase and A_c are unchanged (S9). The 13 Nov data agreed with ±15 V to 0.6 dB and 0.6°.",
+      "modelAnswer": "Margin, not performance: output headroom for offset falls from 9.4 V to 1.9 V, start-up needs a procedure, and the instruments struggle with mV signals on 7.5 V DC.",
+      "sayIt": "Headroom: Vo must stay between 3 V and 12 V, leaving 1.9 V for offset with a 20 mV QRS. And settling: the input capacitors charge to 7.5 V through 6.8 MΩ, 68 s.",
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "testing-debugging-001",
+      "topic": "testing-debugging",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "How is V_id obtained from the fixture?",
+      "correct": "V2 buffered, V1 = −V2 inverted, so V_id = 2V2",
+      "distractors": [
+        "V_id = V2, the generator output passed straight through",
+        "V_id = V2 − VREF on the single supply only",
+        "V_id = V2/2, because it is split across the two inputs"
+      ],
+      "explanation": "Matched 10 kΩ in U2 give exactly −1. On one supply U2 inverts about VREF.",
+      "modelAnswer": "U1 buffers the generator (V2) and U2 inverts it (V1 = −V2), so V_id = 2 × V2.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "testing-debugging-002",
+      "topic": "testing-debugging",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Why must the fixture inverter's two 10 kΩ resistors match?",
+      "correct": "A mismatch makes V1 ≠ −V2, adding common-mode",
+      "distractors": [
+        "They set the 10 kΩ electrode source impedance",
+        "They match the electrode impedance for power",
+        "They set the amplifier's differential gain"
+      ],
+      "explanation": "The test signal should be purely differential. A mismatch makes the gain measurement depend on CMRR.",
+      "modelAnswer": "Unequal resistors make V1 ≠ −V2, adding a common-mode component to the test signal.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "testing-debugging-003",
+      "topic": "testing-debugging",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Why is the scope DC-coupled for gain and phase?",
+      "correct": "Scope AC coupling adds its own high-pass lead",
+      "distractors": [
+        "AC coupling would only block the 7.5 V offset",
+        "DC coupling has a lower noise floor",
+        "The Brief requires DC coupling for CMRR only"
+      ],
+      "explanation": "The scope's AC coupling corner (~Hz) would distort the 0.5 Hz phase.",
+      "modelAnswer": "AC coupling adds its own high-pass, which adds phase lead at low frequency.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "testing-debugging-004",
+      "topic": "testing-debugging",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "What do the 10 kΩ source resistors represent, and when are they removed?",
+      "correct": "Electrode impedance; removed for the CMRR test",
+      "distractors": [
+        "Op-amp current limiting; never removed",
+        "The input bias path; removed for the noise test",
+        "Part of the gain network; removed for phase"
+      ],
+      "explanation": "For noise they stay (inputs to the reference through 10 kΩ).",
+      "modelAnswer": "The electrode impedance (Brief: 10 kΩ ±10 %); removed for the CMRR test, as the Brief's set-up shows.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "testing-debugging-005",
+      "topic": "testing-debugging",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "On 19 Oct CMRR was flat at about 44 dB and phase was −10.5° at 1 kHz. What was wrong?",
+      "correct": "C4 missing or open; flat A_c means a difference-stage fault",
+      "distractors": [
+        "The coupling capacitors were fitted the wrong way round",
+        "Input time constants mismatched by about 20 %",
+        "Stray capacitance at the 3.3 MΩ stage-1 inverting nodes"
+      ],
+      "explanation": "With 1054 Hz roll-off, phase at 1 kHz should be about −43°. −10.5° meant no roll-off. Flat CMRR = resistor/difference-stage problem.",
+      "modelAnswer": "C4 was missing or open, and a flat A_c pointed to an imbalance in the difference stage.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "testing-debugging-006",
+      "topic": "testing-debugging",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Why did V_cm read 0.5–0.9 Vpp when 1 Vpp was applied (19 Oct)?",
+      "correct": "Averaged captures with Auto trigger misaligned frames",
+      "distractors": [
+        "The generator was left in 50 Ω mode, halving V_cm",
+        "The scope probe was set to ×10 instead of ×1",
+        "The coupling capacitors attenuated V_cm at low frequency"
+      ],
+      "explanation": "Fix: Normal trigger for averaged captures.",
+      "modelAnswer": "Averaged captures were taken with Auto trigger, so misaligned frames were averaged.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "testing-debugging-007",
+      "topic": "testing-debugging",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Why did the ECG tests come out twice the intended size on 2 Nov?",
+      "correct": "The generator stretches waveforms and has a 20 mVpp floor",
+      "distractors": [
+        "The ECG file was sampled at twice the playback rate",
+        "The amplifier gain was 260, not 130",
+        "The ECG divider was fitted the wrong way round"
+      ],
+      "explanation": "Fix: a 12 kΩ / 1.2 kΩ divider (÷11.04) in front of U1. Run 1 assumed a 1 kΩ shunt and was 1.18× too large.",
+      "modelAnswer": "The 33220A stretches an arbitrary waveform to its amplitude setting and cannot go below 20 mVpp into High-Z.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "testing-debugging-008",
+      "topic": "testing-debugging",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "What does PRD measure in the ECG test?",
+      "correct": "RMS difference between output (÷ gain) and a reference, in %",
+      "distractors": [
+        "Ratio of QRS peak to P-wave peak at the output, in %",
+        "Phase response deviation at 150 Hz relative to 15 Hz, in %",
+        "Power-supply rejection of the board at 50 Hz, in %"
+      ],
+      "explanation": "PRD = 100√(Σ(y − x)²/Σx²). 'In to out' uses the measured input; 'vs clean' uses the noise-free ECG, so tests with deliberate wander or EMG look worse on that column.",
+      "modelAnswer": "Percentage root-mean-square difference between the output (scaled back by the gain) and a reference waveform.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "testing-debugging-009",
+      "topic": "testing-debugging",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "In the CMRR script, what happens if phase_results.csv is missing?",
+      "correct": "It falls back to a nominal 42.3 dB A_d",
+      "distractors": [
+        "It refuses to run and raises an error",
+        "It measures A_d itself from the CMRR data",
+        "It assumes 60 dB CMRR for every point"
+      ],
+      "explanation": "Lesson: run the phase sweep first, in the same folder.",
+      "modelAnswer": "It falls back to a nominal 42.3 dB for A_d, so the CMRR file shows A_d as a flat 42.3 dB.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "testing-debugging-010",
+      "topic": "testing-debugging",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "What would you improve given more time?",
+      "correct": "Better V2 resolution, 150 Hz CMRR, 50 Hz shielding, symmetric wiring",
+      "distractors": [
+        "Raise the gain to 500 to fill the 3–12 V output window",
+        "Move the corners to exactly 0.5 Hz and 150 Hz to cut noise",
+        "Swap to rail-to-rail op-amps and go back to the ±15 V build"
+      ],
+      "explanation": "Each item traces back to a measured weakness: the 46 dB artefact, the missing 150 Hz CMRR point, raw noise failing on 50 Hz, and the stray-C slope.",
+      "modelAnswer": "Read V2 at higher resolution on the single supply, measure CMRR at 150 Hz, shield against 50 Hz, and symmetrise the stage-1 wiring to cut the stray-capacitance term.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "testing-debugging-011",
+      "topic": "testing-debugging",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Why does the 2 Nov noise record (216–516 mV p-p) not reflect the amplifier?",
+      "correct": "Isolated spikes: p-p was 50–100× an rms of only ≈4 mV",
+      "distractors": [
+        "The amplifier was oscillating at high frequency during capture",
+        "The low-pass capacitor C4 was missing, so bandwidth was huge",
+        "The test was accidentally run with 1 Vpp common-mode applied"
+      ],
+      "explanation": "Gaussian noise gives ~6.6× rms. Honest statement: those records fail and were not repeated on ±15 V.",
+      "modelAnswer": "The p-p was 50–100× the rms (rms only ~4 mV), so it captured isolated spikes of interference; they were absent from the 13 Nov records.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "testing-debugging-012",
+      "topic": "testing-debugging",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Why must the generator's 50 Ω / High-Z setting be checked?",
+      "correct": "It changes the real amplitude by a factor of two",
+      "distractors": [
+        "It changes the output frequency by a factor of two",
+        "It sets the range of DC offset the generator can add",
+        "It shifts the output phase by 90°"
+      ],
+      "explanation": "The generator assumes a 50 Ω load in 50 Ω mode; into the high-impedance fixture the real amplitude is double what is displayed.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "testing-debugging-013",
+      "topic": "testing-debugging",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Simulated CMRR in LTspice with ideal matched parts comes out far above the bench. Why?",
+      "correct": "Perfectly matched parts and no stray C in the simulation",
+      "distractors": [
+        "LTspice's OP27 model has better CMRR than real parts",
+        "The bench scope injects extra common-mode",
+        "LTspice ignores the coupling capacitors"
+      ],
+      "explanation": "With matched parts the single-supply sim showed ~87 dB below 1 Hz (from the 3.4 kΩ reference leg) rising to ~117 dB at 150 Hz.",
+      "modelAnswer": "The simulation has perfectly matched resistors and capacitors and no stray capacitance; a 1 % mismatch or Monte Carlo run makes it comparable.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "testing-debugging-014",
+      "topic": "testing-debugging",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "How is noise measured against the single supply's VREF on long records, and why?",
+      "correct": "Against VREF, because of sub-hertz VREF drift and settling",
+      "distractors": [
+        "Against 0 V, because VREF itself carries too much noise",
+        "Against the 15 V rail, since that is the supply return",
+        "It makes no difference which node is used for a noise record"
+      ],
+      "explanation": "10 s records gave 58–146 mV. Settle longer and measure Vo − VREF.",
+      "modelAnswer": "Vo should be read against VREF, because 10 s records showed sub-hertz wander from capacitors still charging or VREF drift read against 0 V.",
+      "sayIt": null,
+      "variantGroup": null,
+      "source": "Annotated Design Reference (13–17 Nov)",
+      "tags": []
+    },
+    {
+      "id": "calc-r3-gain-v1",
+      "topic": "topology-gain",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "What if R3 were 51 kΩ instead of 56 kΩ? What would the mid-band differential gain be (ignore the 0.15 % input loss)?",
+      "correct": "143 (43.1 dB)",
+      "distractors": [
+        "13.3 (22.5 dB)",
+        "153 (43.7 dB)",
+        "80.3 (38.1 dB)"
+      ],
+      "explanation": "G2 = R4/R3 = 680/51 = 13.3. Total = G1 × G2 = 10.71 × 13.3 = 143 → 43.1 dB. Distractors: G2 alone, using 1 + R4/R3 (that's A3's noise gain), or the as-built 130.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-r3-gain",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-r3-gain-v2",
+      "topic": "topology-gain",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "What if R3 were 75 kΩ instead of 56 kΩ? What would the mid-band differential gain be (ignore the 0.15 % input loss)?",
+      "correct": "97.1 (39.7 dB)",
+      "distractors": [
+        "9.07 (19.1 dB)",
+        "108 (40.7 dB)",
+        "118 (41.4 dB)"
+      ],
+      "explanation": "G2 = R4/R3 = 680/75 = 9.07. Total = G1 × G2 = 10.71 × 9.07 = 97.1 → 39.7 dB. Distractors: G2 alone, using 1 + R4/R3 (that's A3's noise gain), or the as-built 130.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-r3-gain",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-r3-gain-v3",
+      "topic": "topology-gain",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "What if R3 were 62 kΩ instead of 56 kΩ? What would the mid-band differential gain be (ignore the 0.15 % input loss)?",
+      "correct": "117 (41.4 dB)",
+      "distractors": [
+        "11.0 (20.8 dB)",
+        "128 (42.2 dB)",
+        "97.6 (39.8 dB)"
+      ],
+      "explanation": "G2 = R4/R3 = 680/62 = 11.0. Total = G1 × G2 = 10.71 × 11.0 = 117 → 41.4 dB. Distractors: G2 alone, using 1 + R4/R3 (that's A3's noise gain), or the as-built 130.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-r3-gain",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-r3-gain-v4",
+      "topic": "topology-gain",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "What if R3 were 39 kΩ instead of 56 kΩ? What would the mid-band differential gain be (ignore the 0.15 % input loss)?",
+      "correct": "187 (45.4 dB)",
+      "distractors": [
+        "17.4 (24.8 dB)",
+        "197 (45.9 dB)",
+        "61.4 (35.8 dB)"
+      ],
+      "explanation": "G2 = R4/R3 = 680/39 = 17.4. Total = G1 × G2 = 10.71 × 17.4 = 187 → 45.4 dB. Distractors: G2 alone, using 1 + R4/R3 (that's A3's noise gain), or the as-built 130.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-r3-gain",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-r3-gain-v5",
+      "topic": "topology-gain",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "What if R3 were 47 kΩ instead of 56 kΩ? What would the mid-band differential gain be (ignore the 0.15 % input loss)?",
+      "correct": "155 (43.8 dB)",
+      "distractors": [
+        "14.5 (23.2 dB)",
+        "166 (44.4 dB)",
+        "74.0 (37.4 dB)"
+      ],
+      "explanation": "G2 = R4/R3 = 680/47 = 14.5. Total = G1 × G2 = 10.71 × 14.5 = 155 → 43.8 dB. Distractors: G2 alone, using 1 + R4/R3 (that's A3's noise gain), or the as-built 130.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-r3-gain",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-r3-gain-v6",
+      "topic": "topology-gain",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "What if R3 were 43 kΩ instead of 56 kΩ? What would the mid-band differential gain be (ignore the 0.15 % input loss)?",
+      "correct": "169 (44.6 dB)",
+      "distractors": [
+        "15.8 (24.0 dB)",
+        "180 (45.1 dB)",
+        "67.7 (36.6 dB)"
+      ],
+      "explanation": "G2 = R4/R3 = 680/43 = 15.8. Total = G1 × G2 = 10.71 × 15.8 = 169 → 44.6 dB. Distractors: G2 alone, using 1 + R4/R3 (that's A3's noise gain), or the as-built 130.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-r3-gain",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-c4-lowpass-v1",
+      "topic": "stage-2",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "What if C4 were 470 pF (with R4 = 680 kΩ)? Where is the low-pass corner, and how much lag does it add at 150 Hz?",
+      "correct": "498 Hz, 17° lag at 150 Hz",
+      "distractors": [
+        "6.05 kHz, 1.4° lag at 150 Hz",
+        "3.13 kHz, 2.7° lag at 150 Hz",
+        "498 Hz, 73° lag at 150 Hz"
+      ],
+      "explanation": "f = 1/(2π R4 C4) = 1/(2π × 680 kΩ × 470 pF) = 498 Hz. Lag = arctan(150/498) = 17°. Still inside the 20° limit. Common slips: using R3, dropping the 2π (that gives rad/s), or inverting the arctan ratio.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-c4-lowpass",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-c4-lowpass-v2",
+      "topic": "stage-2",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "What if C4 were 180 pF (with R4 = 680 kΩ)? Where is the low-pass corner, and how much lag does it add at 150 Hz?",
+      "correct": "1.30 kHz, 6.6° lag at 150 Hz",
+      "distractors": [
+        "15.8 kHz, 0.54° lag at 150 Hz",
+        "8.17 kHz, 1.1° lag at 150 Hz",
+        "1.30 kHz, 83° lag at 150 Hz"
+      ],
+      "explanation": "f = 1/(2π R4 C4) = 1/(2π × 680 kΩ × 180 pF) = 1.30 kHz. Lag = arctan(150/1300) = 6.6°. Still inside the 20° limit. Common slips: using R3, dropping the 2π (that gives rad/s), or inverting the arctan ratio.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-c4-lowpass",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-c4-lowpass-v3",
+      "topic": "stage-2",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "What if C4 were 330 pF (with R4 = 680 kΩ)? Where is the low-pass corner, and how much lag does it add at 150 Hz?",
+      "correct": "709 Hz, 12° lag at 150 Hz",
+      "distractors": [
+        "8.61 kHz, 1.00° lag at 150 Hz",
+        "4.46 kHz, 1.9° lag at 150 Hz",
+        "709 Hz, 78° lag at 150 Hz"
+      ],
+      "explanation": "f = 1/(2π R4 C4) = 1/(2π × 680 kΩ × 330 pF) = 709 Hz. Lag = arctan(150/709) = 12°. Still inside the 20° limit. Common slips: using R3, dropping the 2π (that gives rad/s), or inverting the arctan ratio.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-c4-lowpass",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-c4-lowpass-v4",
+      "topic": "stage-2",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "What if C4 were 270 pF (with R4 = 680 kΩ)? Where is the low-pass corner, and how much lag does it add at 150 Hz?",
+      "correct": "867 Hz, 9.8° lag at 150 Hz",
+      "distractors": [
+        "10.5 kHz, 0.82° lag at 150 Hz",
+        "5.45 kHz, 1.6° lag at 150 Hz",
+        "867 Hz, 80° lag at 150 Hz"
+      ],
+      "explanation": "f = 1/(2π R4 C4) = 1/(2π × 680 kΩ × 270 pF) = 867 Hz. Lag = arctan(150/867) = 9.8°. Still inside the 20° limit. Common slips: using R3, dropping the 2π (that gives rad/s), or inverting the arctan ratio.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-c4-lowpass",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-c4-lowpass-v5",
+      "topic": "stage-2",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "What if C4 were 390 pF (with R4 = 680 kΩ)? Where is the low-pass corner, and how much lag does it add at 150 Hz?",
+      "correct": "600 Hz, 14° lag at 150 Hz",
+      "distractors": [
+        "7.29 kHz, 1.2° lag at 150 Hz",
+        "3.77 kHz, 2.3° lag at 150 Hz",
+        "600 Hz, 76° lag at 150 Hz"
+      ],
+      "explanation": "f = 1/(2π R4 C4) = 1/(2π × 680 kΩ × 390 pF) = 600 Hz. Lag = arctan(150/600) = 14°. Still inside the 20° limit. Common slips: using R3, dropping the 2π (that gives rad/s), or inverting the arctan ratio.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-c4-lowpass",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-c4-lowpass-v6",
+      "topic": "stage-2",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "What if C4 were 150 pF (with R4 = 680 kΩ)? Where is the low-pass corner, and how much lag does it add at 150 Hz?",
+      "correct": "1.56 kHz, 5.5° lag at 150 Hz",
+      "distractors": [
+        "18.9 kHz, 0.45° lag at 150 Hz",
+        "9.80 kHz, 0.88° lag at 150 Hz",
+        "1.56 kHz, 85° lag at 150 Hz"
+      ],
+      "explanation": "f = 1/(2π R4 C4) = 1/(2π × 680 kΩ × 150 pF) = 1.56 kHz. Lag = arctan(150/1560) = 5.5°. Still inside the 20° limit. Common slips: using R3, dropping the 2π (that gives rad/s), or inverting the arctan ratio.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-c4-lowpass",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-c1-corner-v1",
+      "topic": "stage-1",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "What if C1 were 6.8 µF instead of 10 µF? Where would the lower corner move, and roughly how much lead would that corner give at 0.5 Hz? (Assume cancellation still held.)",
+      "correct": "34.4 mHz; about +3.9° of lead at 0.5 Hz",
+      "distractors": [
+        "3.21 mHz; about +0.37° of lead at 0.5 Hz",
+        "7.09 mHz; about +0.81° of lead at 0.5 Hz",
+        "5.48 mHz; about +0.63° of lead at 0.5 Hz"
+      ],
+      "explanation": "Lower corner = 1/(2π R1 C1) = 1/(2π × 680 kΩ × 6.8 µF) = 34.4 mHz. Lead at 0.5 Hz = arctan(0.0344/0.5) = 3.9° (absolute, before referencing to 15 Hz). Note that cancellation would in fact break: C1(R1 + 2R2) would be 49.5 s against C_cR_c = 68 s.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-c1-corner",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-c1-corner-v2",
+      "topic": "stage-1",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "What if C1 were 4.7 µF instead of 10 µF? Where would the lower corner move, and roughly how much lead would that corner give at 0.5 Hz? (Assume cancellation still held.)",
+      "correct": "49.8 mHz; about +5.7° of lead at 0.5 Hz",
+      "distractors": [
+        "4.65 mHz; about +0.53° of lead at 0.5 Hz",
+        "10.3 mHz; about +1.2° of lead at 0.5 Hz",
+        "7.93 mHz; about +0.91° of lead at 0.5 Hz"
+      ],
+      "explanation": "Lower corner = 1/(2π R1 C1) = 1/(2π × 680 kΩ × 4.7 µF) = 49.8 mHz. Lead at 0.5 Hz = arctan(0.0498/0.5) = 5.7° (absolute, before referencing to 15 Hz). Note that cancellation would in fact break: C1(R1 + 2R2) would be 34.2 s against C_cR_c = 68 s.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-c1-corner",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-c1-corner-v3",
+      "topic": "stage-1",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "What if C1 were 3.3 µF instead of 10 µF? Where would the lower corner move, and roughly how much lead would that corner give at 0.5 Hz? (Assume cancellation still held.)",
+      "correct": "70.9 mHz; about +8.1° of lead at 0.5 Hz",
+      "distractors": [
+        "6.62 mHz; about +0.76° of lead at 0.5 Hz",
+        "14.6 mHz; about +1.7° of lead at 0.5 Hz",
+        "11.3 mHz; about +1.3° of lead at 0.5 Hz"
+      ],
+      "explanation": "Lower corner = 1/(2π R1 C1) = 1/(2π × 680 kΩ × 3.3 µF) = 70.9 mHz. Lead at 0.5 Hz = arctan(0.0709/0.5) = 8.1° (absolute, before referencing to 15 Hz). Note that cancellation would in fact break: C1(R1 + 2R2) would be 24.0 s against C_cR_c = 68 s.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-c1-corner",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-c1-corner-v4",
+      "topic": "stage-1",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "What if C1 were 2.2 µF instead of 10 µF? Where would the lower corner move, and roughly how much lead would that corner give at 0.5 Hz? (Assume cancellation still held.)",
+      "correct": "106 mHz; about +12° of lead at 0.5 Hz",
+      "distractors": [
+        "9.94 mHz; about +1.1° of lead at 0.5 Hz",
+        "21.9 mHz; about +2.5° of lead at 0.5 Hz",
+        "16.9 mHz; about +1.9° of lead at 0.5 Hz"
+      ],
+      "explanation": "Lower corner = 1/(2π R1 C1) = 1/(2π × 680 kΩ × 2.2 µF) = 106 mHz. Lead at 0.5 Hz = arctan(0.106/0.5) = 12° (absolute, before referencing to 15 Hz). Note that cancellation would in fact break: C1(R1 + 2R2) would be 16.0 s against C_cR_c = 68 s.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-c1-corner",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-c1-corner-v5",
+      "topic": "stage-1",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "What if C1 were 1 µF instead of 10 µF? Where would the lower corner move, and roughly how much lead would that corner give at 0.5 Hz? (Assume cancellation still held.)",
+      "correct": "234 mHz; about +25° of lead at 0.5 Hz",
+      "distractors": [
+        "21.9 mHz; about +2.5° of lead at 0.5 Hz",
+        "48.2 mHz; about +5.5° of lead at 0.5 Hz",
+        "37.3 mHz; about +4.3° of lead at 0.5 Hz"
+      ],
+      "explanation": "Lower corner = 1/(2π R1 C1) = 1/(2π × 680 kΩ × 1 µF) = 234 mHz. Lead at 0.5 Hz = arctan(0.234/0.5) = 25° (absolute, before referencing to 15 Hz). Note that cancellation would in fact break: C1(R1 + 2R2) would be 7.28 s against C_cR_c = 68 s.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-c1-corner",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-resistor-cmrr-v1",
+      "topic": "cmrr",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "If the stage-2 resistors had 0.1 % tolerance, what is the worst-case resistor-limited CMRR?",
+      "correct": "90.9 dB",
+      "distractors": [
+        "70.3 dB",
+        "96.9 dB",
+        "102 dB"
+      ],
+      "explanation": "CMRR_R = G1(1 + G2)/4t = 10.71 × 13.14 / 0.0040 = 35176 → 90.9 dB. Without the G1 multiplier you get stage 2 alone: 70.3 dB. The 4t comes from the worst arrangement of all four resistors (2t on each ratio, in opposite directions).",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-resistor-cmrr",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-resistor-cmrr-v2",
+      "topic": "cmrr",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "If the stage-2 resistors had 0.2 % tolerance, what is the worst-case resistor-limited CMRR?",
+      "correct": "84.9 dB",
+      "distractors": [
+        "64.3 dB",
+        "90.9 dB",
+        "96.3 dB"
+      ],
+      "explanation": "CMRR_R = G1(1 + G2)/4t = 10.71 × 13.14 / 0.0080 = 17588 → 84.9 dB. Without the G1 multiplier you get stage 2 alone: 64.3 dB. The 4t comes from the worst arrangement of all four resistors (2t on each ratio, in opposite directions).",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-resistor-cmrr",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-resistor-cmrr-v3",
+      "topic": "cmrr",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "If the stage-2 resistors had 2 % tolerance, what is the worst-case resistor-limited CMRR?",
+      "correct": "64.9 dB",
+      "distractors": [
+        "44.3 dB",
+        "70.9 dB",
+        "76.3 dB"
+      ],
+      "explanation": "CMRR_R = G1(1 + G2)/4t = 10.71 × 13.14 / 0.0800 = 1759 → 64.9 dB. Without the G1 multiplier you get stage 2 alone: 44.3 dB. The 4t comes from the worst arrangement of all four resistors (2t on each ratio, in opposite directions).",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-resistor-cmrr",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-resistor-cmrr-v4",
+      "topic": "cmrr",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "If the stage-2 resistors had 5 % tolerance, what is the worst-case resistor-limited CMRR?",
+      "correct": "56.9 dB",
+      "distractors": [
+        "36.4 dB",
+        "63.0 dB",
+        "68.3 dB"
+      ],
+      "explanation": "CMRR_R = G1(1 + G2)/4t = 10.71 × 13.14 / 0.200 = 704 → 56.9 dB. Without the G1 multiplier you get stage 2 alone: 36.4 dB. The 4t comes from the worst arrangement of all four resistors (2t on each ratio, in opposite directions).",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-resistor-cmrr",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-resistor-cmrr-v5",
+      "topic": "cmrr",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "If the stage-2 resistors had 0.5 % tolerance, what is the worst-case resistor-limited CMRR?",
+      "correct": "76.9 dB",
+      "distractors": [
+        "56.4 dB",
+        "83.0 dB",
+        "88.3 dB"
+      ],
+      "explanation": "CMRR_R = G1(1 + G2)/4t = 10.71 × 13.14 / 0.0200 = 7035 → 76.9 dB. Without the G1 multiplier you get stage 2 alone: 56.4 dB. The 4t comes from the worst arrangement of all four resistors (2t on each ratio, in opposite directions).",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-resistor-cmrr",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-tau-cmrr-v1",
+      "topic": "cmrr",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "With τ_in = 68 s and a 2 % mismatch between the two input time constants, what is the time-constant-limited CMRR at 0.5 Hz?",
+      "correct": "80.6 dB",
+      "distractors": [
+        "34.0 dB",
+        "54.3 dB",
+        "60.6 dB"
+      ],
+      "explanation": "CMRR_τ = |1 + jωτ|/δ = √(1 + (2π × 0.5 × 68)²) / 0.02 = 214 / 0.02 = 10697 → 80.6 dB. With the old 3.3 s network it would be 54.3 dB. This term rises 20 dB/decade, so it only matters at the bottom of the band.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-tau-cmrr",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-tau-cmrr-v2",
+      "topic": "cmrr",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "With τ_in = 68 s and a 5 % mismatch between the two input time constants, what is the time-constant-limited CMRR at 1 Hz?",
+      "correct": "78.6 dB",
+      "distractors": [
+        "26.0 dB",
+        "52.4 dB",
+        "58.6 dB"
+      ],
+      "explanation": "CMRR_τ = |1 + jωτ|/δ = √(1 + (2π × 1 × 68)²) / 0.05 = 428 / 0.05 = 8558 → 78.6 dB. With the old 3.3 s network it would be 52.4 dB. This term rises 20 dB/decade, so it only matters at the bottom of the band.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-tau-cmrr",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-tau-cmrr-v3",
+      "topic": "cmrr",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "With τ_in = 68 s and a 10 % mismatch between the two input time constants, what is the time-constant-limited CMRR at 0.1 Hz?",
+      "correct": "52.6 dB",
+      "distractors": [
+        "20.0 dB",
+        "27.2 dB",
+        "32.8 dB"
+      ],
+      "explanation": "CMRR_τ = |1 + jωτ|/δ = √(1 + (2π × 0.1 × 68)²) / 0.1 = 42.8 / 0.1 = 428 → 52.6 dB. With the old 3.3 s network it would be 27.2 dB. This term rises 20 dB/decade, so it only matters at the bottom of the band.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-tau-cmrr",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-tau-cmrr-v4",
+      "topic": "cmrr",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "With τ_in = 68 s and a 20 % mismatch between the two input time constants, what is the time-constant-limited CMRR at 0.5 Hz?",
+      "correct": "60.6 dB",
+      "distractors": [
+        "14.0 dB",
+        "34.3 dB",
+        "40.6 dB"
+      ],
+      "explanation": "CMRR_τ = |1 + jωτ|/δ = √(1 + (2π × 0.5 × 68)²) / 0.2 = 214 / 0.2 = 1070 → 60.6 dB. With the old 3.3 s network it would be 34.3 dB. This term rises 20 dB/decade, so it only matters at the bottom of the band.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-tau-cmrr",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-tau-cmrr-v5",
+      "topic": "cmrr",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "With τ_in = 68 s and a 20 % mismatch between the two input time constants, what is the time-constant-limited CMRR at 0.1 Hz?",
+      "correct": "46.6 dB",
+      "distractors": [
+        "14.0 dB",
+        "21.2 dB",
+        "26.8 dB"
+      ],
+      "explanation": "CMRR_τ = |1 + jωτ|/δ = √(1 + (2π × 0.1 × 68)²) / 0.2 = 42.8 / 0.2 = 214 → 46.6 dB. With the old 3.3 s network it would be 21.2 dB. This term rises 20 dB/decade, so it only matters at the bottom of the band.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-tau-cmrr",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-tau-cmrr-v6",
+      "topic": "cmrr",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "With τ_in = 68 s and a 10 % mismatch between the two input time constants, what is the time-constant-limited CMRR at 0.2 Hz?",
+      "correct": "58.6 dB",
+      "distractors": [
+        "20.0 dB",
+        "32.6 dB",
+        "38.7 dB"
+      ],
+      "explanation": "CMRR_τ = |1 + jωτ|/δ = √(1 + (2π × 0.2 × 68)²) / 0.1 = 85.6 / 0.1 = 856 → 58.6 dB. With the old 3.3 s network it would be 32.6 dB. This term rises 20 dB/decade, so it only matters at the bottom of the band.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-tau-cmrr",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-phase-v1",
+      "topic": "corners-phase",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "What phase does the model predict at 300 Hz, relative to 15 Hz?",
+      "correct": "-15°",
+      "distractors": [
+        "-16°",
+        "+15°",
+        "+0.0045°"
+      ],
+      "explanation": "φ(f) = arctan(0.0234/f) − arctan(f/1054). At 300 Hz: 0.0045° − 15.9° = -16° absolute. 15 Hz sits at −0.73°, so relative = -16° + 0.73° = -15°.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-phase",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-phase-v2",
+      "topic": "corners-phase",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "What phase does the model predict at 0.3 Hz, relative to 15 Hz?",
+      "correct": "+5.2°",
+      "distractors": [
+        "+4.4°",
+        "-5.2°",
+        "+4.5°"
+      ],
+      "explanation": "φ(f) = arctan(0.0234/f) − arctan(f/1054). At 0.3 Hz: 4.46° − 0.0163° = +4.4° absolute. 15 Hz sits at −0.73°, so relative = +4.4° + 0.73° = +5.2°.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-phase",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-phase-v3",
+      "topic": "corners-phase",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "What phase does the model predict at 50 Hz, relative to 15 Hz?",
+      "correct": "-2.0°",
+      "distractors": [
+        "-2.7°",
+        "+2.0°",
+        "+0.027°"
+      ],
+      "explanation": "φ(f) = arctan(0.0234/f) − arctan(f/1054). At 50 Hz: 0.0268° − 2.72° = -2.7° absolute. 15 Hz sits at −0.73°, so relative = -2.7° + 0.73° = -2.0°.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-phase",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-phase-v4",
+      "topic": "corners-phase",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "What phase does the model predict at 2 Hz, relative to 15 Hz?",
+      "correct": "+1.3°",
+      "distractors": [
+        "+0.56°",
+        "-1.3°",
+        "+0.67°"
+      ],
+      "explanation": "φ(f) = arctan(0.0234/f) − arctan(f/1054). At 2 Hz: 0.670° − 0.109° = +0.56° absolute. 15 Hz sits at −0.73°, so relative = +0.56° + 0.73° = +1.3°.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-phase",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-phase-v5",
+      "topic": "corners-phase",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "What phase does the model predict at 100 Hz, relative to 15 Hz?",
+      "correct": "-4.7°",
+      "distractors": [
+        "-5.4°",
+        "+4.7°",
+        "+0.013°"
+      ],
+      "explanation": "φ(f) = arctan(0.0234/f) − arctan(f/1054). At 100 Hz: 0.0134° − 5.42° = -5.4° absolute. 15 Hz sits at −0.73°, so relative = -5.4° + 0.73° = -4.7°.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-phase",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-phase-v6",
+      "topic": "corners-phase",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "What phase does the model predict at 0.2 Hz, relative to 15 Hz?",
+      "correct": "+7.4°",
+      "distractors": [
+        "+6.7°",
+        "-7.4°",
+        "+3.0°"
+      ],
+      "explanation": "φ(f) = arctan(0.0234/f) − arctan(f/1054). At 0.2 Hz: 6.67° − 0.0109° = +6.7° absolute. 15 Hz sits at −0.73°, so relative = +6.7° + 0.73° = +7.4°.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-phase",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-output-swing-v1",
+      "topic": "topology-gain",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "A 25 mV pk QRS arrives at the electrodes. What peak does Vo swing about VREF, and does it fit the single-supply window with the typical 0.86 V offset?",
+      "correct": "3.25 V pk; fits (needs 4.11 V of the 4.5 V available)",
+      "distractors": [
+        "6.49 V pk; clips (needs 7.35 V of the 4.5 V available)",
+        "0.268 V pk; fits (needs 1.13 V of the 4.5 V available)",
+        "3.25 V pk; clips (needs 10.9 V of the 4.5 V available)"
+      ],
+      "explanation": "Vo = 129.8 × 25 mV = 3.25 V pk. The output window is 3–12 V, ±4.5 V about VREF. Typical offset 0.86 V + 3.25 V = 4.11 V ≤ 4.5 V. Don't double it: the QRS amplitude is already the differential input. Using the worst-case 7.7 V offset always clips on one supply.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-output-swing",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-output-swing-v2",
+      "topic": "topology-gain",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "A 8 mV pk QRS arrives at the electrodes. What peak does Vo swing about VREF, and does it fit the single-supply window with the typical 0.86 V offset?",
+      "correct": "1.04 V pk; fits (needs 1.90 V of the 4.5 V available)",
+      "distractors": [
+        "2.08 V pk; fits (needs 2.94 V of the 4.5 V available)",
+        "0.0856 V pk; fits (needs 0.946 V of the 4.5 V available)",
+        "1.04 V pk; clips (needs 8.74 V of the 4.5 V available)"
+      ],
+      "explanation": "Vo = 129.8 × 8 mV = 1.04 V pk. The output window is 3–12 V, ±4.5 V about VREF. Typical offset 0.86 V + 1.04 V = 1.90 V ≤ 4.5 V. Don't double it: the QRS amplitude is already the differential input. Using the worst-case 7.7 V offset always clips on one supply.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-output-swing",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-output-swing-v3",
+      "topic": "topology-gain",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "A 18 mV pk QRS arrives at the electrodes. What peak does Vo swing about VREF, and does it fit the single-supply window with the typical 0.86 V offset?",
+      "correct": "2.34 V pk; fits (needs 3.20 V of the 4.5 V available)",
+      "distractors": [
+        "4.67 V pk; clips (needs 5.53 V of the 4.5 V available)",
+        "0.193 V pk; fits (needs 1.05 V of the 4.5 V available)",
+        "2.34 V pk; clips (needs 10.0 V of the 4.5 V available)"
+      ],
+      "explanation": "Vo = 129.8 × 18 mV = 2.34 V pk. The output window is 3–12 V, ±4.5 V about VREF. Typical offset 0.86 V + 2.34 V = 3.20 V ≤ 4.5 V. Don't double it: the QRS amplitude is already the differential input. Using the worst-case 7.7 V offset always clips on one supply.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-output-swing",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-output-swing-v4",
+      "topic": "topology-gain",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "A 10 mV pk QRS arrives at the electrodes. What peak does Vo swing about VREF, and does it fit the single-supply window with the typical 0.86 V offset?",
+      "correct": "1.30 V pk; fits (needs 2.16 V of the 4.5 V available)",
+      "distractors": [
+        "2.60 V pk; fits (needs 3.46 V of the 4.5 V available)",
+        "0.107 V pk; fits (needs 0.967 V of the 4.5 V available)",
+        "1.30 V pk; clips (needs 9.00 V of the 4.5 V available)"
+      ],
+      "explanation": "Vo = 129.8 × 10 mV = 1.30 V pk. The output window is 3–12 V, ±4.5 V about VREF. Typical offset 0.86 V + 1.30 V = 2.16 V ≤ 4.5 V. Don't double it: the QRS amplitude is already the differential input. Using the worst-case 7.7 V offset always clips on one supply.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-output-swing",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-output-swing-v5",
+      "topic": "topology-gain",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "A 20 mV pk QRS arrives at the electrodes. What peak does Vo swing about VREF, and does it fit the single-supply window with the typical 0.86 V offset?",
+      "correct": "2.60 V pk; fits (needs 3.46 V of the 4.5 V available)",
+      "distractors": [
+        "5.19 V pk; clips (needs 6.05 V of the 4.5 V available)",
+        "0.214 V pk; fits (needs 1.07 V of the 4.5 V available)",
+        "2.60 V pk; clips (needs 10.3 V of the 4.5 V available)"
+      ],
+      "explanation": "Vo = 129.8 × 20 mV = 2.60 V pk. The output window is 3–12 V, ±4.5 V about VREF. Typical offset 0.86 V + 2.60 V = 3.46 V ≤ 4.5 V. Don't double it: the QRS amplitude is already the differential input. Using the worst-case 7.7 V offset always clips on one supply.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-output-swing",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-output-swing-v6",
+      "topic": "topology-gain",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "A 12 mV pk QRS arrives at the electrodes. What peak does Vo swing about VREF, and does it fit the single-supply window with the typical 0.86 V offset?",
+      "correct": "1.56 V pk; fits (needs 2.42 V of the 4.5 V available)",
+      "distractors": [
+        "3.12 V pk; fits (needs 3.98 V of the 4.5 V available)",
+        "0.128 V pk; fits (needs 0.988 V of the 4.5 V available)",
+        "1.56 V pk; clips (needs 9.26 V of the 4.5 V available)"
+      ],
+      "explanation": "Vo = 129.8 × 12 mV = 1.56 V pk. The output window is 3–12 V, ±4.5 V about VREF. Typical offset 0.86 V + 1.56 V = 2.42 V ≤ 4.5 V. Don't double it: the QRS amplitude is already the differential input. Using the worst-case 7.7 V offset always clips on one supply.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-output-swing",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-rc-electrode-cmrr-v1",
+      "topic": "input-network",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "If R_c were 2.2 MΩ instead of 6.8 MΩ, what would the electrode-mismatch CMRR be (10 kΩ electrodes, Δ_s = 10 %, Δ_c = 1 %)? And what would happen to τ_in with 10 µF?",
+      "correct": "60.0 dB; τ_in ≈ 22.0 s",
+      "distractors": [
+        "66.0 dB; τ_in ≈ 22.0 s",
+        "60.8 dB; τ_in ≈ 22.0 s",
+        "60.0 dB; τ_in ≈ 2.20 s"
+      ],
+      "explanation": "CMRR_e = R_c / [2R_s(Δ_c + Δ_s)] = 2.2 MΩ / (2 × 10 kΩ × 0.11) = 1000 → 60.0 dB. τ_in = (R_c + R_s)C_c ≈ 22.0 s, which no longer matches C1(R1 + 2R2) = 72.8 s, so the pole-zero cancellation would break.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-rc-electrode-cmrr",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-rc-electrode-cmrr-v2",
+      "topic": "input-network",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "If R_c were 10 MΩ instead of 6.8 MΩ, what would the electrode-mismatch CMRR be (10 kΩ electrodes, Δ_s = 10 %, Δ_c = 1 %)? And what would happen to τ_in with 10 µF?",
+      "correct": "73.2 dB; τ_in ≈ 100 s",
+      "distractors": [
+        "79.2 dB; τ_in ≈ 100 s",
+        "74.0 dB; τ_in ≈ 100 s",
+        "73.2 dB; τ_in ≈ 10.0 s"
+      ],
+      "explanation": "CMRR_e = R_c / [2R_s(Δ_c + Δ_s)] = 10 MΩ / (2 × 10 kΩ × 0.11) = 4545 → 73.2 dB. τ_in = (R_c + R_s)C_c ≈ 100 s, which no longer matches C1(R1 + 2R2) = 72.8 s, so the pole-zero cancellation would break.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-rc-electrode-cmrr",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-rc-electrode-cmrr-v3",
+      "topic": "input-network",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "If R_c were 4.7 MΩ instead of 6.8 MΩ, what would the electrode-mismatch CMRR be (10 kΩ electrodes, Δ_s = 10 %, Δ_c = 1 %)? And what would happen to τ_in with 10 µF?",
+      "correct": "66.6 dB; τ_in ≈ 47.0 s",
+      "distractors": [
+        "72.6 dB; τ_in ≈ 47.0 s",
+        "67.4 dB; τ_in ≈ 47.0 s",
+        "66.6 dB; τ_in ≈ 4.70 s"
+      ],
+      "explanation": "CMRR_e = R_c / [2R_s(Δ_c + Δ_s)] = 4.7 MΩ / (2 × 10 kΩ × 0.11) = 2136 → 66.6 dB. τ_in = (R_c + R_s)C_c ≈ 47.0 s, which no longer matches C1(R1 + 2R2) = 72.8 s, so the pole-zero cancellation would break.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-rc-electrode-cmrr",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-rc-electrode-cmrr-v4",
+      "topic": "input-network",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "If R_c were 3.3 MΩ instead of 6.8 MΩ, what would the electrode-mismatch CMRR be (10 kΩ electrodes, Δ_s = 10 %, Δ_c = 1 %)? And what would happen to τ_in with 10 µF?",
+      "correct": "63.5 dB; τ_in ≈ 33.0 s",
+      "distractors": [
+        "69.5 dB; τ_in ≈ 33.0 s",
+        "64.3 dB; τ_in ≈ 33.0 s",
+        "63.5 dB; τ_in ≈ 3.30 s"
+      ],
+      "explanation": "CMRR_e = R_c / [2R_s(Δ_c + Δ_s)] = 3.3 MΩ / (2 × 10 kΩ × 0.11) = 1500 → 63.5 dB. τ_in = (R_c + R_s)C_c ≈ 33.0 s, which no longer matches C1(R1 + 2R2) = 72.8 s, so the pole-zero cancellation would break.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-rc-electrode-cmrr",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-stray-cmrr-v1",
+      "topic": "cmrr",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "With 3 pF of stray-capacitance imbalance across the two 3.3 MΩ R2 nodes, what CMRR does that term alone allow at 50 Hz?",
+      "correct": "70.7 dB",
+      "distractors": [
+        "50.1 dB",
+        "84.5 dB",
+        "86.7 dB"
+      ],
+      "explanation": "CMRR_stray = G1/(ωR2ΔC) = 10.71 / (2π × 50 × 3.3 MΩ × 3 pF) = 3442 → 70.7 dB. It falls 20 dB/decade. The fit to the bench is about 2 pF.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-stray-cmrr",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-stray-cmrr-v2",
+      "topic": "cmrr",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "With 3 pF of stray-capacitance imbalance across the two 3.3 MΩ R2 nodes, what CMRR does that term alone allow at 100 Hz?",
+      "correct": "64.7 dB",
+      "distractors": [
+        "44.1 dB",
+        "78.4 dB",
+        "80.7 dB"
+      ],
+      "explanation": "CMRR_stray = G1/(ωR2ΔC) = 10.71 / (2π × 100 × 3.3 MΩ × 3 pF) = 1721 → 64.7 dB. It falls 20 dB/decade. The fit to the bench is about 2 pF.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-stray-cmrr",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-stray-cmrr-v3",
+      "topic": "cmrr",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "With 2 pF of stray-capacitance imbalance across the two 3.3 MΩ R2 nodes, what CMRR does that term alone allow at 100 Hz?",
+      "correct": "68.2 dB",
+      "distractors": [
+        "47.6 dB",
+        "82.0 dB",
+        "84.2 dB"
+      ],
+      "explanation": "CMRR_stray = G1/(ωR2ΔC) = 10.71 / (2π × 100 × 3.3 MΩ × 2 pF) = 2582 → 68.2 dB. It falls 20 dB/decade. The fit to the bench is about 2 pF.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-stray-cmrr",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-stray-cmrr-v4",
+      "topic": "cmrr",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "With 3 pF of stray-capacitance imbalance across the two 3.3 MΩ R2 nodes, what CMRR does that term alone allow at 500 Hz?",
+      "correct": "50.7 dB",
+      "distractors": [
+        "30.1 dB",
+        "64.5 dB",
+        "66.7 dB"
+      ],
+      "explanation": "CMRR_stray = G1/(ωR2ΔC) = 10.71 / (2π × 500 × 3.3 MΩ × 3 pF) = 344 → 50.7 dB. It falls 20 dB/decade. The fit to the bench is about 2 pF.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-stray-cmrr",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-stray-cmrr-v5",
+      "topic": "cmrr",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "With 2 pF of stray-capacitance imbalance across the two 3.3 MΩ R2 nodes, what CMRR does that term alone allow at 500 Hz?",
+      "correct": "54.3 dB",
+      "distractors": [
+        "33.7 dB",
+        "68.0 dB",
+        "70.2 dB"
+      ],
+      "explanation": "CMRR_stray = G1/(ωR2ΔC) = 10.71 / (2π × 500 × 3.3 MΩ × 2 pF) = 516 → 54.3 dB. It falls 20 dB/decade. The fit to the bench is about 2 pF.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-stray-cmrr",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-stray-cmrr-v6",
+      "topic": "cmrr",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "With 5 pF of stray-capacitance imbalance across the two 3.3 MΩ R2 nodes, what CMRR does that term alone allow at 50 Hz?",
+      "correct": "66.3 dB",
+      "distractors": [
+        "45.7 dB",
+        "80.0 dB",
+        "82.3 dB"
+      ],
+      "explanation": "CMRR_stray = G1/(ωR2ΔC) = 10.71 / (2π × 50 × 3.3 MΩ × 5 pF) = 2065 → 66.3 dB. It falls 20 dB/decade. The fit to the bench is about 2 pF.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-stray-cmrr",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-r2-gain-v1",
+      "topic": "stage-1",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "If R2 were 4.7 MΩ (R1 = 680 kΩ, C1 = 10 µF), what would G1 be, and what happens to the stage-1 zero time constant?",
+      "correct": "G1 = 14.8; stage-1 zero time constant 101 s",
+      "distractors": [
+        "G1 = 7.91; stage-1 zero time constant 101 s",
+        "G1 = 13.8; stage-1 zero time constant 101 s",
+        "G1 = 14.8; stage-1 zero time constant 6.80 s"
+      ],
+      "explanation": "G1 = 1 + 2R2/R1 = 1 + 9.40 M/0.68 M = 14.8. τ_z = C1(R1 + 2R2) = 101 s, against τ_in = 68 s, so the cancellation no longer holds and a low-frequency shelf would appear. The R1C1 pole (6.8 s, 23.4 mHz) does not move.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-r2-gain",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-r2-gain-v2",
+      "topic": "stage-1",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "If R2 were 1.5 MΩ (R1 = 680 kΩ, C1 = 10 µF), what would G1 be, and what happens to the stage-1 zero time constant?",
+      "correct": "G1 = 5.41; stage-1 zero time constant 36.8 s",
+      "distractors": [
+        "G1 = 3.21; stage-1 zero time constant 36.8 s",
+        "G1 = 4.41; stage-1 zero time constant 36.8 s",
+        "G1 = 5.41; stage-1 zero time constant 6.80 s"
+      ],
+      "explanation": "G1 = 1 + 2R2/R1 = 1 + 3.00 M/0.68 M = 5.41. τ_z = C1(R1 + 2R2) = 36.8 s, against τ_in = 68 s, so the cancellation no longer holds and a low-frequency shelf would appear. The R1C1 pole (6.8 s, 23.4 mHz) does not move.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-r2-gain",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-r2-gain-v3",
+      "topic": "stage-1",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "If R2 were 2.7 MΩ (R1 = 680 kΩ, C1 = 10 µF), what would G1 be, and what happens to the stage-1 zero time constant?",
+      "correct": "G1 = 8.94; stage-1 zero time constant 60.8 s",
+      "distractors": [
+        "G1 = 4.97; stage-1 zero time constant 60.8 s",
+        "G1 = 7.94; stage-1 zero time constant 60.8 s",
+        "G1 = 8.94; stage-1 zero time constant 6.80 s"
+      ],
+      "explanation": "G1 = 1 + 2R2/R1 = 1 + 5.40 M/0.68 M = 8.94. τ_z = C1(R1 + 2R2) = 60.8 s, against τ_in = 68 s, so the cancellation still roughly holds. The R1C1 pole (6.8 s, 23.4 mHz) does not move.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-r2-gain",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-r2-gain-v4",
+      "topic": "stage-1",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "If R2 were 3.9 MΩ (R1 = 680 kΩ, C1 = 10 µF), what would G1 be, and what happens to the stage-1 zero time constant?",
+      "correct": "G1 = 12.5; stage-1 zero time constant 84.8 s",
+      "distractors": [
+        "G1 = 6.74; stage-1 zero time constant 84.8 s",
+        "G1 = 11.5; stage-1 zero time constant 84.8 s",
+        "G1 = 12.5; stage-1 zero time constant 6.80 s"
+      ],
+      "explanation": "G1 = 1 + 2R2/R1 = 1 + 7.80 M/0.68 M = 12.5. τ_z = C1(R1 + 2R2) = 84.8 s, against τ_in = 68 s, so the cancellation no longer holds and a low-frequency shelf would appear. The R1C1 pole (6.8 s, 23.4 mHz) does not move.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-r2-gain",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-r2-gain-v5",
+      "topic": "stage-1",
+      "type": "single",
+      "difficulty": 3,
+      "prompt": "If R2 were 2.2 MΩ (R1 = 680 kΩ, C1 = 10 µF), what would G1 be, and what happens to the stage-1 zero time constant?",
+      "correct": "G1 = 7.47; stage-1 zero time constant 50.8 s",
+      "distractors": [
+        "G1 = 4.24; stage-1 zero time constant 50.8 s",
+        "G1 = 6.47; stage-1 zero time constant 50.8 s",
+        "G1 = 7.47; stage-1 zero time constant 6.80 s"
+      ],
+      "explanation": "G1 = 1 + 2R2/R1 = 1 + 4.40 M/0.68 M = 7.47. τ_z = C1(R1 + 2R2) = 50.8 s, against τ_in = 68 s, so the cancellation no longer holds and a low-frequency shelf would appear. The R1C1 pole (6.8 s, 23.4 mHz) does not move.",
+      "modelAnswer": null,
+      "sayIt": null,
+      "variantGroup": "calc-r2-gain",
+      "source": "Calculated from the as-built values",
+      "tags": [
+        "calculation"
+      ]
+    }
+  ]
+}

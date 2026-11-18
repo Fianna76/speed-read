@@ -26,9 +26,8 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "SpeedRead"
+rootProject.name = "StudyPack"
 
 include(":app")
-include(":core:epub")
-include(":core:news")
+include(":core:quiz")
 include(":core:rsvp")

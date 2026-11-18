@@ -1,123 +1,117 @@
-# SpeedRead
+# StudyPack
 
-An Android EPUB, PDF and news reader built on **Rapid Serial Visual Presentation (RSVP)**: words flash one
-at a time at a fixed point, each aligned on its optimal recognition point (the red letter),
-so your eyes stay still while you read.
+A small, offline Android app for revising modules. It imports two kinds of file:
+
+1. **Question packs** (`.studypack.json`): single-answer multiple-choice questions grouped by
+   module and topic, with explanations, model answers and "say it" lines.
+2. **Notes PDFs**: consolidated overview notes for a module or topic.
+
+It runs quizzes from the packs, opens the PDFs, and can speed-read the notes word by word
+(RSVP). Nothing goes to a server: no accounts, no sync, no internet permission at all.
 
 <p>
-  <img src="docs/screenshots/library.png" width="200" alt="Library grid with covers and reading progress">
-  <img src="docs/screenshots/newsstand.png" width="200" alt="Newsstand with headline previews and Speed-read and Open online buttons">
-  <img src="docs/screenshots/reader_paused.png" width="200" alt="Reader paused, showing the current word and its sentence">
-  <img src="docs/screenshots/reader_playing_dark.png" width="200" alt="Reader playing in dark theme">
-  <img src="docs/screenshots/settings.png" width="200" alt="Settings screen">
+  <img src="docs/screenshots/library.png" width="200" alt="Library of modules with pack, notes and question counts and the last score">
+  <img src="docs/screenshots/setup.png" width="200" alt="Quiz setup with exam lengths, topic chips and the exam conditions switch">
+  <img src="docs/screenshots/quiz_tutor.png" width="200" alt="Tutor mode after a wrong answer: green and red options, explanation and say-it box">
+  <img src="docs/screenshots/results.png" width="200" alt="Results with a percentage, verdict and score per topic">
+  <img src="docs/screenshots/rsvp_dark.png" width="200" alt="Speed reading a notes PDF in dark theme">
 </p>
+
+The full plan this app follows is in [`docs/SCOPE.md`](docs/SCOPE.md).
 
 ## Features
 
-- **EPUB and PDF import.** Standard EPUB 2/3 files and text-based PDFs from the system file
-  picker (several at once), "Open with", or "Share". PDFs are split into chapters by their
-  bookmarks, or into 10-page sections. Invalid files, DRM- or password-protected books,
-  scanned PDFs without a text layer, and duplicates are detected and explained.
-- **Newsstand.** Top stories from 69 outlets with free public feeds, Irish first, then
-  European, then global:
-  - **Ireland:** RTÉ News, TheJournal.ie, Newstalk, BBC News NI, Irish Independent, RTÉ
-    Brainstorm, Silicon Republic, Belfast Telegraph, The Irish Post, Limerick Leader,
-    Agriland, RTÉ Nuacht and Tuairisc.ie (as Gaeilge).
-  - **Europe:** DW, France 24, Euronews, The Independent, El País English, ANSA, The Kyiv
-    Independent, The Guardian Europe, Sky News, RFI, Ukrainska Pravda, The Moscow Times,
-    Meduza, Notes from Poland, Balkan Insight, Yle, ERR, LRT, NL Times, The
-    Portugal News, Novinite and The Conversation Europe.
-  - **World:** Al Jazeera, BBC News, The Guardian, NPR, PBS NewsHour, CBS, The Christian
-    Science Monitor, CBC, ABC News (Australia), CNA, UN News, NBC, ABC News (US),
-    ProPublica, Semafor, The Conversation, Global Voices, Rest of World, RNZ, SBS, The
-    Straits Times, Rappler, The Korea Herald, Yonhap, The Hindu, Scroll.in, Dawn,
-    Africanews, AllAfrica, Daily Maverick, Premium Times, MercoPress, Buenos Aires Times and
-    Mexico News Daily.
+- **Import** packs and PDFs from the phone, Downloads, Google Drive or OneDrive: the
+  **Import** button (several files at once), "Open with StudyPack" or "Share to StudyPack".
+  Files are identified by their first bytes, so a `.json` sent as `application/octet-stream`
+  still imports. Packs and PDFs are copied into the app, so they keep working if the
+  original is deleted.
+- **Library by module.** Each module shows its notes and question packs side by side, with
+  question counts and the last and best scores.
+- **Quizzes** that behave like the web quiz:
+  - questions shuffled, answer options shuffled;
+  - picks spread across topics (a stratified round-robin), so a short exam still covers every topic;
+  - lengths: Warm-up 12, Bench demo 25, Full mock 45, Everything, and **My weak spots**
+    (the most-missed questions, worst first);
+  - topic chips with counts, and a **Demo-asked only** chip when a pack tags questions `demo-asked`;
+  - **tutor mode** (the answer, model answer, explanation and say-it box after each question)
+    or **exam conditions** (change your answer until Next, feedback only at the end);
+  - **calculation variants**: questions sharing a `variantGroup` fill one slot, with a
+    different instance (different numbers) each session;
+  - results with a verdict (≥ 85 % Demo-ready, ≥ 65 % Nearly there), a score per topic
+    (worst first), a review of misses and **Retry missed**;
+  - sessions survive rotation and the app being killed in the background.
+- **History on the device** per question (times seen, times wrong, last seen), using the web
+  quiz's weak-spot rule. Re-importing a newer version of a pack keeps history for question
+  IDs that did not change.
+- **Notes viewer** with page swiping, pinch zoom (double-tap to toggle), a page indicator,
+  go to page, and the last page remembered. **Open in another app** hands the PDF to any
+  other viewer.
+- **Speed reading** (secondary tool): read a notes PDF with RSVP from the page you are on.
+  Words flash at a fixed point, aligned on their optimal recognition point (the red letter),
+  with sentence skip, speed control and the surrounding words shown while paused.
+- **Sample pack**: an empty library offers **Load sample pack** (a short circuit-basics pack
+  with its notes) so the app can be tried straight away.
+- Light and dark themes following the system, Material You colours on Android 12+, fixed
+  green / red / amber for right, wrong and say-it. Option cards are at least 56 dp tall, the
+  Next button sits at the bottom, numbers use tabular figures, feedback is announced to
+  screen readers, and every option reads as "Option B: …".
 
-  22 are on by default; the rest are one switch away in Settings. Each story has a
-  compact preview card and a detail sheet. Tap **Speed-read** to read it in the app with
-  RSVP (the text is extracted like a browser's reader mode, and progress is kept), or
-  **Open online** for the full page. Other features:
-  - the same story from several outlets is grouped ("Also covered by DW, NPR +2");
-  - read stories are marked, and can be hidden;
-  - **Save** keeps a story on a reading list and downloads it for offline reading;
-  - **Continue reading** brings back half-read articles;
-  - search, share, hiding an outlet from its card (with Undo), "12 new stories" after a
-    refresh, and tapping News again to jump to the top;
-  - region, outlet and topic filters, pull to refresh, and headlines cached for offline viewing;
-  - **Next story**: when an article ends, the next unread story starts after a 5-second
-    countdown, for hands-free news;
-  - swipe a card right to save it, left to mark it read;
-  - data saver for images (always, Wi-Fi only or never), and optional background
-    downloads on Wi-Fi;
-  - a home-screen widget with the latest Irish headlines;
-  - **Share → SpeedRead** from any browser or app to speed-read any web article.
-  - **Your briefing**: each region's biggest unread stories, played back to back, with an
-    optional daily notification at a time you choose (downloaded first, so it reads offline);
-  - optional **breaking Irish news** alerts when several Irish outlets lead with the same
-    new story.
-  Subscriber-only articles always open on the outlet's site. Paywalled outlets (The Irish
-  Times, Irish Examiner, NYT, FT…) and Reuters and AP (no public feeds) aren't included.
-- **Sports.** A Sports section in the Newsstand for the NBA and motorsport. Follow any NBA
-  teams and any of Formula 1, F2, F3, F1 Academy, FRECA, F4, Formula E, IndyCar, Super
-  Formula, the WEC, ELMS, Asian Le Mans and Supercars to get:
-  - **Latest:** their news from ESPN, CBS Sports, Yahoo Sports, Hoops Rumors,
-    Motorsport.com, Autosport, Formula Scout, Feeder Series, RACER, Sportscar365 and
-    Speedcafe, ready to speed-read;
-  - **Calendar:** upcoming games and every session (practice, qualifying, races), grouped by
-    day, with start times in your own time zone, filterable by team or series;
-  - **Add to calendar:** one event at a time through your calendar app, or every event shown
-    at once into a calendar you choose. Google calendars sync to Google Calendar, and adding
-    again updates events instead of duplicating them.
+## Question pack format
 
-  Calendars come from ESPN's public schedules, the open-source
-  [sportstimes](https://github.com/sportstimes/f1) calendars and the Le Mans series' race
-  pages. FRECA, F4, Super Formula and Supercars publish no free calendar, so they are news-only.
-- **Reader extras.** A chapter scrubber that previews where you'll land; bookmarks; keyboard,
-  Bluetooth page-turner and headset controls (and, optionally, volume keys); chunk mode (2–3
-  short words at a time); and optional speed training that raises the speed as you read.
-- **Shortcuts.** Long-press the app icon for Continue reading, Play briefing or Speed-read
-  clipboard; a Quick Settings tile speed-reads the clipboard too. Share plain text or a link
-  to SpeedRead to read it.
-- **Your own feeds.** Add any RSS/Atom feed, or just a site's address, to the Newsstand.
-- **Library.** A cover grid with progress, four sort orders, search by title or author,
-  Reading / Not started / Finished filters, and collections. Long-press to select books
-  to add to a collection or delete.
-- **Page view.** Switch the reader to ordinary text to skim or find a place; tap a word to
-  continue speed reading from there.
-- **Statistics.** Streaks, a 7-day chart, average speed and time saved.
-- **Highlights and notes.** Highlight a sentence while paused, add notes, and share them as
-  Markdown.
-- **Backup and restore.** Books, positions, bookmarks, collections, feeds and settings in one
-  file, for a new phone.
-- **Speed control.** A 100–1000 wpm slider with −/+ buttons right on the reading screen.
-  Changes apply instantly and are remembered.
-- **Single-tap controls.** Tap the middle to play or pause, the left side for the previous
-  sentence and the right side for the next one. Buttons repeat these and add
-  previous/next chapter.
-- **Smart pacing.** Longer pauses at punctuation, long words and numbers, plus a gentle
-  ramp-up after resuming.
-- **Context when paused.** The surrounding sentence appears with the current word
-  highlighted.
-- **Never lose your place.** Progress is saved continuously, playback pauses in the
-  background, and the screen stays on while reading.
-- **Private by design.** No accounts, analytics or tracking. Books never leave the device.
-  The internet is used only by the Newsstand and its Sports section.
-- Material You theming with light, dark or system theme. Adjustable text size and font.
-  TalkBack support throughout.
+A pack is one JSON file, `format: "studypack-mcq"`, `schemaVersion: 1`:
 
-Ideas for future versions are collected in [`docs/FUTURE_CONCEPTS.md`](docs/FUTURE_CONCEPTS.md).
+```json
+{
+  "format": "studypack-mcq",
+  "schemaVersion": 1,
+  "pack": {
+    "id": "ee5105-ecg-amp",
+    "title": "ECG Amplifier: Single-Supply Bench Demo",
+    "moduleCode": "EE5105",
+    "moduleName": "Applied Circuit Design for Medical Electronics",
+    "version": "1.0.0",
+    "created": "2026-11-18",
+    "notes": ["EE5105-ecg-amp-overview.pdf"]
+  },
+  "topics": [{ "id": "cmrr", "name": "CMRR" }],
+  "questions": [
+    {
+      "id": "cmrr-001",
+      "topic": "cmrr",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Why does the CMRR graph peak near 5 Hz?",
+      "correct": "Time-constant mismatch at low f, resistor ratio mid-band, stray C at high f",
+      "distractors": ["…", "…", "…"],
+      "explanation": "…",
+      "modelAnswer": "…",
+      "sayIt": "…",
+      "variantGroup": null,
+      "source": "Annotated Design Reference, derivation 5",
+      "tags": ["demo-asked"]
+    }
+  ]
+}
+```
 
-The full design (goals, architecture, data model, testing strategy, roadmap and risks) is in
-[`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md).
+Every field and rule is in [`docs/SCOPE.md`](docs/SCOPE.md#32-question-pack-schema-schemaversion-1).
+In short: question IDs must be unique and stay the same between versions (history is keyed
+on them), there are exactly three distinct distractors, text is plain Unicode (no markdown,
+HTML or LaTeX), and re-importing replaces a pack only if its `version` is higher (otherwise
+the app asks). Errors name the field and the question ID; over-long text, single-member
+variant groups and a guessable "correct answer is always the longest" pattern are warnings.
+
+**Notes PDFs** attach to a module automatically when a pack lists the file name in
+`pack.notes`, or when the file name starts with a module code
+(`<MODULECODE>-<topic>-overview.pdf`). Otherwise the app asks which module they are for.
 
 ## Install the APK
 
-1. Copy `SpeedRead-1.11.0-release.apk` to your phone (Android 8.0 or newer). The APK comes
+1. Copy `StudyPack-1.0.0-release.apk` to your phone (Android 8.0 or newer). The APK comes
    from a [CI run's](../../actions) artifacts or from a local build (below).
 2. Open it and allow installs from that source when prompted.
-3. Tap **Import book** and pick an EPUB or PDF, or open the **News** tab. Public-domain EPUBs are available from
-   [Standard Ebooks](https://standardebooks.org) and [Project Gutenberg](https://www.gutenberg.org).
+3. Tap **Load sample pack** to try it, or **Import** to pick your own packs and notes.
 
 > Builds made without your own signing key are signed with a debug key. They are fine for
 > sideloading, but an update signed with a different key must be installed fresh (uninstall
@@ -129,8 +123,8 @@ Requirements: JDK 17+ (JDK 21 recommended) and the Android SDK with platform 37
 (`ANDROID_HOME` or `local.properties`). The Gradle wrapper downloads everything else.
 
 ```bash
-./gradlew assembleRelease   # → app/build/outputs/apk/release/SpeedRead-1.11.0-release.apk
-./gradlew assembleDebug     # → debug build (installs alongside release as "…speedread.debug")
+./gradlew assembleRelease   # → app/build/outputs/apk/release/StudyPack-1.0.0-release.apk
+./gradlew assembleDebug     # → debug build (installs alongside release as "…studypack.debug")
 ./gradlew lint test         # static analysis + all unit, Robolectric and Compose UI tests
 ```
 
@@ -148,39 +142,41 @@ keyAlias=…
 keyPassword=…
 ```
 
-In CI, set `SPEEDREAD_KEYSTORE_FILE`, `SPEEDREAD_KEYSTORE_PASSWORD`, `SPEEDREAD_KEY_ALIAS`
-and `SPEEDREAD_KEY_PASSWORD` instead. Without either, release builds fall back to the debug
+In CI, set `STUDYPACK_KEYSTORE_FILE`, `STUDYPACK_KEYSTORE_PASSWORD`, `STUDYPACK_KEY_ALIAS`
+and `STUDYPACK_KEY_PASSWORD` instead. Without either, release builds fall back to the debug
 key.
 
 ## Project structure
 
 ```
-app/          Android app: Compose UI, ViewModels, Room/DataStore data layer, import pipeline
-core/epub/    Pure Kotlin: EPUB container, package and TOC parsing, XHTML → text
-              (PDF text comes from PdfBox-Android, in app/…/data/pdf)
-core/news/    Pure Kotlin: news sources, RSS/Atom parsing, article text extraction
+app/          Android app: Compose UI, ViewModels, Room/DataStore data layer, import pipeline,
+              PDF viewer (PdfRenderer) and notes text extraction for speed reading (PdfBox-Android)
+core/quiz/    Pure Kotlin: the .studypack.json format, its validator, session building
+              (stratified picks, variant groups, weak spots, option shuffling) and scoring
 core/rsvp/    Pure Kotlin: tokenizer, optimal recognition point, pacing, playback engine
-docs/         Project plan and screenshots
+docs/         The scope plan and screenshots
 ```
 
 | | |
 |---|---|
-| Language | Kotlin 2.4, coroutines and Flow |
+| Language | Kotlin 2.4, coroutines and Flow, kotlinx.serialization |
 | UI | Jetpack Compose, Material 3, Navigation 3 |
-| Data | Room (exported schemas), DataStore, app-private file storage, OkHttp |
+| Data | Room (exported schemas), DataStore, app-private file storage |
 | Build | Gradle 9.8, AGP 9.4, version catalog, R8 |
-| SDK | min 26 (Android 8.0), target/compile 37 (Android 17) |
-| Tests | JUnit 4, coroutines-test, Robolectric, Compose UI test, MockWebServer |
+| SDK | min 26 (Android 8.0), target/compile 37 |
+| Tests | JUnit 4, coroutines-test, Robolectric, Compose UI test |
 
-## Publishing
-
-Store listings are ready in [`fastlane/metadata/android/en-US/`](fastlane/metadata/android/en-US):
-title, short and full description, a changelog per version code and phone screenshots. That
-layout is read by F-Droid and by fastlane `supply` for Google Play. The privacy policy, which
-also answers Play's Data safety form ("no data collected"), is in [`PRIVACY.md`](PRIVACY.md).
-Publishing itself needs your own upload key and store accounts (see Release signing above).
+The quiz engine and validator are tested against the real 183-question EE5105 ECG pack,
+including 1,000-seed property loops (every topic covered, one instance per variant group,
+correct answer tracked through the shuffle, seeded sessions reproducible).
 
 ## Continuous integration
 
 `.github/workflows/android.yml` runs lint, all tests and `assembleRelease` on every pull
 request and push to `main`, and uploads the APK as a build artifact.
+
+## History
+
+This repository began as SpeedRead, an RSVP reader for EPUBs, PDFs and news. StudyPack keeps
+its RSVP engine (`core/rsvp`) as a secondary tool and drops the rest (news, sports, EPUB,
+widgets, notifications), so the app needs no permissions and works fully offline.

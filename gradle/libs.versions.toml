@@ -15,22 +15,15 @@ serialization = "1.11.0"
 
 # AndroidX
 activityCompose = "1.13.0"
-browser = "1.10.0"
 composeBom = "2026.09.00"
 coreKtx = "1.19.1"
 coreSplashscreen = "1.2.0"
 datastore = "1.2.1"
 lifecycle = "2.11.0"
 navigation3 = "1.2.0"
-profileinstaller = "1.4.1"
-work = "2.12.0"
-glance = "1.2.0"
 room = "2.8.5"
 
 # Third party
-coil = "3.6.3"
-jsoup = "1.23.2"
-okhttp = "5.5.0"
 pdfbox = "2.0.27.0"
 
 # Testing
@@ -51,11 +44,6 @@ kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
 androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "coreSplashscreen" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
-androidx-browser = { module = "androidx.browser:browser", version.ref = "browser" }
-androidx-profileinstaller = { module = "androidx.profileinstaller:profileinstaller", version.ref = "profileinstaller" }
-androidx-work-runtime = { module = "androidx.work:work-runtime-ktx", version.ref = "work" }
-androidx-work-testing = { module = "androidx.work:work-testing", version.ref = "work" }
-androidx-glance-appwidget = { module = "androidx.glance:glance-appwidget", version.ref = "glance" }
 
 # Lifecycle
 androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
@@ -83,12 +71,7 @@ androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref =
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
 
 # Third party
-coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
-coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coil" }
-jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
 pdfbox-android = { module = "com.tom-roush:pdfbox-android", version.ref = "pdfbox" }
-okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
-okhttp-mockwebserver = { module = "com.squareup.okhttp3:mockwebserver3", version.ref = "okhttp" }
 
 # Testing
 junit = { module = "junit:junit", version.ref = "junit" }

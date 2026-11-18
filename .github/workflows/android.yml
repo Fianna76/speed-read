@@ -38,7 +38,7 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: SpeedRead-apk
+          name: StudyPack-apk
           path: app/build/outputs/apk/release/*.apk
           if-no-files-found: error
 

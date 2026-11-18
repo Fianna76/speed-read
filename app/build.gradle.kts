@@ -9,8 +9,8 @@ plugins {
     alias(libs.plugins.room)
 }
 
-val appVersionName = "1.11.0"
-val appVersionCode = 12
+val appVersionName = "1.0.0"
+val appVersionCode = 1
 
 // Release signing credentials come from a git-ignored keystore.properties file or from
 // environment variables (CI). Without them the release build falls back to the debug key,
@@ -24,15 +24,15 @@ fun signingValue(key: String, envName: String): String? =
     keystoreProperties.getProperty(key) ?: providers.environmentVariable(envName).orNull
 
 base {
-    archivesName.set("SpeedRead-$appVersionName")
+    archivesName.set("StudyPack-$appVersionName")
 }
 
 android {
-    namespace = "io.github.fianna76.speedread"
+    namespace = "io.github.fianna76.studypack"
     compileSdk = libs.versions.compileSdk.get().toInt()
 
     defaultConfig {
-        applicationId = "io.github.fianna76.speedread"
+        applicationId = "io.github.fianna76.studypack"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
         versionCode = appVersionCode
@@ -40,13 +40,13 @@ android {
     }
 
     signingConfigs {
-        val storeFilePath = signingValue("storeFile", "SPEEDREAD_KEYSTORE_FILE")
+        val storeFilePath = signingValue("storeFile", "STUDYPACK_KEYSTORE_FILE")
         if (storeFilePath != null) {
             create("release") {
                 storeFile = rootProject.file(storeFilePath)
-                storePassword = signingValue("storePassword", "SPEEDREAD_KEYSTORE_PASSWORD")
-                keyAlias = signingValue("keyAlias", "SPEEDREAD_KEY_ALIAS")
-                keyPassword = signingValue("keyPassword", "SPEEDREAD_KEY_PASSWORD")
+                storePassword = signingValue("storePassword", "STUDYPACK_KEYSTORE_PASSWORD")
+                keyAlias = signingValue("keyAlias", "STUDYPACK_KEY_ALIAS")
+                keyPassword = signingValue("keyPassword", "STUDYPACK_KEY_PASSWORD")
             }
         }
     }
@@ -97,8 +97,8 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
-            // Post-quantum crypto tables from Bouncy Castle (a PdfBox dependency). PDF encryption
-            // never uses them, and they would add ~4 MB to the APK.
+            // Post-quantum crypto tables from Bouncy Castle (a PdfBox dependency, used to read notes
+            // PDFs for speed reading). PDF encryption never uses them, and they would add ~4 MB to the APK.
             excludes += "org/bouncycastle/pqc/**"
         }
     }
@@ -109,17 +109,12 @@ room {
 }
 
 dependencies {
-    implementation(project(":core:epub"))
-    implementation(project(":core:news"))
+    implementation(project(":core:quiz"))
     implementation(project(":core:rsvp"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.activity.compose)
-    implementation(libs.androidx.browser)
-    implementation(libs.androidx.work.runtime)
-    implementation(libs.androidx.glance.appwidget)
-    implementation(libs.androidx.profileinstaller)
 
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
@@ -141,20 +136,14 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.core)
     implementation(libs.kotlinx.serialization.json)
-    implementation(libs.coil.compose)
-    implementation(libs.coil.network.okhttp)
-    implementation(libs.okhttp)
     implementation(libs.pdfbox.android)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
-    testImplementation(testFixtures(project(":core:epub")))
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.robolectric)
-    testImplementation(libs.okhttp.mockwebserver)
-    testImplementation(libs.androidx.work.testing)
     testImplementation(libs.androidx.test.core)
     testImplementation(libs.androidx.test.ext.junit)
     testImplementation(platform(libs.androidx.compose.bom))

@@ -1,0 +1,396 @@
+{
+  "format": "studypack-mcq",
+  "schemaVersion": 1,
+  "pack": {
+    "id": "demo101-circuit-basics",
+    "title": "Circuit Basics (sample pack)",
+    "moduleCode": "DEMO101",
+    "moduleName": "Sample module: circuit basics",
+    "version": "1.0.0",
+    "created": "2026-11-18",
+    "description": "A short sample pack to try StudyPack: Ohm's law, series and parallel, RC circuits and op-amps.",
+    "notes": [
+      "DEMO101-circuits-overview.pdf"
+    ]
+  },
+  "topics": [
+    {
+      "id": "ohms-law",
+      "name": "Ohm's law & power",
+      "description": "V = IR and power dissipation"
+    },
+    {
+      "id": "series-parallel",
+      "name": "Series & parallel",
+      "description": "Combining resistors and dividers"
+    },
+    {
+      "id": "rc-circuits",
+      "name": "RC circuits",
+      "description": "Time constants, filters and phase"
+    },
+    {
+      "id": "op-amps",
+      "name": "Op-amps",
+      "description": "Gain, feedback, bandwidth and CMRR"
+    }
+  ],
+  "questions": [
+    {
+      "id": "ohm-001",
+      "topic": "ohms-law",
+      "type": "single",
+      "difficulty": 1,
+      "prompt": "A 12 V supply drives 3 mA through a resistor. What is its resistance?",
+      "correct": "4 kΩ",
+      "distractors": [
+        "36 Ω",
+        "400 Ω",
+        "40 kΩ"
+      ],
+      "explanation": "R = V / I = 12 V / 3 mA = 4 kΩ. Keep the units straight: volts over milliamps gives kilohms.",
+      "sayIt": "R equals V over I: 12 volts over 3 milliamps is 4 kilohms.",
+      "variantGroup": null,
+      "source": "Demo overview notes",
+      "tags": [
+        "demo-asked"
+      ]
+    },
+    {
+      "id": "ohm-002",
+      "topic": "ohms-law",
+      "type": "single",
+      "difficulty": 1,
+      "prompt": "What power does a 1 kΩ resistor dissipate with 5 V across it?",
+      "correct": "25 mW",
+      "distractors": [
+        "5 mW",
+        "250 mW",
+        "2.5 W"
+      ],
+      "explanation": "P = V² / R = 25 / 1000 = 25 mW, well inside a 250 mW rating.",
+      "sayIt": "V squared over R: 25 over 1000 is 25 milliwatts.",
+      "variantGroup": null,
+      "source": "Demo overview notes",
+      "tags": []
+    },
+    {
+      "id": "ohm-003",
+      "topic": "ohms-law",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Why can a resistor run hot even when its current is small?",
+      "correct": "Power rises with the square of current or voltage, so a high voltage across a large R still dissipates",
+      "distractors": [
+        "Resistance always falls with temperature, so a small current draws ever more power over time",
+        "Small currents flow unevenly through the film, concentrating heat in one narrow spot of the body",
+        "Heat depends only on current, so the resistor value has no effect on how warm it gets in use"
+      ],
+      "explanation": "P = V²/R = I²R. With hundreds of volts across it, even a small current means real power. Size the rating from V²/R, not from the current alone.",
+      "modelAnswer": "Because dissipation is I²R or V²/R. A small current through a large resistance with a high voltage across it can still be watts.",
+      "variantGroup": null,
+      "source": "Demo overview notes",
+      "tags": []
+    },
+    {
+      "id": "ohm-004",
+      "topic": "ohms-law",
+      "type": "single",
+      "difficulty": 1,
+      "prompt": "Doubling the voltage across a fixed resistor changes its power by what factor?",
+      "correct": "Four times",
+      "distractors": [
+        "Two times",
+        "Half",
+        "No change"
+      ],
+      "explanation": "P = V²/R, so doubling V multiplies P by 2² = 4.",
+      "variantGroup": null,
+      "source": "Demo overview notes",
+      "tags": []
+    },
+    {
+      "id": "sp-001",
+      "topic": "series-parallel",
+      "type": "single",
+      "difficulty": 1,
+      "prompt": "What is the total resistance of 2.2 kΩ and 2.2 kΩ in parallel?",
+      "correct": "1.1 kΩ",
+      "distractors": [
+        "4.4 kΩ",
+        "2.2 kΩ",
+        "550 Ω"
+      ],
+      "explanation": "Equal resistors in parallel give half of one: R/2 = 1.1 kΩ.",
+      "variantGroup": null,
+      "source": "Demo overview notes",
+      "tags": []
+    },
+    {
+      "id": "sp-002",
+      "topic": "series-parallel",
+      "type": "single",
+      "difficulty": 1,
+      "prompt": "In a series circuit, which quantity is the same through every component?",
+      "correct": "The current",
+      "distractors": [
+        "The voltage",
+        "The power",
+        "The resistance"
+      ],
+      "explanation": "One path means one current. Voltages divide in proportion to resistance.",
+      "variantGroup": null,
+      "source": "Demo overview notes",
+      "tags": [
+        "demo-asked"
+      ]
+    },
+    {
+      "id": "sp-003",
+      "topic": "series-parallel",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Why does adding a resistor in parallel always lower the total resistance?",
+      "correct": "It adds another path for current, so the same voltage drives more total current",
+      "distractors": [
+        "It shares the supply voltage, so each branch sees less voltage than before it was added",
+        "Parallel resistors cancel part of each other's value through their mutual heating effects",
+        "The new branch raises the supply current limit, which the meter then reads as lower R"
+      ],
+      "explanation": "Conductances add in parallel: G = G1 + G2. More conductance means less resistance, and the total is always below the smallest branch.",
+      "variantGroup": null,
+      "source": "Demo overview notes",
+      "tags": []
+    },
+    {
+      "id": "calc-divider-001",
+      "topic": "series-parallel",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "A divider has R1 = 10 kΩ on top and R2 = 10 kΩ below, fed from 12 V. What is the output?",
+      "correct": "6 V",
+      "distractors": [
+        "12 V",
+        "3 V",
+        "4 V"
+      ],
+      "explanation": "Vout = Vin × R2 / (R1 + R2) = 12 × 10 / 20 = 6 V.",
+      "sayIt": "Vout is Vin times R2 over R1 plus R2.",
+      "variantGroup": "calc-divider",
+      "source": "Demo overview notes",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-divider-002",
+      "topic": "series-parallel",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "A divider has R1 = 20 kΩ on top and R2 = 10 kΩ below, fed from 9 V. What is the output?",
+      "correct": "3 V",
+      "distractors": [
+        "6 V",
+        "4.5 V",
+        "1.5 V"
+      ],
+      "explanation": "Vout = Vin × R2 / (R1 + R2) = 9 × 10 / 30 = 3 V.",
+      "sayIt": "Vout is Vin times R2 over R1 plus R2.",
+      "variantGroup": "calc-divider",
+      "source": "Demo overview notes",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-divider-003",
+      "topic": "series-parallel",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "A divider has R1 = 30 kΩ on top and R2 = 10 kΩ below, fed from 8 V. What is the output?",
+      "correct": "2 V",
+      "distractors": [
+        "6 V",
+        "4 V",
+        "2.7 V"
+      ],
+      "explanation": "Vout = Vin × R2 / (R1 + R2) = 8 × 10 / 40 = 2 V.",
+      "sayIt": "Vout is Vin times R2 over R1 plus R2.",
+      "variantGroup": "calc-divider",
+      "source": "Demo overview notes",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "calc-divider-004",
+      "topic": "series-parallel",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "A divider has R1 = 10 kΩ on top and R2 = 40 kΩ below, fed from 5 V. What is the output?",
+      "correct": "4 V",
+      "distractors": [
+        "1 V",
+        "2.5 V",
+        "1.25 V"
+      ],
+      "explanation": "Vout = Vin × R2 / (R1 + R2) = 5 × 40 / 50 = 4 V.",
+      "sayIt": "Vout is Vin times R2 over R1 plus R2.",
+      "variantGroup": "calc-divider",
+      "source": "Demo overview notes",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "rc-001",
+      "topic": "rc-circuits",
+      "type": "single",
+      "difficulty": 1,
+      "prompt": "What is the time constant of 10 kΩ with 100 µF?",
+      "correct": "1 s",
+      "distractors": [
+        "0.1 s",
+        "10 s",
+        "100 s"
+      ],
+      "explanation": "τ = RC = 10 000 × 100 × 10⁻⁶ = 1 s.",
+      "sayIt": "Tau is R times C: 10 kilohms times 100 microfarads is one second.",
+      "variantGroup": null,
+      "source": "Demo overview notes",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "rc-002",
+      "topic": "rc-circuits",
+      "type": "single",
+      "difficulty": 1,
+      "prompt": "After one time constant, a charging capacitor has reached what fraction of the supply?",
+      "correct": "About 63 %",
+      "distractors": [
+        "About 37 %",
+        "About 50 %",
+        "About 86 %"
+      ],
+      "explanation": "V = Vs(1 − e^−1) ≈ 0.632 Vs. After 5τ it is above 99 %.",
+      "variantGroup": null,
+      "source": "Demo overview notes",
+      "tags": [
+        "demo-asked"
+      ]
+    },
+    {
+      "id": "rc-003",
+      "topic": "rc-circuits",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "What is the −3 dB corner of an RC low-pass with R = 1.6 kΩ and C = 100 nF?",
+      "correct": "About 1 kHz",
+      "distractors": [
+        "About 160 Hz",
+        "About 10 kHz",
+        "About 6.3 kHz"
+      ],
+      "explanation": "fc = 1 / (2πRC) = 1 / (2π × 1600 × 100 × 10⁻⁹) ≈ 995 Hz.",
+      "variantGroup": null,
+      "source": "Demo overview notes",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "rc-004",
+      "topic": "rc-circuits",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "What is the phase shift of a first-order RC low-pass at its corner frequency?",
+      "correct": "−45°",
+      "distractors": [
+        "−90°",
+        "−180°",
+        "0°"
+      ],
+      "explanation": "At f = fc the real and imaginary parts are equal, so the phase is −arctan(1) = −45°. It heads to −90° well above the corner.",
+      "variantGroup": null,
+      "source": "Demo overview notes",
+      "tags": []
+    },
+    {
+      "id": "op-001",
+      "topic": "op-amps",
+      "type": "single",
+      "difficulty": 1,
+      "prompt": "What is the gain of a non-inverting amplifier with Rf = 47 kΩ and Rg = 4.7 kΩ?",
+      "correct": "11",
+      "distractors": [
+        "10",
+        "−10",
+        "4.7"
+      ],
+      "explanation": "G = 1 + Rf / Rg = 1 + 10 = 11. The inverting version would be −Rf/Rg = −10.",
+      "variantGroup": null,
+      "source": "Demo overview notes",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "op-002",
+      "topic": "op-amps",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "Why does an ideal op-amp with negative feedback hold its two inputs at the same voltage?",
+      "correct": "Its huge open-loop gain drives the output until the input difference is almost zero",
+      "distractors": [
+        "The inputs are joined inside the chip by a low-value resistor that equalises them",
+        "Feedback adds the output to both inputs equally, which cancels any difference between them",
+        "The supply rails clamp both inputs to mid-rail whenever the output is not saturated"
+      ],
+      "explanation": "With gain of 10⁵ or more, any input difference gives a large output change that feedback uses to cancel the difference. This 'virtual short' only holds while the output is not saturated.",
+      "modelAnswer": "Negative feedback plus very high open-loop gain: the output moves until V+ − V− is tiny, so we treat the inputs as equal.",
+      "variantGroup": null,
+      "source": "Demo overview notes",
+      "tags": []
+    },
+    {
+      "id": "op-003",
+      "topic": "op-amps",
+      "type": "single",
+      "difficulty": 2,
+      "prompt": "An op-amp has a gain-bandwidth product of 1 MHz. What bandwidth is left at a closed-loop gain of 100?",
+      "correct": "10 kHz",
+      "distractors": [
+        "100 kHz",
+        "1 MHz",
+        "100 Hz"
+      ],
+      "explanation": "Bandwidth ≈ GBW / G = 1 MHz / 100 = 10 kHz.",
+      "variantGroup": null,
+      "source": "Demo overview notes",
+      "tags": [
+        "calculation"
+      ]
+    },
+    {
+      "id": "op-004",
+      "topic": "op-amps",
+      "type": "single",
+      "difficulty": 1,
+      "prompt": "What does common-mode rejection ratio (CMRR) measure?",
+      "correct": "How well an amplifier ignores signals that appear equally on both inputs",
+      "distractors": [
+        "How much the output can swing before it clips against either supply rail",
+        "How quickly the output can change voltage in response to a large input step",
+        "How much the gain drifts as the chip warms up during normal operation"
+      ],
+      "explanation": "CMRR = Ad / Ac, usually in dB. It matters most where interference such as mains pickup reaches both inputs alike.",
+      "variantGroup": null,
+      "source": "Demo overview notes",
+      "tags": [
+        "demo-asked"
+      ]
+    }
+  ]
+}

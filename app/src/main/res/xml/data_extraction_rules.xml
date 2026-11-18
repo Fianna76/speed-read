@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    Backup rules for Android 12+. Cloud backups only carry reader preferences (see
-    backup_rules.xml). Device-to-device transfers have no size quota, so they keep the
-    default behaviour and move the whole library (books, covers, database, preferences).
+    Backup rules for Android 12+. Cloud backups only carry preferences (see backup_rules.xml).
+    Device-to-device transfers have no size quota, so they move everything: packs, history,
+    notes and preferences.
 -->
 <data-extraction-rules>
     <cloud-backup>
