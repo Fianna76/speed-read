@@ -30,7 +30,7 @@ The app runs quizzes from the packs and opens the PDFs. Nothing goes to a server
 - No cloud sync, accounts, sharing or leaderboards.
 - No question editing inside the app. Packs are written outside the app and re-imported.
 - No question types other than single-answer multiple choice.
-- No maths typesetting (LaTeX). Text is plain Unicode (τ, Ω, µ, √, ≈, ±).
+- ~~No maths typesetting (LaTeX). Text is plain Unicode (τ, Ω, µ, √, ≈, ±).~~ Added in 1.1.0: text fields may contain LaTeX formulas, `$…$` inline and `$$…$$` on their own line (see 3.6). Plain Unicode still works.
 - No numbers generated on the phone. Calculation variety comes from variant groups prepared ahead of time (see 3.4).
 - No Play Store release. The app is a sideloaded APK for personal use.
 - No iOS version.
@@ -139,7 +139,7 @@ The one user is a student revising for a bench demo, a viva or an exam.
 | `questions[].source` | string | no | Where the fact comes from (lecture, slide, page) |
 | `questions[].tags` | string[] | no | Free tags. `demo-asked` gets a filter chip |
 
-Text is plain UTF-8. The app does not render markdown or HTML, so a stray `<b>` shows up as literal text.
+Text is plain UTF-8, optionally with LaTeX formulas (3.6). The app does not render markdown or HTML, so a stray `<b>` shows up as literal text.
 
 ### 3.3 Notes PDFs
 
@@ -160,6 +160,14 @@ The web quiz generated fresh numbers with JavaScript. A JSON pack cannot safely 
 - History is tracked per instance ID, and the weak-spot ranking rolls it up by group.
 
 Possible later (v2): a `template` question type with numeric ranges and expressions evaluated by a small sandboxed maths parser on the phone. It is out of scope here.
+
+### 3.6 Formulas (added in 1.1.0)
+
+- `$…$` (or `\(…\)`) is an inline formula; `$$…$$` (or `\[…\]`) is a display formula on its own line; `\$` is a literal dollar sign.
+- An inline `$` opens only before a non-space and closes only after a non-space and not before a digit, so ordinary prices stay text.
+- Formulas are allowed in `prompt`, `correct`, `distractors`, `explanation`, `modelAnswer` and `sayIt`. Length limits count the source, but the "longest answer" check measures the formula as shown.
+- Rendering is native and offline (JLatexMath). A formula that fails to parse shows as its source in monospace; screen readers get a plain-text reading (`\frac{a}{b}` → "(a)/(b)").
+- The validator warns about unbalanced braces in a formula and unclosed `$$`, `\(` or `\[`.
 
 ### 3.5 Optional bundle (v1.1)
 
@@ -397,7 +405,7 @@ Rough effort for one person learning Compose as they go: M0–M3 about 2–3 wee
 | Question IDs change between pack versions and history is lost | The skill keeps IDs stable; the validator warns when a re-import keeps less than 50 % of the old IDs |
 | Correct answers longer than distractors make the quiz guessable (seen in the web quiz) | The skill enforces length balance; the app shuffles options. A v1.1 import warning flags packs where the correct answer is the longest option more than 40 % of the time |
 | Large PDFs use too much memory | Render pages on demand at screen width, cache only nearby pages |
-| Maths notation without LaTeX | Unicode-only convention in the skill; v2 could add a small inline-maths renderer |
+| Maths notation | LaTeX formulas rendered natively with JLatexMath since 1.1.0 (3.6); Unicode still works |
 
 ---
 

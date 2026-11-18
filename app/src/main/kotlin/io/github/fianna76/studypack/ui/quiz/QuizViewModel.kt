@@ -144,16 +144,16 @@ class QuizViewModel(
             val history = if (length == QuizLength.WEAK_SPOTS) repository.history(route.packIds) else emptyMap()
             SessionBuilder.build(pool, length, history, random)
         }
-        _uiState.update {
-            it.copy(
-                isLoading = false,
-                failed = questions.isEmpty(),
-                questions = questions,
-                answers = List(questions.size) { null },
-                topicNames = content.topicNames,
-            )
-        }
-        save()
+        val built = _uiState.value.copy(
+            isLoading = false,
+            failed = questions.isEmpty(),
+            questions = questions,
+            answers = List(questions.size) { null },
+            topicNames = content.topicNames,
+        )
+        // Saved before it is shown, so a save can never overwrite an answer given meanwhile.
+        save(built)
+        _uiState.value = built
     }
 
     /** Taps an option: locks it in tutor mode, selects it in exam mode. */
@@ -218,8 +218,7 @@ class QuizViewModel(
         save()
     }
 
-    private fun save() {
-        val state = _uiState.value
+    private fun save(state: QuizUiState = _uiState.value) {
         if (state.questions.isEmpty()) return
         val session = SavedSession(
             questions = state.questions.map { SavedQuestion(it.question.key.encode(), it.optionOrder) },

@@ -25,6 +25,7 @@ room = "2.8.5"
 
 # Third party
 pdfbox = "2.0.27.0"
+jlatexmath = "0.2.0"
 
 # Testing
 androidxTestCore = "1.7.0"
@@ -72,6 +73,8 @@ androidx-datastore-preferences = { module = "androidx.datastore:datastore-prefer
 
 # Third party
 pdfbox-android = { module = "com.tom-roush:pdfbox-android", version.ref = "pdfbox" }
+jlatexmath-android = { module = "ru.noties:jlatexmath-android", version.ref = "jlatexmath" }
+jlatexmath-android-font-greek = { module = "ru.noties:jlatexmath-android-font-greek", version.ref = "jlatexmath" }
 
 # Testing
 junit = { module = "junit:junit", version.ref = "junit" }

@@ -304,6 +304,14 @@ object PackParser {
                 warn("the explanation is ${explanation.length} characters; keep it to $MAX_EXPLANATION.", "questions[].explanation")
             }
 
+            // LaTeX formulas ($…$, $$…$$, \(…\), \[…\]) that a renderer would trip over.
+            listOf(
+                "prompt" to prompt, "correct answer" to correct, "explanation" to explanation,
+                "model answer" to q.modelAnswer, "say-it line" to q.sayIt,
+            ).plus(distractors.map { "distractor" to it }).forEach { (label, text) ->
+                MathMarkup.problems(text.orEmpty()).forEach { warn("in the $label, $it.", "questions[].math") }
+            }
+
             val failed = issues.count { it.severity == Severity.ERROR } > before
             if (failed || id == null || topic == null || prompt == null || correct == null || explanation == null) return null
             return Question(
@@ -337,7 +345,9 @@ object PackParser {
             topics.filter { it.id !in used }.forEach { info("Topic \"${it.name}\" has no questions yet.", field = "topics") }
 
             if (questions.size >= LENGTH_BIAS_MIN_QUESTIONS) {
-                val longest = questions.count { q -> q.distractors.all { q.correct.length > it.length } }
+                // Compare what is shown, so a formula's LaTeX source doesn't count as length.
+                fun shown(text: String) = MathMarkup.plain(text).length
+                val longest = questions.count { q -> q.distractors.all { shown(q.correct) > shown(it) } }
                 val share = longest.toDouble() / questions.size
                 if (share > LENGTH_BIAS_THRESHOLD) {
                     warning(

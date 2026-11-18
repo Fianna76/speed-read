@@ -6,9 +6,9 @@
     "title": "Circuit Basics (sample pack)",
     "moduleCode": "DEMO101",
     "moduleName": "Sample module: circuit basics",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "created": "2026-11-18",
-    "description": "A short sample pack to try StudyPack: Ohm's law, series and parallel, RC circuits and op-amps.",
+    "description": "A short sample pack to try StudyPack: Ohm's law, series and parallel, RC circuits and op-amps, with LaTeX formulas.",
     "notes": [
       "DEMO101-circuits-overview.pdf"
     ]
@@ -68,7 +68,7 @@
         "250 mW",
         "2.5 W"
       ],
-      "explanation": "P = V² / R = 25 / 1000 = 25 mW, well inside a 250 mW rating.",
+      "explanation": "$$P = \\frac{V^2}{R} = \\frac{(5\\,\\mathrm{V})^2}{1\\,\\mathrm{k}\\Omega} = 25\\,\\mathrm{mW}$$ Well inside a 250 mW rating.",
       "sayIt": "V squared over R: 25 over 1000 is 25 milliwatts.",
       "variantGroup": null,
       "source": "Demo overview notes",
@@ -104,7 +104,7 @@
         "Half",
         "No change"
       ],
-      "explanation": "P = V²/R, so doubling V multiplies P by 2² = 4.",
+      "explanation": "Since $P = V^2/R$, doubling $V$ multiplies $P$ by $2^2 = 4$.",
       "variantGroup": null,
       "source": "Demo overview notes",
       "tags": []
@@ -167,14 +167,14 @@
       "topic": "series-parallel",
       "type": "single",
       "difficulty": 2,
-      "prompt": "A divider has R1 = 10 kΩ on top and R2 = 10 kΩ below, fed from 12 V. What is the output?",
+      "prompt": "A divider has $R_1 = 10\\,\\mathrm{k}\\Omega$ on top and $R_2 = 10\\,\\mathrm{k}\\Omega$ below, fed from 12 V. What is the output?",
       "correct": "6 V",
       "distractors": [
         "12 V",
         "3 V",
         "4 V"
       ],
-      "explanation": "Vout = Vin × R2 / (R1 + R2) = 12 × 10 / 20 = 6 V.",
+      "explanation": "$$V_{out} = V_{in}\\,\\frac{R_2}{R_1 + R_2}$$ $V_{out} = 12 \\times \\frac{10}{20}$ = 6 V.",
       "sayIt": "Vout is Vin times R2 over R1 plus R2.",
       "variantGroup": "calc-divider",
       "source": "Demo overview notes",
@@ -187,14 +187,14 @@
       "topic": "series-parallel",
       "type": "single",
       "difficulty": 2,
-      "prompt": "A divider has R1 = 20 kΩ on top and R2 = 10 kΩ below, fed from 9 V. What is the output?",
+      "prompt": "A divider has $R_1 = 20\\,\\mathrm{k}\\Omega$ on top and $R_2 = 10\\,\\mathrm{k}\\Omega$ below, fed from 9 V. What is the output?",
       "correct": "3 V",
       "distractors": [
         "6 V",
         "4.5 V",
         "1.5 V"
       ],
-      "explanation": "Vout = Vin × R2 / (R1 + R2) = 9 × 10 / 30 = 3 V.",
+      "explanation": "$$V_{out} = V_{in}\\,\\frac{R_2}{R_1 + R_2}$$ $V_{out} = 9 \\times \\frac{10}{30}$ = 3 V.",
       "sayIt": "Vout is Vin times R2 over R1 plus R2.",
       "variantGroup": "calc-divider",
       "source": "Demo overview notes",
@@ -207,14 +207,14 @@
       "topic": "series-parallel",
       "type": "single",
       "difficulty": 2,
-      "prompt": "A divider has R1 = 30 kΩ on top and R2 = 10 kΩ below, fed from 8 V. What is the output?",
+      "prompt": "A divider has $R_1 = 30\\,\\mathrm{k}\\Omega$ on top and $R_2 = 10\\,\\mathrm{k}\\Omega$ below, fed from 8 V. What is the output?",
       "correct": "2 V",
       "distractors": [
         "6 V",
         "4 V",
         "2.7 V"
       ],
-      "explanation": "Vout = Vin × R2 / (R1 + R2) = 8 × 10 / 40 = 2 V.",
+      "explanation": "$$V_{out} = V_{in}\\,\\frac{R_2}{R_1 + R_2}$$ $V_{out} = 8 \\times \\frac{10}{40}$ = 2 V.",
       "sayIt": "Vout is Vin times R2 over R1 plus R2.",
       "variantGroup": "calc-divider",
       "source": "Demo overview notes",
@@ -227,14 +227,14 @@
       "topic": "series-parallel",
       "type": "single",
       "difficulty": 2,
-      "prompt": "A divider has R1 = 10 kΩ on top and R2 = 40 kΩ below, fed from 5 V. What is the output?",
+      "prompt": "A divider has $R_1 = 10\\,\\mathrm{k}\\Omega$ on top and $R_2 = 40\\,\\mathrm{k}\\Omega$ below, fed from 5 V. What is the output?",
       "correct": "4 V",
       "distractors": [
         "1 V",
         "2.5 V",
         "1.25 V"
       ],
-      "explanation": "Vout = Vin × R2 / (R1 + R2) = 5 × 40 / 50 = 4 V.",
+      "explanation": "$$V_{out} = V_{in}\\,\\frac{R_2}{R_1 + R_2}$$ $V_{out} = 5 \\times \\frac{40}{50}$ = 4 V.",
       "sayIt": "Vout is Vin times R2 over R1 plus R2.",
       "variantGroup": "calc-divider",
       "source": "Demo overview notes",
@@ -254,7 +254,7 @@
         "10 s",
         "100 s"
       ],
-      "explanation": "τ = RC = 10 000 × 100 × 10⁻⁶ = 1 s.",
+      "explanation": "$\\tau = RC = 10^4\\,\\Omega \\times 100 \\times 10^{-6}\\,\\mathrm{F} = 1\\,\\mathrm{s}$",
       "sayIt": "Tau is R times C: 10 kilohms times 100 microfarads is one second.",
       "variantGroup": null,
       "source": "Demo overview notes",
@@ -274,7 +274,7 @@
         "About 50 %",
         "About 86 %"
       ],
-      "explanation": "V = Vs(1 − e^−1) ≈ 0.632 Vs. After 5τ it is above 99 %.",
+      "explanation": "$$V(t) = V_s\\left(1 - e^{-t/\\tau}\\right)$$ At $t = \\tau$ that is $1 - e^{-1} \\approx 0.632$. After $5\\tau$ it is above 99 %.",
       "variantGroup": null,
       "source": "Demo overview notes",
       "tags": [
@@ -286,14 +286,14 @@
       "topic": "rc-circuits",
       "type": "single",
       "difficulty": 2,
-      "prompt": "What is the −3 dB corner of an RC low-pass with R = 1.6 kΩ and C = 100 nF?",
+      "prompt": "What is the −3 dB corner of an RC low-pass with $R = 1.6\\,\\mathrm{k}\\Omega$ and $C = 100\\,\\mathrm{nF}$?",
       "correct": "About 1 kHz",
       "distractors": [
         "About 160 Hz",
         "About 10 kHz",
         "About 6.3 kHz"
       ],
-      "explanation": "fc = 1 / (2πRC) = 1 / (2π × 1600 × 100 × 10⁻⁹) ≈ 995 Hz.",
+      "explanation": "$$f_c = \\frac{1}{2\\pi RC} = \\frac{1}{2\\pi \\times 1600 \\times 100 \\times 10^{-9}} \\approx 995\\,\\mathrm{Hz}$$",
       "variantGroup": null,
       "source": "Demo overview notes",
       "tags": [
@@ -312,7 +312,7 @@
         "−180°",
         "0°"
       ],
-      "explanation": "At f = fc the real and imaginary parts are equal, so the phase is −arctan(1) = −45°. It heads to −90° well above the corner.",
+      "explanation": "At $f = f_c$ the real and imaginary parts are equal, so $\\phi = -\\arctan(1) = -45^\\circ$. It heads to $-90^\\circ$ well above the corner.",
       "variantGroup": null,
       "source": "Demo overview notes",
       "tags": []
@@ -322,14 +322,14 @@
       "topic": "op-amps",
       "type": "single",
       "difficulty": 1,
-      "prompt": "What is the gain of a non-inverting amplifier with Rf = 47 kΩ and Rg = 4.7 kΩ?",
+      "prompt": "What is the gain of a non-inverting amplifier with $R_f = 47\\,\\mathrm{k}\\Omega$ and $R_g = 4.7\\,\\mathrm{k}\\Omega$?",
       "correct": "11",
       "distractors": [
         "10",
         "−10",
         "4.7"
       ],
-      "explanation": "G = 1 + Rf / Rg = 1 + 10 = 11. The inverting version would be −Rf/Rg = −10.",
+      "explanation": "$G = 1 + \\dfrac{R_f}{R_g} = 1 + 10 = 11$. The inverting version would be $-R_f/R_g = -10$.",
       "variantGroup": null,
       "source": "Demo overview notes",
       "tags": [

@@ -13,6 +13,7 @@ It runs quizzes from the packs, opens the PDFs, and can speed-read the notes wor
   <img src="docs/screenshots/library.png" width="200" alt="Library of modules with pack, notes and question counts and the last score">
   <img src="docs/screenshots/setup.png" width="200" alt="Quiz setup with exam lengths, topic chips and the exam conditions switch">
   <img src="docs/screenshots/quiz_tutor.png" width="200" alt="Tutor mode after a wrong answer: green and red options, explanation and say-it box">
+  <img src="docs/screenshots/quiz_latex.png" width="200" alt="A calculation question with LaTeX formulas in the prompt and a display formula in the explanation">
   <img src="docs/screenshots/results.png" width="200" alt="Results with a percentage, verdict and score per topic">
   <img src="docs/screenshots/rsvp_dark.png" width="200" alt="Speed reading a notes PDF in dark theme">
 </p>
@@ -50,6 +51,9 @@ The full plan this app follows is in [`docs/SCOPE.md`](docs/SCOPE.md).
 - **Speed reading** (secondary tool): read a notes PDF with RSVP from the page you are on.
   Words flash at a fixed point, aligned on their optimal recognition point (the red letter),
   with sentence skip, speed control and the surrounding words shown while paused.
+- **LaTeX formulas** in questions, answers, explanations, model answers and say-it lines:
+  `$…$` inline, `$$…$$` on a line of their own (see *Formulas* below). They are drawn natively
+  and offline, follow the theme's text colour, and are read aloud as plain text by screen readers.
 - **Sample pack**: an empty library offers **Load sample pack** (a short circuit-basics pack
   with its notes) so the app can be tried straight away.
 - Light and dark themes following the system, Material You colours on Android 12+, fixed
@@ -97,10 +101,33 @@ A pack is one JSON file, `format: "studypack-mcq"`, `schemaVersion: 1`:
 
 Every field and rule is in [`docs/SCOPE.md`](docs/SCOPE.md#32-question-pack-schema-schemaversion-1).
 In short: question IDs must be unique and stay the same between versions (history is keyed
-on them), there are exactly three distinct distractors, text is plain Unicode (no markdown,
-HTML or LaTeX), and re-importing replaces a pack only if its `version` is higher (otherwise
+on them), there are exactly three distinct distractors, text is plain Unicode with optional
+LaTeX formulas (no markdown or HTML), and re-importing replaces a pack only if its `version` is higher (otherwise
 the app asks). Errors name the field and the question ID; over-long text, single-member
 variant groups and a guessable "correct answer is always the longest" pattern are warnings.
+
+### Formulas
+
+Any text field of a question can hold LaTeX maths:
+
+| Write | For |
+|---|---|
+| `$f_c = \frac{1}{2\pi RC}$` | an inline formula, flowing with the text |
+| `$$V_{out} = V_{in}\frac{R_2}{R_1 + R_2}$$` | a display formula, centred on its own line |
+| `\(…\)` and `\[…\]` | the same, with LaTeX's own delimiters |
+| `\$` | a literal dollar sign |
+
+In JSON, backslashes are doubled: `"prompt": "What is $\\tau = RC$ for 10 kΩ and 100 µF?"`.
+Ordinary prices stay text: an inline `$` only opens a formula when followed by a non-space,
+and only closes one when preceded by a non-space and not followed by a digit, so "costs $5 or
+$10" is left alone. Plain Unicode (τ, Ω, µ) keeps working as before, and packs without `$`
+look exactly as they did.
+
+Rendering uses [JLatexMath](https://github.com/noties/jlatexmath-android) (fractions, roots,
+sub/superscripts, Greek, `\left|…\right|`, `\mathrm`, `\text`, matrices and so on). A formula
+that cannot be parsed is shown as its LaTeX source in monospace. On import, unbalanced braces
+and unclosed `$$`, `\(` or `\[` are reported as warnings naming the question; answer-length
+checks measure the formula as shown, not its source.
 
 **Notes PDFs** attach to a module automatically when a pack lists the file name in
 `pack.notes`, or when the file name starts with a module code
@@ -108,7 +135,7 @@ variant groups and a guessable "correct answer is always the longest" pattern ar
 
 ## Install the APK
 
-1. Copy `StudyPack-1.0.0-release.apk` to your phone (Android 8.0 or newer). The APK comes
+1. Copy `StudyPack-1.1.0-release.apk` to your phone (Android 8.0 or newer). The APK comes
    from a [CI run's](../../actions) artifacts or from a local build (below).
 2. Open it and allow installs from that source when prompted.
 3. Tap **Load sample pack** to try it, or **Import** to pick your own packs and notes.
@@ -123,7 +150,7 @@ Requirements: JDK 17+ (JDK 21 recommended) and the Android SDK with platform 37
 (`ANDROID_HOME` or `local.properties`). The Gradle wrapper downloads everything else.
 
 ```bash
-./gradlew assembleRelease   # → app/build/outputs/apk/release/StudyPack-1.0.0-release.apk
+./gradlew assembleRelease   # → app/build/outputs/apk/release/StudyPack-1.1.0-release.apk
 ./gradlew assembleDebug     # → debug build (installs alongside release as "…studypack.debug")
 ./gradlew lint test         # static analysis + all unit, Robolectric and Compose UI tests
 ```
@@ -162,6 +189,7 @@ docs/         The scope plan and screenshots
 | Language | Kotlin 2.4, coroutines and Flow, kotlinx.serialization |
 | UI | Jetpack Compose, Material 3, Navigation 3 |
 | Data | Room (exported schemas), DataStore, app-private file storage |
+| Maths | JLatexMath for Android (native LaTeX rendering, offline) |
 | Build | Gradle 9.8, AGP 9.4, version catalog, R8 |
 | SDK | min 26 (Android 8.0), target/compile 37 |
 | Tests | JUnit 4, coroutines-test, Robolectric, Compose UI test |

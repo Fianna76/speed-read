@@ -44,6 +44,7 @@ import io.github.fianna76.studypack.R
 import io.github.fianna76.studypack.quiz.QuizScore
 import io.github.fianna76.studypack.quiz.TopicScore
 import io.github.fianna76.studypack.quiz.Verdict
+import io.github.fianna76.studypack.ui.components.MathText
 import io.github.fianna76.studypack.ui.components.SectionHeader
 import io.github.fianna76.studypack.ui.theme.StudyTheme
 import io.github.fianna76.studypack.ui.theme.tabular
@@ -229,15 +230,15 @@ private fun ReviewCard(state: QuizUiState, index: Int, expandedDetails: Boolean)
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary,
             )
-            Text(asked.question.prompt, style = MaterialTheme.typography.titleMedium)
+            MathText(asked.question.prompt, style = MaterialTheme.typography.titleMedium)
             if (!right) {
-                Text(
+                MathText(
                     stringResource(R.string.results_your_answer, "${LETTERS[answer]}. ${asked.options[answer]}"),
                     style = MaterialTheme.typography.bodyLarge,
                     color = colors.wrong,
                 )
             }
-            Text(
+            MathText(
                 stringResource(R.string.results_right_answer, "${LETTERS[asked.correctIndex]}. ${asked.options[asked.correctIndex]}"),
                 style = MaterialTheme.typography.bodyLarge,
                 color = colors.right,

@@ -2,7 +2,9 @@ package io.github.fianna76.studypack
 
 import android.content.Context
 import android.graphics.Bitmap
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -138,6 +140,43 @@ class ScreenRenderTest {
             ),
             QuizActions(),
         )
+    }
+
+    @Test
+    fun quizLatex() = capture("quiz_latex") {
+        // A calculation variant with formulas in the prompt and a display formula in the explanation.
+        val state = session()
+        val index = state.questions.indexOfFirst { it.question.variantGroup != null }
+        val question = state.questions[index]
+        QuizContent(
+            state.copy(index = index, answers = state.answers.toMutableList().also { it[index] = question.correctIndex }),
+            QuizActions(),
+        )
+    }
+
+    @Test
+    fun quizLatexOptions() = capture("quiz_latex_options") {
+        val q = sample.questions.first { it.id == "rc-003" }.copy(
+            correct = "\$f_c = \\frac{1}{2\\pi RC} \\approx 1\\,\\mathrm{kHz}\$",
+            distractors = listOf("\$\\frac{1}{RC} \\approx 6.3\\,\\mathrm{kHz}\$", "\$2\\pi RC \\approx 1\\,\\mathrm{ms}\$", "\$\\sqrt{RC}\$ (not a frequency)"),
+        )
+        val asked = SessionBuilder.shuffleOptions(q, Random(1))
+        QuizContent(
+            QuizUiState(isLoading = false, questions = listOf(asked), answers = listOf(null), topicNames = topicNames),
+            QuizActions(),
+        )
+    }
+
+    @Test
+    fun latexSymbols() = capture("latex_symbols") {
+        androidx.compose.foundation.layout.Column(androidx.compose.ui.Modifier.padding(16.dp)) {
+            io.github.fianna76.studypack.ui.components.MathText(
+                "Units: \$10\\,\\mathrm{k}\\Omega\$, \$\\Omega_0\$, \$4.7\\,\\mu\\mathrm{F}\$, \$\\tau = RC\$, " +
+                    "\$\\Delta V\$, \$a \\otimes b\$, \$\\pm 5\\,\\%\$, \$\\leq\$ and \$\\approx\$. " +
+                    "\$\$\\mathrm{CMRR} = 20\\log_{10}\\left|\\frac{A_d}{A_c}\\right|\\,\\mathrm{dB}\$\$ Broken: \$\\frac{1}{\$ stays readable.",
+                style = androidx.compose.material3.MaterialTheme.typography.bodyLarge,
+            )
+        }
     }
 
     @Test

@@ -34,6 +34,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -65,8 +66,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.fianna76.studypack.R
+import io.github.fianna76.studypack.quiz.MathMarkup
+import io.github.fianna76.studypack.quiz.MathSegment
 import io.github.fianna76.studypack.quiz.SessionQuestion
 import io.github.fianna76.studypack.ui.components.EmptyState
+import io.github.fianna76.studypack.ui.components.MathText
 import io.github.fianna76.studypack.ui.navigation.QuizRoute
 import io.github.fianna76.studypack.ui.theme.StudyTheme
 import io.github.fianna76.studypack.ui.theme.tabular
@@ -291,7 +295,7 @@ internal fun OptionCard(letter: String, text: String, look: OptionLook, enabled:
         OptionLook.WRONG -> Triple(colors.wrongContainer, colors.onWrongContainer, colors.wrong)
         OptionLook.DIMMED -> Triple(scheme.surfaceContainerLow, scheme.onSurface.copy(alpha = 0.6f), scheme.outlineVariant)
     }
-    val description = stringResource(R.string.quiz_option, letter, text)
+    val description = stringResource(R.string.quiz_option, letter, MathMarkup.plain(text))
     val select = onClick
     val stateText = when (look) {
         OptionLook.RIGHT -> stringResource(R.string.quiz_option_correct)
@@ -328,7 +332,7 @@ internal fun OptionCard(letter: String, text: String, look: OptionLook, enabled:
             Surface(shape = CircleShape, color = border.copy(alpha = 0.15f), contentColor = content, modifier = Modifier.size(32.dp)) {
                 Box(contentAlignment = Alignment.Center) { Text(letter, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold) }
             }
-            Text(text, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 12.dp).weight(1f))
+            MathText(text, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.padding(start = 12.dp).weight(1f))
         }
     }
 }
@@ -383,7 +387,7 @@ internal fun AnswerDetails(modelAnswer: String?, explanation: String, sayIt: Str
 private fun LabelledText(label: String, text: String) {
     Column {
         Label(label)
-        Text(text, style = MaterialTheme.typography.bodyLarge)
+        MathText(text, style = MaterialTheme.typography.bodyLarge)
     }
 }
 
@@ -404,25 +408,55 @@ internal fun SayItBox(text: String) {
     ) {
         Column(Modifier.padding(12.dp)) {
             Text(stringResource(R.string.quiz_say_it), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-            Text(text, style = MaterialTheme.typography.bodyLarge)
+            MathText(text, style = MaterialTheme.typography.bodyLarge)
         }
     }
 }
 
-/** Text over [limit] characters is cut with a "more" link, as long texts are allowed but discouraged. */
+/**
+ * Text over [limit] characters (as shown, so a formula's LaTeX source doesn't count) is cut with a
+ * "more" link, as long texts are allowed but discouraged. Formulas are never cut in half.
+ */
 @Composable
 internal fun ExpandableText(text: String, limit: Int, style: androidx.compose.ui.text.TextStyle, modifier: Modifier = Modifier) {
-    if (text.length <= limit) {
-        Text(text, style = style, modifier = modifier)
+    val segments = remember(text) { MathMarkup.parse(text) }
+    val shortened = remember(segments, limit) { truncate(segments, limit) }
+    if (shortened == null) {
+        MathText(segments, style = style, modifier = modifier)
         return
     }
     var expanded by rememberSaveable(text) { mutableStateOf(false) }
     Column(modifier) {
-        Text(if (expanded) text else text.take(limit).trimEnd() + "…", style = style)
+        MathText(if (expanded) segments else shortened, style = style)
         TextButton(onClick = { expanded = !expanded }) {
             Text(stringResource(if (expanded) R.string.text_less else R.string.text_more))
         }
     }
+}
+
+/** The first [limit] shown characters of [segments] plus an ellipsis, or `null` if they fit. */
+internal fun truncate(segments: List<MathSegment>, limit: Int): List<MathSegment>? {
+    fun shown(segment: MathSegment) = when (segment) {
+        is MathSegment.Text -> segment.text.length
+        is MathSegment.Math -> MathMarkup.latexToPlain(segment.latex).length
+    }
+    if (segments.sumOf(::shown) <= limit) return null
+    val kept = ArrayList<MathSegment>()
+    var used = 0
+    for (segment in segments) {
+        val length = shown(segment)
+        if (used + length <= limit) {
+            kept += segment
+            used += length
+            continue
+        }
+        if (segment is MathSegment.Text) kept += MathSegment.Text(segment.text.take(limit - used).trimEnd())
+        break
+    }
+    // No space before the ellipsis.
+    (kept.lastOrNull() as? MathSegment.Text)?.let { kept[kept.lastIndex] = MathSegment.Text(it.text.trimEnd()) }
+    kept += MathSegment.Text("…")
+    return kept
 }
 
 /** One segment per question, coloured as it is answered. */

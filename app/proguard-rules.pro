@@ -14,3 +14,9 @@
 # PdfBox-Android can decode JPEG 2000 images through an optional library we don't ship; the
 # app only extracts text, so that code path is never reached.
 -dontwarn com.gemalto.jp2.**
+
+# JLatexMath (LaTeX formulas) looks up its symbol, font and macro classes by name while
+# parsing, so R8 must not rename or remove them.
+-keep class org.scilab.forge.jlatexmath.** { *; }
+-keep class ru.noties.jlatexmath.** { *; }
+-dontwarn org.scilab.forge.jlatexmath.**
