@@ -5,6 +5,8 @@
     <!-- Common -->
     <string name="back">Back</string>
     <string name="more_options">More options</string>
+    <string name="more_options_for">More options for %1$s</string>
+    <string name="list_two">%1$s and %2$s</string>
     <string name="cancel">Cancel</string>
     <string name="delete">Delete</string>
     <string name="ok">OK</string>
@@ -53,10 +55,14 @@
     <string name="pack_scores">Best %1$d %% · last %2$d %%</string>
     <string name="pack_quiz_this">Quiz this pack</string>
     <string name="delete_pack_title">Delete \"%1$s\"?</string>
-    <string name="delete_pack_body">Its questions and your answer history for them are removed. Re-import the file to get it back.</string>
+    <string name="delete_pack_body">Its questions, your answer history and its quiz scores are removed. Re-import the file to get it back.</string>
     <string name="delete_note_title">Delete \"%1$s\"?</string>
     <string name="delete_note_body">The PDF is removed from StudyPack. The original file is not touched.</string>
     <string name="module_import_here">Import into this module</string>
+    <string name="delete_module">Delete module</string>
+    <string name="delete_module_title">Delete %1$s?</string>
+    <string name="delete_module_body">This removes %1$s, with your answer history and quiz scores for them. The original files on your phone or drive are not touched.</string>
+    <string name="delete_module_body_empty">This removes the module and your quiz scores for it.</string>
 
     <!-- Quiz setup -->
     <string name="setup_title">New quiz</string>

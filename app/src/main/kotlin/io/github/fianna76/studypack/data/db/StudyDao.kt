@@ -145,14 +145,55 @@ interface LibraryDao {
         if (previous != null && previous.moduleCode != pack.moduleCode) deleteModuleIfEmpty(previous.moduleCode)
     }
 
-    /** Deletes a pack, its questions and its answer history. */
+    /**
+     * Deletes a pack, its questions, its answer history and the quiz scores that were only about
+     * it (scores from sessions that mixed it with packs still imported are kept).
+     */
     @Transaction
     suspend fun deletePack(packId: String) {
         val pack = pack(packId) ?: return
         removePackRows(packId)
         deleteStats(packId)
+        deleteOrphanedSessions(pack.moduleCode)
         deleteModuleIfEmpty(pack.moduleCode)
     }
+
+    /** Removes the module's session results whose packs have all been deleted. */
+    @Transaction
+    suspend fun deleteOrphanedSessions(moduleCode: String) {
+        val remaining = packsInModule(moduleCode).mapTo(HashSet()) { it.id }
+        val orphaned = sessionsInModule(moduleCode).filter { session -> session.packIds.none { it in remaining } }
+        if (orphaned.isNotEmpty()) deleteSessions(orphaned.map { it.id })
+    }
+
+    /**
+     * Deletes a whole module: its packs, questions, answer history, notes and quiz scores.
+     * Returns the notes' file paths, for the caller to delete the files.
+     */
+    @Transaction
+    suspend fun deleteModule(moduleCode: String): List<String> {
+        packsInModule(moduleCode).forEach { pack ->
+            removePackRows(pack.id)
+            deleteStats(pack.id)
+        }
+        val notePaths = notesInModule(moduleCode).map { it.internalPath }
+        deleteNotesInModule(moduleCode)
+        deleteSessionsInModule(moduleCode)
+        deleteModuleRow(moduleCode)
+        return notePaths
+    }
+
+    @Query("SELECT * FROM session_results WHERE moduleCode = :moduleCode")
+    suspend fun sessionsInModule(moduleCode: String): List<SessionResultEntity>
+
+    @Query("DELETE FROM session_results WHERE id IN (:ids)")
+    suspend fun deleteSessions(ids: Collection<Long>)
+
+    @Query("DELETE FROM session_results WHERE moduleCode = :moduleCode")
+    suspend fun deleteSessionsInModule(moduleCode: String)
+
+    @Query("DELETE FROM modules WHERE code = :moduleCode")
+    suspend fun deleteModuleRow(moduleCode: String)
 
     /** Deletes a pack's rows; children explicitly, rather than relying on foreign-key cascades. */
     @Transaction
@@ -175,6 +216,12 @@ interface LibraryDao {
 
     @Query("SELECT * FROM note_files WHERE moduleCode = :moduleCode AND fileName = :fileName COLLATE NOCASE LIMIT 1")
     suspend fun noteByName(moduleCode: String, fileName: String): NoteFileEntity?
+
+    @Query("SELECT * FROM note_files WHERE moduleCode = :moduleCode")
+    suspend fun notesInModule(moduleCode: String): List<NoteFileEntity>
+
+    @Query("DELETE FROM note_files WHERE moduleCode = :moduleCode")
+    suspend fun deleteNotesInModule(moduleCode: String)
 
     @Query("SELECT fileName FROM note_files WHERE moduleCode = :moduleCode")
     suspend fun noteFileNames(moduleCode: String): List<String>

@@ -29,6 +29,10 @@ The full plan this app follows is in [`docs/SCOPE.md`](docs/SCOPE.md).
   original is deleted.
 - **Library by module.** Each module shows its notes and question packs side by side, with
   question counts and the last and best scores.
+- **Delete what you no longer need.** A pack or notes PDF from its ⋮ menu (or a long-press) on
+  the module screen; a whole module from its card in the library or the module screen's menu.
+  Deleting asks first and takes the answer history and quiz scores with it, so a re-import
+  starts fresh. The original files on your phone or drive are never touched.
 - **Quizzes** that behave like the web quiz:
   - questions shuffled, answer options shuffled;
   - picks spread across topics (a stratified round-robin), so a short exam still covers every topic;
@@ -135,7 +139,7 @@ checks measure the formula as shown, not its source.
 
 ## Install the APK
 
-1. Copy `StudyPack-1.1.0-release.apk` to your phone (Android 8.0 or newer). The APK comes
+1. Copy `StudyPack-1.2.0-release.apk` to your phone (Android 8.0 or newer). The APK comes
    from a [CI run's](../../actions) artifacts or from a local build (below).
 2. Open it and allow installs from that source when prompted.
 3. Tap **Load sample pack** to try it, or **Import** to pick your own packs and notes.
@@ -150,7 +154,7 @@ Requirements: JDK 17+ (JDK 21 recommended) and the Android SDK with platform 37
 (`ANDROID_HOME` or `local.properties`). The Gradle wrapper downloads everything else.
 
 ```bash
-./gradlew assembleRelease   # → app/build/outputs/apk/release/StudyPack-1.1.0-release.apk
+./gradlew assembleRelease   # → app/build/outputs/apk/release/StudyPack-1.2.0-release.apk
 ./gradlew assembleDebug     # → debug build (installs alongside release as "…studypack.debug")
 ./gradlew lint test         # static analysis + all unit, Robolectric and Compose UI tests
 ```

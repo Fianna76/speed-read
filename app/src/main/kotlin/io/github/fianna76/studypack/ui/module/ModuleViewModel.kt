@@ -57,6 +57,11 @@ class ModuleViewModel(
         viewModelScope.launch { repository.deleteNote(noteId) }
     }
 
+    /** Deletes the module and everything in it; the screen closes once it is gone. */
+    fun deleteModule() {
+        viewModelScope.launch { repository.deleteModule(moduleCode) }
+    }
+
     /** Imports files; notes that match no module land in this one. */
     fun importHere(uris: List<Uri>) = importer.enqueue(uris, defaultModule = moduleCode)
 

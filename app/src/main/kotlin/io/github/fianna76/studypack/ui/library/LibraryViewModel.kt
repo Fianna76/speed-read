@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 data class LibraryUiState(
     val isLoading: Boolean = true,
@@ -22,7 +23,7 @@ data class LibraryUiState(
 )
 
 class LibraryViewModel(
-    repository: StudyRepository,
+    private val repository: StudyRepository,
     private val importer: ImportCoordinator,
 ) : ViewModel() {
 
@@ -33,6 +34,11 @@ class LibraryViewModel(
     fun import(uris: List<Uri>) = importer.enqueue(uris)
 
     fun loadSample() = importer.importSample()
+
+    /** Deletes a module with its packs, notes, history and scores. */
+    fun deleteModule(code: String) {
+        viewModelScope.launch { repository.deleteModule(code) }
+    }
 
     companion object {
         val Factory: ViewModelProvider.Factory = viewModelFactory {

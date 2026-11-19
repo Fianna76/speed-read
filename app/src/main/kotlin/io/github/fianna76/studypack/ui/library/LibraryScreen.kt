@@ -2,10 +2,13 @@ package io.github.fianna76.studypack.ui.library
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -28,6 +31,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,6 +44,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.fianna76.studypack.R
 import io.github.fianna76.studypack.data.ModuleSummary
+import io.github.fianna76.studypack.ui.components.ConfirmDeleteModule
 import io.github.fianna76.studypack.ui.components.EmptyState
 import io.github.fianna76.studypack.ui.theme.tabular
 
@@ -60,6 +65,7 @@ fun LibraryScreen(
         onOpenModule = onOpenModule,
         onImport = { picker.launch(IMPORT_MIME_TYPES) },
         onLoadSample = viewModel::loadSample,
+        onDeleteModule = viewModel::deleteModule,
     )
 }
 
@@ -70,7 +76,9 @@ fun LibraryContent(
     onOpenModule: (String) -> Unit,
     onImport: () -> Unit,
     onLoadSample: () -> Unit,
+    onDeleteModule: (String) -> Unit = {},
 ) {
+    var deleting by rememberSaveable { mutableStateOf<String?>(null) }
     Scaffold(
         topBar = {
             TopAppBar(
@@ -124,35 +132,72 @@ fun LibraryContent(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 items(state.modules, key = { it.code }) { module ->
-                    ModuleCard(module, onClick = { onOpenModule(module.code) })
+                    ModuleCard(module, onClick = { onOpenModule(module.code) }, onDelete = { deleting = module.code })
                 }
             }
         }
     }
+
+    state.modules.firstOrNull { it.code == deleting }?.let { module ->
+        ConfirmDeleteModule(
+            moduleCode = module.code,
+            packCount = module.packCount,
+            noteCount = module.noteCount,
+            onConfirm = {
+                deleting = null
+                onDeleteModule(module.code)
+            },
+            onDismiss = { deleting = null },
+        )
+    }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun ModuleCard(module: ModuleSummary, onClick: () -> Unit) {
-    Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(module.code, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-            Text(
-                module.name ?: module.code,
-                style = MaterialTheme.typography.titleMedium,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                moduleCounts(module),
-                style = MaterialTheme.typography.bodyMedium.tabular,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            module.lastPercent?.let {
+private fun ModuleCard(module: ModuleSummary, onClick: () -> Unit, onDelete: () -> Unit) {
+    var menu by remember { mutableStateOf(false) }
+    val moreLabel = stringResource(R.string.more_options_for, module.code)
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .combinedClickable(onClick = onClick, onLongClick = { menu = true }, onLongClickLabel = moreLabel)
+                .padding(start = 16.dp, top = 16.dp, bottom = 16.dp, end = 4.dp),
+        ) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(module.code, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                 Text(
-                    stringResource(R.string.last_score, it),
+                    module.name ?: module.code,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    moduleCounts(module),
                     style = MaterialTheme.typography.bodyMedium.tabular,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                module.lastPercent?.let {
+                    Text(
+                        stringResource(R.string.last_score, it),
+                        style = MaterialTheme.typography.bodyMedium.tabular,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            Box {
+                IconButton(onClick = { menu = true }) {
+                    Icon(painterResource(R.drawable.ic_more_vert), contentDescription = moreLabel)
+                }
+                DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.delete_module)) },
+                        leadingIcon = { Icon(painterResource(R.drawable.ic_delete), contentDescription = null) },
+                        onClick = {
+                            menu = false
+                            onDelete()
+                        },
+                    )
+                }
             }
         }
     }

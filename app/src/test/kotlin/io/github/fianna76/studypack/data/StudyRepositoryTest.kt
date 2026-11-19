@@ -127,4 +127,61 @@ class StudyRepositoryTest {
         assertEquals(8, content.questions.size)
         assertEquals("test-pack", content.questions.first().packId)
     }
+
+    @Test
+    fun deletingAPackRemovesScoresThatWereOnlyAboutIt() = runBlocking {
+        repository.savePack(pack())
+        repository.savePack(pack(TestPacks.json(packId = "other-pack")))
+        graph.now = 10
+        repository.saveSession("TEST101", 0, "BENCH_DEMO", false, listOf("other-pack"), score(2, 4), seed = 1)
+        graph.now = 20
+        repository.saveSession("TEST101", 0, "BENCH_DEMO", false, listOf("test-pack", "other-pack"), score(3, 4), seed = 2)
+        graph.now = 30
+        repository.saveSession("TEST101", 0, "WARM_UP", false, listOf("test-pack"), score(4, 4), seed = 3)
+        assertEquals(100, repository.observeModules().first().single().lastPercent)
+
+        repository.deletePack("test-pack")
+        // The test-pack-only score is gone; the mixed session still counts as the latest.
+        assertEquals(75, repository.observeModules().first().single().lastPercent)
+        val other = repository.observePacks("TEST101").first().single()
+        assertEquals(75, other.bestPercent)
+
+        // Re-importing the pack does not bring its old score back.
+        repository.savePack(pack())
+        val reimported = repository.observePacks("TEST101").first().first { it.id == "test-pack" }
+        assertEquals(75, reimported.bestPercent)
+        assertEquals(75, reimported.lastPercent)
+    }
+
+    @Test
+    fun deletingAModuleRemovesEverythingInIt() = runBlocking {
+        repository.savePack(pack())
+        repository.savePack(pack(TestPacks.json(packId = "other-pack")))
+        repository.savePack(pack(TestPacks.json(packId = "keep-pack", moduleCode = "KEEP200")))
+        repository.recordAnswer(QuestionKey("test-pack", "a-1"), correct = false, tutorMode = true)
+        repository.recordAnswer(QuestionKey("keep-pack", "a-1"), correct = false, tutorMode = true)
+        repository.saveSession("TEST101", 0, "BENCH_DEMO", false, listOf("test-pack"), score(1, 2), seed = 1)
+        repository.saveSession("KEEP200", 0, "BENCH_DEMO", false, listOf("keep-pack"), score(2, 2), seed = 2)
+        val path = graph.files.newNotePath()
+        graph.files.store(File(tmp.root, "n.pdf").apply { writeText("%PDF") }, path)
+        repository.saveNote("TEST101", null, "n.pdf", "Notes", path, 3, replacing = null)
+
+        repository.deleteModule("TEST101")
+
+        val modules = repository.observeModules().first()
+        assertEquals(listOf("KEEP200"), modules.map { it.code })
+        assertEquals(100, modules.single().lastPercent)
+        assertNull(repository.pack("test-pack"))
+        assertNull(repository.pack("other-pack"))
+        assertTrue(repository.quizContent(listOf("test-pack", "other-pack")).questions.isEmpty())
+        assertTrue(repository.history(listOf("test-pack")).isEmpty())
+        assertEquals(1, repository.history(listOf("keep-pack")).size)
+        assertTrue(repository.observeNotes("TEST101").first().isEmpty())
+        assertTrue(!graph.files.file(path).exists())
+        assertEquals(listOf("KEEP200"), repository.modules().map { it.code })
+
+        // Importing the module again starts from scratch: no old score.
+        repository.savePack(pack())
+        assertNull(repository.observeModules().first().first { it.code == "TEST101" }.lastPercent)
+    }
 }

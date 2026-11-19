@@ -164,7 +164,13 @@ class StudyRepository(
         ),
     )
 
+    /** Deletes a pack with its questions, answer history and the scores that were only about it. */
     suspend fun deletePack(packId: String) = library.deletePack(packId)
+
+    /** Deletes a module and everything in it: packs, history, scores, and the notes PDFs' files. */
+    suspend fun deleteModule(moduleCode: String) {
+        library.deleteModule(moduleCode).forEach(noteFiles::delete)
+    }
 
     suspend fun deleteNote(noteId: Long) {
         val note = library.note(noteId) ?: return

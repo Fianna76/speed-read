@@ -84,6 +84,59 @@ class AppFlowTest {
         assertTrue(percent == 0 || percent == 100)
     }
 
+    @Test
+    fun deletePackThenModule() {
+        val container = (context as StudyPackApplication).container
+        waitFor(hasText(string(R.string.library_empty_title)))
+        compose.onNodeWithText(string(R.string.library_load_sample)).performClick()
+        waitFor(hasText(string(R.string.ok)))
+        compose.onNodeWithText(string(R.string.ok)).performClick()
+        waitFor(hasText("DEMO101"))
+
+        // Delete the pack from its card's menu; the notes keep the module alive.
+        compose.onNodeWithText("Sample module: circuit basics").performClick()
+        val pack = "Circuit Basics (sample pack)"
+        waitFor(hasText(pack))
+        compose.onNode(hasContentDescription(string(R.string.more_options_for, pack))).performClick()
+        compose.onNodeWithText(string(R.string.delete)).performClick()
+        waitFor(hasText(string(R.string.delete_pack_title, pack)))
+        compose.onNodeWithText(string(R.string.delete)).performClick()
+        waitFor(hasText(string(R.string.module_no_packs)))
+        compose.onNodeWithText("Circuit Basics: Overview").assertExists()
+
+        // Back in the library, delete the whole module from its card's menu.
+        compose.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
+        waitFor(hasContentDescription(string(R.string.more_options_for, "DEMO101")))
+        compose.onNode(hasContentDescription(string(R.string.more_options_for, "DEMO101"))).performClick()
+        compose.onNodeWithText(string(R.string.delete_module)).performClick()
+        waitFor(hasText(string(R.string.delete_module_title, "DEMO101")))
+        compose.onNodeWithText(string(R.string.delete)).performClick()
+        waitFor(hasText(string(R.string.library_empty_title)))
+
+        runBlocking {
+            assertTrue(container.repository.modules().isEmpty())
+            val notesDir = java.io.File(context.filesDir, "notes")
+            assertTrue(notesDir.listFiles().isNullOrEmpty())
+        }
+    }
+
+    @Test
+    fun deleteModuleFromItsScreen() {
+        waitFor(hasText(string(R.string.library_empty_title)))
+        compose.onNodeWithText(string(R.string.library_load_sample)).performClick()
+        waitFor(hasText(string(R.string.ok)))
+        compose.onNodeWithText(string(R.string.ok)).performClick()
+        compose.onNodeWithText("Sample module: circuit basics").performClick()
+        waitFor(hasText("Circuit Basics (sample pack)"))
+        compose.onNode(hasContentDescription(string(R.string.more_options))).performClick()
+        compose.onNodeWithText(string(R.string.delete_module)).performClick()
+        // The dialog says what goes.
+        waitFor(hasText("1 pack and 1 notes PDF", substring = true))
+        compose.onNodeWithText(string(R.string.delete)).performClick()
+        // The module screen closes by itself, back to an empty library.
+        waitFor(hasText(string(R.string.library_empty_title)))
+    }
+
     private companion object {
         const val TIMEOUT_MS = 20_000L
     }

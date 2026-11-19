@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -29,7 +28,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -53,6 +51,8 @@ import io.github.fianna76.studypack.StudyPackApplication
 import io.github.fianna76.studypack.data.NoteFile
 import io.github.fianna76.studypack.data.PackSummary
 import io.github.fianna76.studypack.ui.components.BackButton
+import io.github.fianna76.studypack.ui.components.ConfirmDelete
+import io.github.fianna76.studypack.ui.components.ConfirmDeleteModule
 import io.github.fianna76.studypack.ui.components.SectionHeader
 import io.github.fianna76.studypack.ui.library.IMPORT_MIME_TYPES
 import io.github.fianna76.studypack.ui.theme.tabular
@@ -86,6 +86,7 @@ fun ModuleScreen(
             },
             onDeletePack = viewModel::deletePack,
             onDeleteNote = viewModel::deleteNote,
+            onDeleteModule = viewModel::deleteModule,
             onImport = { picker.launch(IMPORT_MIME_TYPES) },
         ),
     )
@@ -99,6 +100,7 @@ class ModuleActions(
     val onOpenExternally: (NoteFile) -> Unit = {},
     val onDeletePack: (String) -> Unit = {},
     val onDeleteNote: (Long) -> Unit = {},
+    val onDeleteModule: () -> Unit = {},
     val onImport: () -> Unit = {},
 )
 
@@ -107,6 +109,7 @@ class ModuleActions(
 fun ModuleContent(state: ModuleUiState, actions: ModuleActions) {
     var deletingPack by rememberSaveable { mutableStateOf<String?>(null) }
     var deletingNote by rememberSaveable { mutableStateOf<Long?>(null) }
+    var deletingModule by rememberSaveable { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -134,9 +137,18 @@ fun ModuleContent(state: ModuleUiState, actions: ModuleActions) {
                     DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.module_import_here)) },
+                            leadingIcon = { Icon(painterResource(R.drawable.ic_upload_file), contentDescription = null) },
                             onClick = {
                                 menu = false
                                 actions.onImport()
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.delete_module)) },
+                            leadingIcon = { Icon(painterResource(R.drawable.ic_delete), contentDescription = null) },
+                            onClick = {
+                                menu = false
+                                deletingModule = true
                             },
                         )
                     }
@@ -207,6 +219,18 @@ fun ModuleContent(state: ModuleUiState, actions: ModuleActions) {
             onDismiss = { deletingPack = null },
         )
     }
+    if (deletingModule) {
+        ConfirmDeleteModule(
+            moduleCode = state.code,
+            packCount = state.packs.size,
+            noteCount = state.notes.size,
+            onConfirm = {
+                deletingModule = false
+                actions.onDeleteModule()
+            },
+            onDismiss = { deletingModule = false },
+        )
+    }
     state.notes.firstOrNull { it.id == deletingNote }?.let { note ->
         ConfirmDelete(
             title = stringResource(R.string.delete_note_title, note.displayTitle),
@@ -240,7 +264,7 @@ private fun NoteCard(
     onDelete: () -> Unit,
 ) {
     var menu by remember { mutableStateOf(false) }
-    val moreLabel = stringResource(R.string.more_options)
+    val moreLabel = stringResource(R.string.more_options_for, note.displayTitle)
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -287,7 +311,7 @@ private fun NoteCard(
 @Composable
 private fun PackCard(pack: PackSummary, onQuiz: () -> Unit, onDelete: () -> Unit) {
     var menu by remember { mutableStateOf(false) }
-    val moreLabel = stringResource(R.string.more_options)
+    val moreLabel = stringResource(R.string.more_options_for, pack.title)
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -340,16 +364,5 @@ private fun MenuItem(label: Int, icon: Int, onClick: () -> Unit) {
         text = { Text(stringResource(label)) },
         leadingIcon = { Icon(painterResource(icon), contentDescription = null) },
         onClick = onClick,
-    )
-}
-
-@Composable
-private fun ConfirmDelete(title: String, body: String, onConfirm: () -> Unit, onDismiss: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = { Text(body) },
-        confirmButton = { TextButton(onClick = onConfirm) { Text(stringResource(R.string.delete)) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
     )
 }

@@ -6,14 +6,17 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -72,4 +75,31 @@ fun EmptyState(
         )
         actions()
     }
+}
+
+/** Asks before deleting something; the confirm button says Delete. */
+@Composable
+fun ConfirmDelete(title: String, body: String, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title) },
+        text = { Text(body) },
+        confirmButton = { TextButton(onClick = onConfirm) { Text(stringResource(R.string.delete)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+    )
+}
+
+/** Confirmation for deleting a whole module, saying what goes with it. */
+@Composable
+fun ConfirmDeleteModule(moduleCode: String, packCount: Int, noteCount: Int, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    val parts = buildList {
+        if (packCount > 0) add(pluralStringResource(R.plurals.module_packs, packCount, packCount))
+        if (noteCount > 0) add(pluralStringResource(R.plurals.module_notes, noteCount, noteCount))
+    }
+    val body = when (parts.size) {
+        0 -> stringResource(R.string.delete_module_body_empty)
+        1 -> stringResource(R.string.delete_module_body, parts[0])
+        else -> stringResource(R.string.delete_module_body, stringResource(R.string.list_two, parts[0], parts[1]))
+    }
+    ConfirmDelete(stringResource(R.string.delete_module_title, moduleCode), body, onConfirm, onDismiss)
 }
