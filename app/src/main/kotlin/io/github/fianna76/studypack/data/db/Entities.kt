@@ -1,5 +1,6 @@
 package io.github.fianna76.studypack.data.db
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -84,6 +85,8 @@ data class NoteFileEntity(
     /** Zero-based page the viewer was last on. */
     val lastPage: Int,
     val importedAt: Long,
+    /** Speed reading: the word reached, counted through the whole document; -1 if never read. */
+    @ColumnInfo(defaultValue = "-1") val rsvpWord: Int = -1,
 )
 
 /**

@@ -140,7 +140,6 @@
     <string name="pdf_failed">This PDF can\'t be shown here. Try opening it in another app.</string>
 
     <!-- Speed reading -->
-    <string name="rsvp_title">Speed-read: %1$s</string>
     <string name="rsvp_loading">Reading the PDF\'s text…</string>
     <string name="rsvp_no_text">This PDF has no text to speed-read (it may be scanned images).</string>
     <string name="rsvp_failed">The text of this PDF could not be read.</string>
@@ -148,11 +147,34 @@
     <string name="rsvp_pause">Pause</string>
     <string name="rsvp_previous_sentence">Previous sentence</string>
     <string name="rsvp_next_sentence">Next sentence</string>
+    <string name="rsvp_previous_section">Previous section</string>
+    <string name="rsvp_next_section">Next section</string>
     <string name="rsvp_slower">Slower</string>
     <string name="rsvp_faster">Faster</string>
+    <string name="rsvp_speed">Reading speed</string>
     <string name="rsvp_wpm">%1$d wpm</string>
-    <string name="rsvp_page">Page %1$d of %2$d</string>
-    <string name="rsvp_position">Position in the notes</string>
+    <string name="rsvp_position">Position in section</string>
+    <string name="rsvp_position_percent">%1$d%%</string>
+    <string name="rsvp_sections">Sections</string>
+    <string name="rsvp_section_position">Section %1$d of %2$d</string>
+    <string name="rsvp_progress">%1$d%% · %2$s left</string>
+    <string name="rsvp_less_than_a_minute">under a minute</string>
+    <string name="rsvp_page_view">Show as text</string>
+    <string name="rsvp_rsvp_view">Back to speed reading</string>
+    <string name="rsvp_tap_hint">Tap the middle to play or pause, left or right to jump a sentence. Show as text to scroll and tap a word to continue from it.</string>
+    <string name="rsvp_front_matter">Title page and contents</string>
+    <string name="rsvp_pages">Pages %1$d–%2$d</string>
+    <string name="rsvp_page_single">Page %1$d</string>
+    <string name="rsvp_section_details">%1$s · %2$s</string>
+    <string name="rsvp_section_pages">p. %1$d</string>
+    <string name="rsvp_skipped">Skipped when reading</string>
+    <plurals name="rsvp_word_count">
+        <item quantity="one">%s word</item>
+        <item quantity="other">%s words</item>
+    </plurals>
+    <string name="rsvp_finished_title">End of the notes</string>
+    <string name="rsvp_finished_body">%1$s words read. Read them again, or pick a section.</string>
+    <string name="rsvp_read_again">Read again</string>
 
     <!-- Import -->
     <string name="import_running">Importing…</string>

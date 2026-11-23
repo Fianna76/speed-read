@@ -6,8 +6,20 @@ import com.tom_roush.pdfbox.io.MemoryUsageSetting
 import com.tom_roush.pdfbox.pdmodel.PDDocument
 import com.tom_roush.pdfbox.pdmodel.encryption.InvalidPasswordException
 import com.tom_roush.pdfbox.text.PDFTextStripper
+import kotlinx.serialization.Serializable
 import java.io.File
 import java.io.IOException
+
+/** One page's text: its lines as laid out, and the same text joined into paragraphs. */
+@Serializable
+data class PageText(val lines: List<String>, val paragraphs: List<String>)
+
+/** A top-level bookmark. */
+@Serializable
+data class OutlineMark(val page: Int, val title: String)
+
+@Serializable
+data class ExtractedPdf(val pages: List<PageText>, val outline: List<OutlineMark>)
 
 /** What import needs to know about a PDF. */
 data class PdfInfo(val pageCount: Int, val title: String?)
@@ -33,20 +45,39 @@ class PdfDocuments(context: Context) {
         PdfInfo(pages, document.documentInformation?.title?.trim()?.ifEmpty { null })
     }
 
-    /** Paragraphs of text, page by page (one list per page, possibly empty). */
-    fun pageParagraphs(file: File): List<List<String>> = open(file).use { document ->
+    /**
+     * The text of every page, as raw lines (to find headings and the contents page) and as
+     * cleaned paragraphs (to read), plus the top-level bookmarks.
+     */
+    fun extract(file: File): ExtractedPdf = open(file).use { document ->
         val stripper = PDFTextStripper().apply {
             paragraphStart = ""
             paragraphEnd = PdfTextCleaner.PARAGRAPH_MARK.toString()
             lineSeparator = "\n"
             pageEnd = "\n"
         }
-        (1..document.numberOfPages).map { page ->
+        val pages = (1..document.numberOfPages).map { page ->
             stripper.startPage = page
             stripper.endPage = page
-            PdfTextCleaner.paragraphs(stripper.getText(document))
+            val raw = stripper.getText(document)
+            val lines = raw.split('\n', PdfTextCleaner.PARAGRAPH_MARK)
+                .map { it.replace("\u00AD", "").replace(WHITESPACE, " ").trim() }
+                .filter { it.isNotEmpty() }
+            PageText(lines, PdfTextCleaner.paragraphs(raw))
         }
+        ExtractedPdf(pages, outline(document))
     }
+
+    /** (zero-based page, title) of the top-level bookmarks, in page order. */
+    private fun outline(document: PDDocument): List<OutlineMark> = runCatching {
+        val outline = document.documentCatalog.documentOutline ?: return emptyList()
+        outline.children().mapNotNull { item ->
+            val page = item.findDestinationPage(document) ?: return@mapNotNull null
+            val index = document.pages.indexOf(page)
+            val title = item.title?.trim()?.ifEmpty { null }
+            if (index < 0 || title == null) null else OutlineMark(index, title)
+        }.sortedBy { it.page }
+    }.getOrDefault(emptyList())
 
     private fun open(file: File): PDDocument = try {
         PDDocument.load(file, MemoryUsageSetting.setupMixed(MAX_MAIN_MEMORY_BYTES))
@@ -58,5 +89,6 @@ class PdfDocuments(context: Context) {
 
     private companion object {
         const val MAX_MAIN_MEMORY_BYTES = 32L * 1024 * 1024
+        val WHITESPACE = Regex("[\\s\\p{Z}]+")
     }
 }

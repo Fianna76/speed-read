@@ -63,7 +63,7 @@ fun ModuleScreen(
     onBack: () -> Unit,
     onQuiz: (packId: String?) -> Unit,
     onOpenNote: (Long) -> Unit,
-    onSpeedRead: (noteId: Long, page: Int) -> Unit,
+    onSpeedRead: (noteId: Long, page: Int?) -> Unit,
     viewModel: ModuleViewModel = viewModel(factory = ModuleViewModel.factory(moduleCode)),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -79,7 +79,8 @@ fun ModuleScreen(
             onBack = onBack,
             onQuiz = onQuiz,
             onOpenNote = onOpenNote,
-            onSpeedRead = { note -> onSpeedRead(note.id, note.lastPage) },
+            // Resume where speed reading stopped.
+            onSpeedRead = { note -> onSpeedRead(note.id, null) },
             onOpenExternally = { note ->
                 val files = (context.applicationContext as StudyPackApplication).container.files
                 openPdfExternally(context, files.file(note.internalPath), note.displayTitle)

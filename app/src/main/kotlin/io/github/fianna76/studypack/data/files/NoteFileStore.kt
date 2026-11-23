@@ -22,6 +22,8 @@ class NoteFileStore(private val filesDir: File, private val cacheDir: File) {
     fun delete(relativePath: String) {
         file(relativePath).delete()
         textCacheFile(relativePath).delete()
+        // Text cached by 1.x, in the format before sections.
+        File(textDir, File(relativePath).nameWithoutExtension + ".json").delete()
     }
 
     /** Moves [source] to [relativePath] (copying if a rename is not possible). */
@@ -46,7 +48,7 @@ class NoteFileStore(private val filesDir: File, private val cacheDir: File) {
     }
 
     /** Cached extracted text of a notes PDF (for speed reading). */
-    fun textCacheFile(relativePath: String): File = File(textDir, File(relativePath).nameWithoutExtension + ".json")
+    fun textCacheFile(relativePath: String): File = File(textDir, File(relativePath).nameWithoutExtension + "-v2.json")
 
     companion object {
         const val NOTES_DIR = "notes"

@@ -1,6 +1,7 @@
 package io.github.fianna76.studypack.data.db
 
 import android.content.Context
+import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
@@ -24,8 +25,12 @@ import kotlinx.serialization.json.Json
         QuestionStatEntity::class,
         SessionResultEntity::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
+    autoMigrations = [
+        // 1 → 2: note_files.rsvpWord (speed reading resumes at the exact word).
+        AutoMigration(from = 1, to = 2),
+    ],
 )
 @TypeConverters(Converters::class)
 abstract class StudyPackDatabase : RoomDatabase() {

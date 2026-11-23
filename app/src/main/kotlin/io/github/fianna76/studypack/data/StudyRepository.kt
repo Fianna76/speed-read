@@ -50,6 +50,8 @@ data class NoteFile(
     val internalPath: String,
     val pageCount: Int,
     val lastPage: Int,
+    /** Speed reading: the word reached in the whole document, or -1. */
+    val rsvpWord: Int = -1,
 )
 
 /** Everything a quiz needs from a set of packs: topics (merged by ID across packs) and questions in a stable order. */
@@ -111,6 +113,9 @@ class StudyRepository(
     suspend fun note(id: Long): NoteFile? = library.note(id)?.toNoteFile()
 
     suspend fun updateLastPage(noteId: Long, page: Int) = library.updateLastPage(noteId, page)
+
+    /** Saves where speed reading got to: the page (for the viewer too) and the exact word. */
+    suspend fun updateReadingPosition(noteId: Long, page: Int, word: Int) = library.updateReadingPosition(noteId, page, word)
 
     suspend fun packIdsInModule(moduleCode: String): List<String> = library.packsInModule(moduleCode).map { it.id }
 
@@ -249,10 +254,12 @@ class StudyRepository(
             pageCount = pageCount,
             lastPage = replacing?.lastPage?.coerceIn(0, (pageCount - 1).coerceAtLeast(0)) ?: 0,
             importedAt = clock(),
+            // A replaced PDF has different text, so speed reading starts over.
+            rsvpWord = -1,
         ),
     )
 
-    private fun NoteFileEntity.toNoteFile() = NoteFile(id, moduleCode, fileName, displayTitle, internalPath, pageCount, lastPage)
+    private fun NoteFileEntity.toNoteFile() = NoteFile(id, moduleCode, fileName, displayTitle, internalPath, pageCount, lastPage, rsvpWord)
 
     private fun QuestionStatEntity.key() = QuestionKey(packId, questionId)
 

@@ -52,9 +52,12 @@ data class QuizRoute(
 @Serializable
 data class PdfRoute(val noteId: Long) : NavKey
 
-/** Speed reading a notes PDF from [startPage] (zero-based). */
+/**
+ * Speed reading a notes PDF, from [startPage] (zero-based) or, when `null`, from where reading
+ * last stopped (the first section, past the title page and contents, the first time).
+ */
 @Serializable
-data class RsvpRoute(val noteId: Long, val startPage: Int) : NavKey
+data class RsvpRoute(val noteId: Long, val startPage: Int? = null) : NavKey
 
 /**
  * App navigation built on Navigation 3: the back stack is plain, saveable state owned here, and

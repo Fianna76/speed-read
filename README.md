@@ -52,9 +52,20 @@ The full plan this app follows is in [`docs/SCOPE.md`](docs/SCOPE.md).
 - **Notes viewer** with page swiping, pinch zoom (double-tap to toggle), a page indicator,
   go to page, and the last page remembered. **Open in another app** hands the PDF to any
   other viewer.
-- **Speed reading** (secondary tool): read a notes PDF with RSVP from the page you are on.
-  Words flash at a fixed point, aligned on their optimal recognition point (the red letter),
-  with sentence skip, speed control and the surrounding words shown while paused.
+- **Speed reading** (secondary tool): read a notes PDF with RSVP, the reader from SpeedRead.
+  Words flash at a fixed point, aligned on their optimal recognition point (the red letter).
+  - **Sections**: the notes are split at their headings, found from the contents page (or the
+    PDF's bookmarks, or numbered headings). Pick one from the sections sheet, or jump with
+    previous/next section; reading runs on from one section to the next.
+  - **Skips the title page, contents and sources.** Overview notes all share the study-pack
+    builder's layout, so reading starts at section 1 and stops before the Sources list.
+    Skipped parts stay in the sections sheet (dimmed) if you want them.
+  - **Speed**: a slider across 100–1,000 wpm in 25 wpm steps, plus − and + for single steps,
+    adjustable while reading.
+  - **Show as text**: scroll the section as ordinary text and tap any word to continue from it.
+  - Tap the middle to play or pause, left or right to jump a sentence; a position slider within
+    the section; progress and time left; the screen stays on while reading. The exact word is
+    remembered, and the notes viewer opens at the page you reached.
 - **LaTeX formulas** in questions, answers, explanations, model answers and say-it lines:
   `$…$` inline, `$$…$$` on a line of their own (see *Formulas* below). They are drawn natively
   and offline, follow the theme's text colour, and are read aloud as plain text by screen readers.
@@ -139,7 +150,7 @@ checks measure the formula as shown, not its source.
 
 ## Install the APK
 
-1. Copy `StudyPack-1.2.0-release.apk` to your phone (Android 8.0 or newer). The APK comes
+1. Copy `StudyPack-1.3.0-release.apk` to your phone (Android 8.0 or newer). The APK comes
    from a [CI run's](../../actions) artifacts or from a local build (below).
 2. Open it and allow installs from that source when prompted.
 3. Tap **Load sample pack** to try it, or **Import** to pick your own packs and notes.
@@ -154,7 +165,7 @@ Requirements: JDK 17+ (JDK 21 recommended) and the Android SDK with platform 37
 (`ANDROID_HOME` or `local.properties`). The Gradle wrapper downloads everything else.
 
 ```bash
-./gradlew assembleRelease   # → app/build/outputs/apk/release/StudyPack-1.2.0-release.apk
+./gradlew assembleRelease   # → app/build/outputs/apk/release/StudyPack-1.3.0-release.apk
 ./gradlew assembleDebug     # → debug build (installs alongside release as "…studypack.debug")
 ./gradlew lint test         # static analysis + all unit, Robolectric and Compose UI tests
 ```

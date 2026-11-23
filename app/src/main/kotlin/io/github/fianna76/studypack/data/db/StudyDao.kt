@@ -243,6 +243,9 @@ interface LibraryDao {
     @Query("UPDATE note_files SET lastPage = :page WHERE id = :id")
     suspend fun updateLastPage(id: Long, page: Int)
 
+    @Query("UPDATE note_files SET lastPage = :page, rsvpWord = :word WHERE id = :id")
+    suspend fun updateReadingPosition(id: Long, page: Int, word: Int)
+
     @Query("DELETE FROM note_files WHERE id = :id")
     suspend fun deleteNoteRow(id: Long)
 

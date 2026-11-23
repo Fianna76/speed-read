@@ -14,7 +14,10 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import io.github.fianna76.speedread.rsvp.PlaybackSettings
+import io.github.fianna76.speedread.rsvp.PlayerState
 import io.github.fianna76.speedread.rsvp.Tokenizer
+import io.github.fianna76.studypack.data.pdf.SectionKind
 import io.github.fianna76.studypack.data.ModuleSummary
 import io.github.fianna76.studypack.data.NoteFile
 import io.github.fianna76.studypack.data.PackSummary
@@ -32,6 +35,7 @@ import io.github.fianna76.studypack.ui.module.ModuleUiState
 import io.github.fianna76.studypack.ui.quiz.QuizActions
 import io.github.fianna76.studypack.ui.quiz.QuizContent
 import io.github.fianna76.studypack.ui.quiz.QuizUiState
+import io.github.fianna76.studypack.ui.rsvp.ChapterInfo
 import io.github.fianna76.studypack.ui.rsvp.RsvpActions
 import io.github.fianna76.studypack.ui.rsvp.RsvpContent
 import io.github.fianna76.studypack.ui.rsvp.RsvpUiState
@@ -195,23 +199,38 @@ class ScreenRenderTest {
         )
     }
 
+    private val readerChapters = listOf(
+        ChapterInfo(null, SectionKind.FRONT, 40, 0, 1),
+        ChapterInfo("1. Ohm's law and power", SectionKind.BODY, 120, 2, 2),
+        ChapterInfo("2. Series and parallel", SectionKind.BODY, 130, 3, 3),
+        ChapterInfo("3. RC circuits", SectionKind.BODY, 110, 4, 4),
+        ChapterInfo("4. Op-amps", SectionKind.BODY, 140, 5, 5),
+        ChapterInfo("5. Formula sheet", SectionKind.BODY, 50, 6, 6),
+        ChapterInfo("Sources", SectionKind.BACK, 15, 6, 6),
+    )
+
+    private val readerText = Tokenizer.tokenize(
+        listOf(
+            "3. RC circuits",
+            "The time constant of a resistor and capacitor is τ = RC. A charging capacitor reaches about 63 % of the supply " +
+                "after one time constant and more than 99 % after five.",
+            "An RC low-pass filter has its −3 dB corner at fc = 1 / (2πRC). At the corner the output phase lags the input by " +
+                "45 degrees, heading towards 90 degrees well above it.",
+        ),
+    )
+
+    private val readerUi = RsvpUiState(isLoading = false, title = "Circuit Basics: Overview", chapters = readerChapters, chapterIndex = 3, showTapHint = false)
+
+    private val readerPlayer = PlayerState(readerText, index = 12, isPlaying = false, settings = PlaybackSettings(wordsPerMinute = 350))
+
     @Test
     fun speedReading() = capture("rsvp") {
-        val text = Tokenizer.tokenize(listOf("The time constant of a resistor and capacitor is tau equals RC. A charging capacitor reaches about 63 percent of the supply after one time constant."))
-        RsvpContent(
-            RsvpUiState(
-                isLoading = false,
-                title = "Circuit Basics: Overview",
-                word = text[9],
-                isPlaying = false,
-                wordsPerMinute = 350,
-                progress = 0.42f,
-                page = 3,
-                pageCount = 5,
-                context = text.contextAround(9),
-            ),
-            RsvpActions(),
-        )
+        RsvpContent(readerUi, readerPlayer, RsvpActions())
+    }
+
+    @Test
+    fun speedReadingPageView() = capture("rsvp_page_view") {
+        RsvpContent(readerUi, readerPlayer, RsvpActions(), initialPageView = true)
     }
 
     private fun capture(name: String, content: @Composable () -> Unit) {
