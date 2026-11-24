@@ -150,7 +150,7 @@ checks measure the formula as shown, not its source.
 
 ## Install the APK
 
-1. Copy `StudyPack-1.3.0-release.apk` to your phone (Android 8.0 or newer). The APK comes
+1. Copy `StudyPack-1.3.1-release.apk` to your phone (Android 8.0 or newer). The APK comes
    from a [CI run's](../../actions) artifacts or from a local build (below).
 2. Open it and allow installs from that source when prompted.
 3. Tap **Load sample pack** to try it, or **Import** to pick your own packs and notes.
@@ -165,7 +165,7 @@ Requirements: JDK 17+ (JDK 21 recommended) and the Android SDK with platform 37
 (`ANDROID_HOME` or `local.properties`). The Gradle wrapper downloads everything else.
 
 ```bash
-./gradlew assembleRelease   # → app/build/outputs/apk/release/StudyPack-1.3.0-release.apk
+./gradlew assembleRelease   # → app/build/outputs/apk/release/StudyPack-1.3.1-release.apk
 ./gradlew assembleDebug     # → debug build (installs alongside release as "…studypack.debug")
 ./gradlew lint test         # static analysis + all unit, Robolectric and Compose UI tests
 ```

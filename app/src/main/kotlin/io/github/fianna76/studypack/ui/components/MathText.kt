@@ -34,13 +34,16 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.Placeholder
 import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.unit.isUnspecified
 import androidx.compose.ui.unit.sp
 import io.github.fianna76.studypack.quiz.MathMarkup
@@ -62,9 +65,11 @@ fun MathText(
     style: TextStyle = LocalTextStyle.current,
     color: Color = Color.Unspecified,
     textAlign: TextAlign? = null,
+    /** Called with each paragraph's text layout (as [Text]'s `onTextLayout`). */
+    onTextLayout: (TextLayoutResult) -> Unit = {},
 ) {
     val segments = remember(text) { MathMarkup.parse(text) }
-    MathText(segments, modifier, style, color, textAlign)
+    MathText(segments, modifier, style, color, textAlign, onTextLayout)
 }
 
 @Composable
@@ -74,9 +79,17 @@ fun MathText(
     style: TextStyle = LocalTextStyle.current,
     color: Color = Color.Unspecified,
     textAlign: TextAlign? = null,
+    onTextLayout: (TextLayoutResult) -> Unit = {},
 ) {
     if (segments.none { it is MathSegment.Math }) {
-        Text(segments.joinToString("") { (it as MathSegment.Text).text }, modifier, color = color, style = style, textAlign = textAlign)
+        Text(
+            segments.joinToString("") { (it as MathSegment.Text).text },
+            modifier,
+            color = color,
+            style = style,
+            textAlign = textAlign,
+            onTextLayout = onTextLayout,
+        )
         return
     }
     val resolvedColor = color.takeOrElse { style.color.takeOrElse { LocalContentColor.current } }
@@ -89,7 +102,7 @@ fun MathText(
         blocks.forEach { block ->
             when (block) {
                 is Block.Display -> DisplayFormula(block.latex, sizePx * DISPLAY_SCALE, resolvedColor, style)
-                is Block.Paragraph -> Paragraph(block.segments, sizePx, resolvedColor, style, textAlign, density)
+                is Block.Paragraph -> Paragraph(block.segments, sizePx, resolvedColor, style, textAlign, density, onTextLayout)
             }
         }
     }
@@ -136,13 +149,19 @@ private fun Paragraph(
     style: TextStyle,
     textAlign: TextAlign?,
     density: Density,
+    onTextLayout: (TextLayoutResult) -> Unit,
 ) {
     BoxWithConstraints(Modifier.fillMaxWidth()) {
         val maxWidthPx = constraints.maxWidth.toFloat()
         val argb = color.toArgb()
+        // A formula taller than the text (a fraction, a sum with limits) gets a little room above
+        // and below, so it doesn't touch the lines around it.
+        val lineHeightPx = with(density) { if (style.lineHeight.isSpecified) style.lineHeight.toPx() else sizePx * 1.2f }
+        val tallPaddingPx = with(density) { TALL_FORMULA_PADDING.toPx() }
         val formulas = remember(segments, sizePx, argb) {
             segments.map { (it as? MathSegment.Math)?.let { math -> LatexDrawables.get(math.latex, sizePx, argb) } }
         }
+        val hasTallFormula = formulas.any { it != null && it.intrinsicHeight > lineHeightPx }
         val inlineContent = HashMap<String, InlineTextContent>()
         val text = buildAnnotatedString {
             segments.forEachIndexed { i, segment ->
@@ -157,14 +176,17 @@ private fun Paragraph(
                             // A formula wider than the text is scaled down to fit.
                             val scale = if (maxWidthPx > 0 && drawable.intrinsicWidth > maxWidthPx) maxWidthPx / drawable.intrinsicWidth else 1f
                             val width = drawable.intrinsicWidth * scale
-                            val height = drawable.intrinsicHeight * scale
+                            val formulaHeight = drawable.intrinsicHeight * scale
+                            val padding = if (formulaHeight > lineHeightPx) tallPaddingPx else 0f
                             inlineContent[id] = InlineTextContent(
                                 Placeholder(
                                     width = with(density) { width.toSp() },
-                                    height = with(density) { height.toSp() },
+                                    height = with(density) { (formulaHeight + 2 * padding).toSp() },
                                     placeholderVerticalAlign = PlaceholderVerticalAlign.TextCenter,
                                 ),
-                            ) { FormulaCanvas(drawable, scale, Modifier.fillMaxSize()) }
+                            ) {
+                                FormulaCanvas(drawable, scale, Modifier.fillMaxSize().padding(vertical = with(density) { padding.toDp() }))
+                            }
                             appendInlineContent(id, MathMarkup.latexToPlain(segment.latex))
                         }
                     }
@@ -175,9 +197,13 @@ private fun Paragraph(
         Text(
             text,
             color = color,
-            style = style,
+            // The theme's fixed line height would let a fraction or a sum with limits run into the
+            // lines above and below. Where one is present, lines take their natural height instead,
+            // so each grows only as much as its own content needs.
+            style = if (hasTallFormula) style.copy(lineHeight = TextUnit.Unspecified, lineHeightStyle = null) else style,
             textAlign = textAlign,
             inlineContent = inlineContent,
+            onTextLayout = onTextLayout,
             modifier = Modifier.semantics { contentDescription = reading },
         )
     }
@@ -229,6 +255,9 @@ private fun FormulaCanvas(drawable: Drawable, scale: Float, modifier: Modifier) 
 
 private const val DISPLAY_SCALE = 1.15f
 
+/** Space above and below an inline formula taller than the line. */
+private val TALL_FORMULA_PADDING = 3.dp
+
 /** Rendered formulas, keyed by source, size and colour (light and dark themes differ). */
 private object LatexDrawables {
     private data class Key(val latex: String, val sizePx: Float, val argb: Int)
@@ -279,3 +308,4 @@ internal object LatexCompat {
     fun prepare(latex: String): String =
         replacements.fold(latex) { text, (pattern, replacement) -> pattern.replace(text, Regex.escapeReplacement(replacement)) }
 }
+
