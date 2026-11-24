@@ -156,14 +156,6 @@ fun SetupContent(state: SetupUiState, subtitle: String, actions: SetupActions) {
                     LengthRow(option, selected = option.length == state.length, onSelect = { actions.onLength(option.length) })
                 }
             }
-            if (!state.weakSpotsAvailable) {
-                Text(
-                    stringResource(R.string.weak_spots_none),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = 64.dp, end = 16.dp),
-                )
-            }
 
             Row(
                 Modifier
@@ -236,17 +228,34 @@ private fun LengthRow(option: LengthOption, selected: Boolean, onSelect: () -> U
         verticalAlignment = Alignment.CenterVertically,
     ) {
         RadioButton(selected = selected, onClick = null, enabled = option.enabled)
-        Text(
-            lengthLabel(option.length),
-            style = MaterialTheme.typography.bodyLarge,
-            color = if (option.enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
-            modifier = Modifier
+        Column(
+            Modifier
                 .weight(1f)
-                .padding(start = 16.dp),
-        )
+                .padding(start = 16.dp, top = 4.dp, bottom = 4.dp),
+        ) {
+            Text(
+                lengthLabel(option.length),
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (option.enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+            )
+            // Why an option is unavailable, under it.
+            val hint = when {
+                option.enabled -> null
+                option.length == QuizLength.WEAK_SPOTS -> R.string.weak_spots_none
+                option.length == QuizLength.MARKED_FOR_REVISION -> R.string.marked_none
+                else -> null
+            }
+            if (hint != null) {
+                Text(stringResource(hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
         Text(
-            option.length.questionCount?.takeIf { option.length != QuizLength.WEAK_SPOTS }?.let { stringResource(R.string.length_count, it) }
-                ?: if (option.length == QuizLength.EVERYTHING) stringResource(R.string.length_all) else "",
+            when {
+                option.count != null -> stringResource(R.string.length_count, option.count)
+                option.length == QuizLength.EVERYTHING -> stringResource(R.string.length_all)
+                option.length == QuizLength.WEAK_SPOTS || option.length == QuizLength.MARKED_FOR_REVISION -> ""
+                else -> option.length.questionCount?.let { stringResource(R.string.length_count, it) }.orEmpty()
+            },
             style = MaterialTheme.typography.bodyMedium.tabular,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -261,5 +270,6 @@ fun lengthLabel(length: QuizLength): String = stringResource(
         QuizLength.FULL_MOCK -> R.string.length_full_mock
         QuizLength.EVERYTHING -> R.string.length_everything
         QuizLength.WEAK_SPOTS -> R.string.length_weak_spots
+        QuizLength.MARKED_FOR_REVISION -> R.string.length_marked
     },
 )

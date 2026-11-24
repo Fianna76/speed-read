@@ -21,6 +21,7 @@ import io.github.fianna76.studypack.data.pdf.SectionKind
 import io.github.fianna76.studypack.data.ModuleSummary
 import io.github.fianna76.studypack.data.NoteFile
 import io.github.fianna76.studypack.data.PackSummary
+import io.github.fianna76.studypack.quiz.Answers
 import io.github.fianna76.studypack.quiz.PackParser
 import io.github.fianna76.studypack.quiz.QuizLength
 import io.github.fianna76.studypack.quiz.Scoring
@@ -115,7 +116,13 @@ class ScreenRenderTest {
         SetupContent(
             SetupUiState(
                 isLoading = false,
-                lengths = QuizLength.entries.map { LengthOption(it, enabled = true) },
+                lengths = QuizLength.entries.map {
+                    when (it) {
+                        QuizLength.WEAK_SPOTS -> LengthOption(it, enabled = true, count = 4)
+                        QuizLength.MARKED_FOR_REVISION -> LengthOption(it, enabled = false)
+                        else -> LengthOption(it, enabled = true)
+                    }
+                },
                 length = QuizLength.BENCH_DEMO,
                 topics = sample.topics.map { t -> TopicChip(t.id, t.name, SessionBuilder.slotCount(sample.questions.filter { it.topicId == t.id })) },
                 selectedTopics = sample.topics.map { it.id }.toSet(),
@@ -184,6 +191,27 @@ class ScreenRenderTest {
     }
 
     @Test
+    fun quizSkipped() = capture("quiz_skipped") {
+        val state = session()
+        val index = state.questions.indexOfFirst { it.question.sayIt != null }
+        QuizContent(
+            state.copy(
+                index = index,
+                answers = state.answers.toMutableList().also {
+                    for (i in 0 until index) it[i] = if (i == 1) Answers.SKIPPED else state.questions[i].correctIndex
+                    it[index] = Answers.SKIPPED
+                },
+            ),
+            QuizActions(),
+        )
+    }
+
+    @Test
+    fun quizUnanswered() = capture("quiz_unanswered") {
+        QuizContent(session(), QuizActions())
+    }
+
+    @Test
     fun quizExam() = capture("quiz_exam") {
         val state = session(examMode = true)
         QuizContent(state.copy(index = 3, answers = state.answers.mapIndexed { i, a -> if (i < 3) 0 else a }, selection = 1), QuizActions())
@@ -192,7 +220,13 @@ class ScreenRenderTest {
     @Test
     fun results() = capture("results") {
         val state = session()
-        val answers = state.questions.mapIndexed { i, q -> if (i % 5 == 2) (q.correctIndex + 1) % 4 else q.correctIndex }
+        val answers = state.questions.mapIndexed { i, q ->
+            when (i % 5) {
+                2 -> (q.correctIndex + 1) % 4
+                4 -> Answers.SKIPPED
+                else -> q.correctIndex
+            }
+        }
         QuizContent(
             state.copy(finished = true, answers = answers, score = Scoring.score(state.questions, answers, topicNames)),
             QuizActions(),

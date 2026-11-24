@@ -2,6 +2,7 @@ package io.github.fianna76.studypack.ui.quiz
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import io.github.fianna76.studypack.quiz.Answers
 import io.github.fianna76.studypack.quiz.PackParser
 import io.github.fianna76.studypack.quiz.QuestionKey
 import io.github.fianna76.studypack.quiz.QuizLength
@@ -153,4 +154,89 @@ class QuizViewModelTest {
         val state = viewModel(route(length = QuizLength.WEAK_SPOTS)).loaded()
         assertEquals(missed.toSet(), state.questions.map { it.question.key }.toSet())
     }
+
+    @Test
+    fun dontKnowInTutorModeShowsTheAnswerAndMarksForRevision() {
+        val vm = viewModel(route())
+        val first = vm.loaded().questions.first()
+        assertTrue(vm.uiState.value.canSkip)
+        vm.skip()
+        val state = vm.uiState.value
+        assertEquals(Answers.SKIPPED, state.currentAnswer)
+        assertTrue("Tutor mode reveals the answer", state.isRevealed)
+        assertTrue(state.canGoNext)
+        assertFalse(state.canSkip)
+        assertEquals(0, state.correctCount)
+        assertEquals(1, state.skippedCount)
+        // Choosing an option afterwards changes nothing.
+        vm.choose(first.correctIndex)
+        assertEquals(Answers.SKIPPED, vm.uiState.value.currentAnswer)
+        val history = awaitHistory { it.isNotEmpty() }.getValue(first.question.key)
+        assertEquals(1, history.skipped)
+        assertEquals("A skip is not a wrong answer", 0, history.wrong)
+        assertEquals(1, history.seen)
+    }
+
+    @Test
+    fun dontKnowInExamModeMovesOn() {
+        val vm = viewModel(route(length = QuizLength.WARM_UP, examMode = true))
+        val questions = vm.loaded().questions
+        vm.choose(0) // a pick that is then abandoned
+        vm.skip()
+        assertEquals(1, vm.uiState.value.index)
+        assertEquals(Answers.SKIPPED, vm.uiState.value.answers[0])
+        assertNull(vm.uiState.value.selection)
+        assertFalse(vm.uiState.value.isRevealed)
+        // Skipping the last question finishes the quiz.
+        repeat(questions.size - 2) { vm.choose(questions[it + 1].correctIndex); vm.next() }
+        vm.skip()
+        assertTrue(vm.uiState.value.finished)
+        assertEquals(2, vm.uiState.value.score!!.skipped)
+    }
+
+    @Test
+    fun resultsKeepSkippedApartFromWrong() {
+        val vm = viewModel(route(length = QuizLength.WARM_UP))
+        val questions = vm.loaded().questions
+        vm.choose(questions[0].correctIndex)
+        vm.next()
+        vm.choose((questions[1].correctIndex + 1) % 4)
+        vm.next()
+        vm.skip()
+        vm.next()
+        vm.endEarly()
+        val state = vm.uiState.value
+        val score = checkNotNull(state.score)
+        assertEquals(3, score.answered)
+        assertEquals(1, score.correct)
+        assertEquals(1, score.wrong)
+        assertEquals(1, score.skipped)
+        assertEquals(listOf(1), state.missed)
+        assertEquals(listOf(2), state.skipped)
+        assertEquals(listOf(questions[1].question.key.encode()), vm.retryRoute()!!.retryKeys)
+        assertEquals(listOf(questions[2].question.key.encode()), vm.retrySkippedRoute()!!.retryKeys)
+    }
+
+    @Test
+    fun skippedAnswerSurvivesRestore() {
+        val saved = SavedStateHandle()
+        val vm = viewModel(route(), saved)
+        vm.loaded()
+        vm.skip()
+        val restored = viewModel(route(), saved).loaded()
+        assertEquals(Answers.SKIPPED, restored.answers[0])
+        assertTrue(restored.isRevealed)
+    }
+
+    @Test
+    fun revisionQuizAsksTheMarkedQuestions() = runBlocking {
+        val marked = listOf(QuestionKey(packId, "cmrr-001"), QuestionKey(packId, "noise-001"), QuestionKey(packId, "stage-1-001"))
+        marked.forEach { graph.repository.recordSkip(it) }
+        graph.repository.recordAnswer(QuestionKey(packId, "cmrr-002"), correct = false, tutorMode = true) // a weak spot, not marked
+        // Answered right since: no longer marked.
+        graph.repository.recordAnswer(marked.last(), correct = true, tutorMode = false)
+        val state = viewModel(route(length = QuizLength.MARKED_FOR_REVISION)).loaded()
+        assertEquals(marked.take(2).toSet(), state.questions.map { it.question.key }.toSet())
+    }
 }
+

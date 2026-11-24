@@ -25,11 +25,16 @@ data class TopicScore(
 /** The score of a finished (or ended early) session. Only answered questions count. */
 data class QuizScore(
     val total: Int,
+    /** Questions answered or skipped with "Don't know". */
     val answered: Int,
     val correct: Int,
     /** Topics that had answered questions, worst first. */
     val perTopic: List<TopicScore>,
+    /** Skipped with "Don't know": counted in [answered] (they score nothing) but not as wrong. */
+    val skipped: Int = 0,
 ) {
+    val wrong: Int get() = answered - correct - skipped
+
     val percent: Int get() = Scoring.percent(correct, answered)
 
     val verdict: Verdict get() = Scoring.verdict(percent)
@@ -49,8 +54,10 @@ object Scoring {
     }
 
     /**
-     * Scores [questions] against [answers] (display index chosen for each question, `null` if
-     * not answered). Topic names come from [topicNames], falling back to the topic ID.
+     * Scores [questions] against [answers] (display index chosen for each question,
+     * [Answers.SKIPPED] for "Don't know", `null` if not reached). A skipped question scores
+     * nothing but is counted apart from wrong answers. Topic names come from [topicNames],
+     * falling back to the topic ID.
      */
     fun score(questions: List<SessionQuestion>, answers: List<Int?>, topicNames: Map<String, String>): QuizScore {
         require(answers.size == questions.size) { "One answer slot per question" }
@@ -64,6 +71,7 @@ object Scoring {
                 answered = indices.size,
             )
         }.sortedWith(compareBy<TopicScore> { it.fraction }.thenByDescending { it.answered }.thenBy { it.topicName })
-        return QuizScore(total = questions.size, answered = answered.size, correct = correct, perTopic = perTopic)
+        val skipped = answered.count { answers[it] == Answers.SKIPPED }
+        return QuizScore(total = questions.size, answered = answered.size, correct = correct, perTopic = perTopic, skipped = skipped)
     }
 }

@@ -10,6 +10,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import io.github.fianna76.studypack.StudyPackApplication
 import io.github.fianna76.studypack.data.StudyRepository
+import io.github.fianna76.studypack.quiz.Answers
 import io.github.fianna76.studypack.quiz.QuestionKey
 import io.github.fianna76.studypack.quiz.QuizLength
 import io.github.fianna76.studypack.quiz.QuizScore
@@ -33,7 +34,7 @@ data class QuizUiState(
     val examMode: Boolean = false,
     val isRetry: Boolean = false,
     val questions: List<SessionQuestion> = emptyList(),
-    /** Submitted answer (display index) per question; `null` while unanswered. */
+    /** Submitted answer (display index) per question, [Answers.SKIPPED] for "Don't know"; `null` while unanswered. */
     val answers: List<Int?> = emptyList(),
     val index: Int = 0,
     /** Exam mode: the option picked on the current question, changeable until Next. */
@@ -46,8 +47,11 @@ data class QuizUiState(
 
     val currentAnswer: Int? get() = answers.getOrNull(index)
 
-    /** Tutor mode shows the answer as soon as the question is answered. */
+    /** Tutor mode shows the answer as soon as the question is answered (or skipped). */
     val isRevealed: Boolean get() = !examMode && currentAnswer != null
+
+    /** "Don't know" is offered until the question is answered. */
+    val canSkip: Boolean get() = !finished && current != null && currentAnswer == null
 
     val canGoNext: Boolean get() = if (examMode) selection != null else currentAnswer != null
 
@@ -55,10 +59,17 @@ data class QuizUiState(
 
     val answeredCount: Int get() = answers.count { it != null }
 
+    val skippedCount: Int get() = answers.count { it == Answers.SKIPPED }
+
     val correctCount: Int get() = questions.indices.count { answers[it] != null && answers[it] == questions[it].correctIndex }
 
-    /** Indices of questions answered wrong. */
-    val missed: List<Int> get() = questions.indices.filter { answers[it] != null && answers[it] != questions[it].correctIndex }
+    /** Indices of questions answered wrong (not skipped). */
+    val missed: List<Int> get() = questions.indices.filter {
+        answers[it] != null && answers[it] != Answers.SKIPPED && answers[it] != questions[it].correctIndex
+    }
+
+    /** Indices of questions skipped with "Don't know": marked for revision. */
+    val skipped: List<Int> get() = questions.indices.filter { answers[it] == Answers.SKIPPED }
 
     /** Indices of questions answered right. */
     val right: List<Int> get() = questions.indices.filter { answers[it] != null && answers[it] == questions[it].correctIndex }
@@ -141,7 +152,9 @@ class QuizViewModel(
         } else {
             val pool = SessionBuilder.filterPool(content.questions, route.topicIds?.toSet(), route.demoAskedOnly)
             val length = runCatching { QuizLength.valueOf(route.length) }.getOrDefault(QuizLength.BENCH_DEMO)
-            val history = if (length == QuizLength.WEAK_SPOTS) repository.history(route.packIds) else emptyMap()
+            // Weak spots and revision quizzes are chosen from the answer history.
+            val needsHistory = length == QuizLength.WEAK_SPOTS || length == QuizLength.MARKED_FOR_REVISION
+            val history = if (needsHistory) repository.history(route.packIds) else emptyMap()
             SessionBuilder.build(pool, length, history, random)
         }
         val built = _uiState.value.copy(
@@ -182,6 +195,26 @@ class QuizViewModel(
         }
     }
 
+    /**
+     * "Don't know": skips the current question and marks it for revision (not as wrong). Tutor
+     * mode then shows the answer and explanation; exam mode moves straight on.
+     */
+    fun skip() {
+        val state = _uiState.value
+        val question = state.current ?: return
+        if (!state.canSkip) return
+        _uiState.update { it.copy(answers = it.answers.toMutableList().also { list -> list[it.index] = Answers.SKIPPED }, selection = null) }
+        writeScope.launch { repository.recordSkip(question.question.key) }
+        if (state.examMode) {
+            if (state.isLast) {
+                finish()
+                return
+            }
+            _uiState.update { it.copy(index = it.index + 1) }
+        }
+        save()
+    }
+
     /** Ends the session now. An exam-mode pick that was not confirmed with Next does not count. */
     fun endEarly() {
         if (_uiState.value.finished) return
@@ -189,11 +222,16 @@ class QuizViewModel(
     }
 
     /** A new tutor-mode session over the questions answered wrong, or `null` if none were. */
-    fun retryRoute(): QuizRoute? {
+    fun retryRoute(): QuizRoute? = retry(_uiState.value.missed)
+
+    /** A new tutor-mode session over the questions skipped with "Don't know", or `null` if none were. */
+    fun retrySkippedRoute(): QuizRoute? = retry(_uiState.value.skipped)
+
+    private fun retry(indices: List<Int>): QuizRoute? {
         val state = _uiState.value
-        val missed = state.missed.map { state.questions[it].question.key.encode() }
-        if (missed.isEmpty()) return null
-        return route.copy(retryKeys = missed, examMode = false, length = MODE_RETRY, seed = Random.nextLong())
+        val keys = indices.map { state.questions[it].question.key.encode() }
+        if (keys.isEmpty()) return null
+        return route.copy(retryKeys = keys, examMode = false, length = MODE_RETRY, seed = Random.nextLong())
     }
 
     private fun submit(option: Int) {

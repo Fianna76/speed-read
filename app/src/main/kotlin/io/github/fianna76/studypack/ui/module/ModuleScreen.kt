@@ -55,6 +55,7 @@ import io.github.fianna76.studypack.ui.components.ConfirmDelete
 import io.github.fianna76.studypack.ui.components.ConfirmDeleteModule
 import io.github.fianna76.studypack.ui.components.SectionHeader
 import io.github.fianna76.studypack.ui.library.IMPORT_MIME_TYPES
+import io.github.fianna76.studypack.ui.theme.StudyTheme
 import io.github.fianna76.studypack.ui.theme.tabular
 
 @Composable
@@ -338,6 +339,13 @@ private fun PackCard(pack: PackSummary, onQuiz: () -> Unit, onDelete: () -> Unit
                     style = MaterialTheme.typography.bodyMedium.tabular,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                if (pack.markedForRevision > 0) {
+                    Text(
+                        stringResource(R.string.pack_to_revise, pack.markedForRevision),
+                        style = MaterialTheme.typography.bodyMedium.tabular,
+                        color = StudyTheme.colors.skipped,
+                    )
+                }
                 if (pack.bestPercent != null && pack.lastPercent != null) {
                     Text(
                         stringResource(R.string.pack_scores, pack.bestPercent, pack.lastPercent),

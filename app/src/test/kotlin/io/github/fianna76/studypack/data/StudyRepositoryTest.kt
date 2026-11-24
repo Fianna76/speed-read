@@ -184,4 +184,36 @@ class StudyRepositoryTest {
         repository.savePack(pack())
         assertNull(repository.observeModules().first().first { it.code == "TEST101" }.lastPercent)
     }
+
+    @Test
+    fun skipsAreCountedPerPackUntilAnsweredRight() = runBlocking {
+        repository.savePack(pack())
+        repository.savePack(pack(TestPacks.json(packId = "other-pack")))
+        repository.recordSkip(QuestionKey("test-pack", "a-1"))
+        repository.recordSkip(QuestionKey("test-pack", "a-1"))
+        repository.recordSkip(QuestionKey("test-pack", "b-2"))
+        repository.recordSkip(QuestionKey("other-pack", "a-1"))
+        val history = repository.history(listOf("test-pack"))
+        assertEquals(2, history[QuestionKey("test-pack", "a-1")]?.skipped)
+        assertEquals(0, history[QuestionKey("test-pack", "a-1")]?.wrong)
+        var packs = repository.observePacks("TEST101").first().associateBy { it.id }
+        assertEquals(2, packs.getValue("test-pack").markedForRevision)
+        assertEquals(1, packs.getValue("other-pack").markedForRevision)
+
+        repository.recordAnswer(QuestionKey("test-pack", "a-1"), correct = true, tutorMode = false)
+        // A question removed in a newer version no longer counts, though its history is kept.
+        repository.savePack(pack(TestPacks.json(version = "1.1.0", questionIds = listOf("a-1", "a-2", "b-1"))))
+        packs = repository.observePacks("TEST101").first().associateBy { it.id }
+        assertEquals(0, packs.getValue("test-pack").markedForRevision)
+    }
+
+    @Test
+    fun sessionsRecordSkips() = runBlocking {
+        repository.savePack(pack())
+        repository.saveSession("TEST101", 0, "BENCH_DEMO", false, listOf("test-pack"), score(1, 3).copy(skipped = 1), seed = 1)
+        val session = graph.database.statsDao().observeSessions("TEST101").first().single()
+        assertEquals(1, session.skipped)
+        assertEquals(3, session.answered)
+    }
 }
+

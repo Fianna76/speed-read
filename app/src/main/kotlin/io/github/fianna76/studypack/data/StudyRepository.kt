@@ -40,6 +40,8 @@ data class PackSummary(
     val questionCount: Int,
     val bestPercent: Int?,
     val lastPercent: Int?,
+    /** Questions skipped with "Don't know" and not answered right since. */
+    val markedForRevision: Int = 0,
 )
 
 data class NoteFile(
@@ -91,7 +93,12 @@ class StudyRepository(
     fun observeModule(code: String): Flow<ModuleEntity?> = library.observeModule(code)
 
     fun observePacks(moduleCode: String): Flow<List<PackSummary>> =
-        combine(library.observePacks(moduleCode), stats.observeSessions(moduleCode)) { packs, sessions ->
+        combine(
+            library.observePacks(moduleCode),
+            stats.observeSessions(moduleCode),
+            stats.observeMarkedCounts(moduleCode),
+        ) { packs, sessions, marked ->
+            val markedByPack = marked.associate { it.packId to it.count }
             packs.map { pack ->
                 val scored = sessions.filter { pack.id in it.packIds && it.answered > 0 }
                 PackSummary(
@@ -102,6 +109,7 @@ class StudyRepository(
                     questionCount = pack.questionCount,
                     bestPercent = scored.maxOfOrNull { Scoring.percent(it.correct, it.answered) },
                     lastPercent = scored.firstOrNull()?.let { Scoring.percent(it.correct, it.answered) },
+                    markedForRevision = markedByPack[pack.id] ?: 0,
                 )
             }
         }
@@ -137,11 +145,16 @@ class StudyRepository(
         stats.observeStats(packIds).map { list -> list.associate { it.key() to it.toHistory() } }
 
     /** Updates a question's history with one answer (see [QuestionHistory.record]). */
-    suspend fun recordAnswer(key: QuestionKey, correct: Boolean, tutorMode: Boolean) {
-        val current = stats.stat(key.packId, key.questionId)?.toHistory() ?: QuestionHistory()
-        val updated = current.record(correct, tutorMode, clock())
+    suspend fun recordAnswer(key: QuestionKey, correct: Boolean, tutorMode: Boolean) =
+        updateHistory(key) { it.record(correct, tutorMode, clock()) }
+
+    /** Records a "Don't know": the question is marked for revision, not counted as wrong. */
+    suspend fun recordSkip(key: QuestionKey) = updateHistory(key) { it.recordSkip(clock()) }
+
+    private suspend fun updateHistory(key: QuestionKey, change: (QuestionHistory) -> QuestionHistory) {
+        val updated = change(stats.stat(key.packId, key.questionId)?.toHistory() ?: QuestionHistory())
         stats.upsertStat(
-            QuestionStatEntity(key.packId, key.questionId, updated.seen, updated.wrong, updated.lastSeenAt, updated.lastCorrect),
+            QuestionStatEntity(key.packId, key.questionId, updated.seen, updated.wrong, updated.lastSeenAt, updated.lastCorrect, updated.skipped),
         )
     }
 
@@ -164,6 +177,7 @@ class StudyRepository(
             total = score.total,
             answered = score.answered,
             correct = score.correct,
+            skipped = score.skipped,
             perTopicJson = Json.encodeToString(topicScores, score.perTopic.map { TopicScoreRecord(it.topicId, it.correct, it.answered) }),
             seed = seed,
         ),
@@ -263,7 +277,7 @@ class StudyRepository(
 
     private fun QuestionStatEntity.key() = QuestionKey(packId, questionId)
 
-    private fun QuestionStatEntity.toHistory() = QuestionHistory(seen, wrong, lastSeenAt, lastCorrect)
+    private fun QuestionStatEntity.toHistory() = QuestionHistory(seen, wrong, lastSeenAt, lastCorrect, skipped)
 
     private fun QuestionEntity.toQuestion() = Question(
         packId = packId,

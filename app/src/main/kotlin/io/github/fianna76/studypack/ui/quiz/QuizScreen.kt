@@ -26,6 +26,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -66,6 +67,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.fianna76.studypack.R
+import io.github.fianna76.studypack.quiz.Answers
 import io.github.fianna76.studypack.quiz.MathMarkup
 import io.github.fianna76.studypack.quiz.MathSegment
 import io.github.fianna76.studypack.quiz.SessionQuestion
@@ -103,6 +105,8 @@ fun QuizScreen(
             onEndEarly = viewModel::endEarly,
             onExit = onExit,
             onRetryMissed = { viewModel.retryRoute()?.let(onRetry) },
+            onRetrySkipped = { viewModel.retrySkippedRoute()?.let(onRetry) },
+            onSkip = viewModel::skip,
             onNewQuiz = onExit,
         ),
     )
@@ -114,6 +118,8 @@ class QuizActions(
     val onEndEarly: () -> Unit = {},
     val onExit: () -> Unit = {},
     val onRetryMissed: () -> Unit = {},
+    val onRetrySkipped: () -> Unit = {},
+    val onSkip: () -> Unit = {},
     val onNewQuiz: () -> Unit = {},
 )
 
@@ -177,10 +183,18 @@ private fun QuestionContent(state: QuizUiState, actions: QuizActions) {
                                 style = MaterialTheme.typography.titleLarge.tabular,
                             )
                             Text(
-                                if (state.examMode) {
-                                    stringResource(R.string.quiz_answered, state.answeredCount)
-                                } else {
-                                    stringResource(R.string.quiz_score, state.correctCount, state.answeredCount)
+                                buildString {
+                                    append(
+                                        if (state.examMode) {
+                                            stringResource(R.string.quiz_answered, state.answeredCount)
+                                        } else {
+                                            stringResource(R.string.quiz_score, state.correctCount, state.answeredCount)
+                                        },
+                                    )
+                                    if (state.skippedCount > 0) {
+                                        append(stringResource(R.string.module_summary_separator))
+                                        append(stringResource(R.string.quiz_skipped_count, state.skippedCount))
+                                    }
                                 },
                                 style = MaterialTheme.typography.bodySmall.tabular,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -196,16 +210,33 @@ private fun QuestionContent(state: QuizUiState, actions: QuizActions) {
         },
         bottomBar = {
             Surface(tonalElevation = 3.dp) {
-                Button(
-                    onClick = actions.onNext,
-                    enabled = state.canGoNext,
-                    modifier = Modifier
+                Row(
+                    Modifier
                         .fillMaxWidth()
                         .navigationBarsPadding()
-                        .padding(16.dp)
-                        .heightIn(min = 56.dp),
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Text(stringResource(if (state.isLast) R.string.quiz_finish else R.string.quiz_next))
+                    // "Don't know": skip and mark for revision. Hidden once the question is answered.
+                    if (state.canSkip) {
+                        OutlinedButton(
+                            onClick = actions.onSkip,
+                            modifier = Modifier
+                                .weight(1f)
+                                .heightIn(min = 56.dp),
+                        ) {
+                            Text(stringResource(R.string.quiz_dont_know), maxLines = 1)
+                        }
+                    }
+                    Button(
+                        onClick = actions.onNext,
+                        enabled = state.canGoNext,
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = 56.dp),
+                    ) {
+                        Text(stringResource(if (state.isLast) R.string.quiz_finish else R.string.quiz_next), maxLines = 1)
+                    }
                 }
             }
         },
@@ -280,6 +311,7 @@ private fun optionLook(state: QuizUiState, question: SessionQuestion, index: Int
     state.examMode -> if (state.selection == index) OptionLook.SELECTED else OptionLook.NORMAL
     state.currentAnswer == null -> OptionLook.NORMAL
     index == question.correctIndex -> OptionLook.RIGHT
+    state.currentAnswer == Answers.SKIPPED -> OptionLook.DIMMED
     index == state.currentAnswer -> OptionLook.WRONG
     else -> OptionLook.DIMMED
 }
@@ -341,16 +373,21 @@ internal fun OptionCard(letter: String, text: String, look: OptionLook, enabled:
 @Composable
 private fun Feedback(question: SessionQuestion, answer: Int) {
     val right = answer == question.correctIndex
+    val skipped = answer == Answers.SKIPPED
     val colors = StudyTheme.colors
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
-            if (right) {
-                stringResource(R.string.quiz_right)
-            } else {
-                stringResource(R.string.quiz_wrong, LETTERS[question.correctIndex])
+            when {
+                right -> stringResource(R.string.quiz_right)
+                skipped -> stringResource(R.string.quiz_skipped_feedback, LETTERS[question.correctIndex])
+                else -> stringResource(R.string.quiz_wrong, LETTERS[question.correctIndex])
             },
             style = MaterialTheme.typography.titleMedium,
-            color = if (right) colors.right else colors.wrong,
+            color = when {
+                right -> colors.right
+                skipped -> colors.skipped
+                else -> colors.wrong
+            },
             modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
         )
         AnswerDetails(
@@ -470,6 +507,7 @@ private fun SegmentedProgress(state: QuizUiState, modifier: Modifier = Modifier)
         when {
             answer == null && i == state.index -> scheme.primary.copy(alpha = 0.45f)
             answer == null -> scheme.surfaceVariant
+            answer == Answers.SKIPPED -> colors.skipped
             state.examMode -> scheme.primary
             answer == state.questions[i].correctIndex -> colors.right
             else -> colors.wrong

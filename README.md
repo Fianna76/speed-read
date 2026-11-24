@@ -43,8 +43,14 @@ The full plan this app follows is in [`docs/SCOPE.md`](docs/SCOPE.md).
     or **exam conditions** (change your answer until Next, feedback only at the end);
   - **calculation variants**: questions sharing a `variantGroup` fill one slot, with a
     different instance (different numbers) each session;
+  - **Don't know**: skip a question instead of guessing. It is marked for revision, apart from
+    wrong answers (it never counts towards weak spots). Tutor mode shows the answer and
+    explanation; exam mode moves on. Marked questions stay marked until answered right, are
+    counted on their pack ("3 marked for revision"), and have their own quiz length,
+    **Marked for revision**;
   - results with a verdict (≥ 85 % Demo-ready, ≥ 65 % Nearly there), a score per topic
-    (worst first), a review of misses and **Retry missed**;
+    (worst first), wrong and skipped counted separately, a review of misses and of skipped
+    questions, and **Retry missed** and **Retry skipped**;
   - sessions survive rotation and the app being killed in the background.
 - **History on the device** per question (times seen, times wrong, last seen), using the web
   quiz's weak-spot rule. Re-importing a newer version of a pack keeps history for question
@@ -150,7 +156,7 @@ checks measure the formula as shown, not its source.
 
 ## Install the APK
 
-1. Copy `StudyPack-1.3.1-release.apk` to your phone (Android 8.0 or newer). The APK comes
+1. Copy `StudyPack-1.4.0-release.apk` to your phone (Android 8.0 or newer). The APK comes
    from a [CI run's](../../actions) artifacts or from a local build (below).
 2. Open it and allow installs from that source when prompted.
 3. Tap **Load sample pack** to try it, or **Import** to pick your own packs and notes.
@@ -165,7 +171,7 @@ Requirements: JDK 17+ (JDK 21 recommended) and the Android SDK with platform 37
 (`ANDROID_HOME` or `local.properties`). The Gradle wrapper downloads everything else.
 
 ```bash
-./gradlew assembleRelease   # → app/build/outputs/apk/release/StudyPack-1.3.1-release.apk
+./gradlew assembleRelease   # → app/build/outputs/apk/release/StudyPack-1.4.0-release.apk
 ./gradlew assembleDebug     # → debug build (installs alongside release as "…studypack.debug")
 ./gradlew lint test         # static analysis + all unit, Robolectric and Compose UI tests
 ```

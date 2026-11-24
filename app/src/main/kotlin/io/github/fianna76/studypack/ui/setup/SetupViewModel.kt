@@ -29,7 +29,8 @@ import kotlin.random.Random
 
 data class TopicChip(val id: String, val name: String, val count: Int)
 
-data class LengthOption(val length: QuizLength, val enabled: Boolean)
+/** A quiz length on the setup screen. [count] is how many questions it would ask, where that varies. */
+data class LengthOption(val length: QuizLength, val enabled: Boolean, val count: Int? = null)
 
 data class SetupUiState(
     val isLoading: Boolean = true,
@@ -98,18 +99,28 @@ class SetupViewModel(
         val demoOnly = choices.demoAskedOnly && demoAvailable
         val pool = SessionBuilder.filterPool(questions, selected, demoOnly)
         val weakAvailable = SessionBuilder.hasWeakSpots(pool, history)
+        val markedAvailable = SessionBuilder.hasMarkedForRevision(pool, history)
         val size = SessionBuilder.sessionSize(pool, choices.length, history)
         val topicsInPool = pool.map { it.topicId }.toSet().size
         val sessionTopics = when (choices.length) {
             QuizLength.EVERYTHING -> topicsInPool
             QuizLength.WEAK_SPOTS -> pool.filter { (history[it.key]?.wrong ?: 0) > 0 }.map { it.topicId }.toSet().size
+            QuizLength.MARKED_FOR_REVISION -> pool.filter { history[it.key]?.isMarkedForRevision == true }.map { it.topicId }.toSet().size
             else -> minOf(topicsInPool, size)
         }
         val chipPool = SessionBuilder.filterPool(questions, null, demoOnly)
         return SetupUiState(
             isLoading = false,
             packTitle = loaded.packTitle,
-            lengths = QuizLength.entries.map { LengthOption(it, enabled = it != QuizLength.WEAK_SPOTS || weakAvailable) },
+            lengths = QuizLength.entries.map { length ->
+                when (length) {
+                    QuizLength.WEAK_SPOTS ->
+                        LengthOption(length, weakAvailable, SessionBuilder.sessionSize(pool, length, history).takeIf { weakAvailable })
+                    QuizLength.MARKED_FOR_REVISION ->
+                        LengthOption(length, markedAvailable, SessionBuilder.sessionSize(pool, length, history).takeIf { markedAvailable })
+                    else -> LengthOption(length, enabled = true)
+                }
+            },
             length = choices.length,
             topics = loaded.content.topics.map { topic ->
                 TopicChip(topic.id, topic.name, SessionBuilder.slotCount(chipPool.filter { it.topicId == topic.id }))

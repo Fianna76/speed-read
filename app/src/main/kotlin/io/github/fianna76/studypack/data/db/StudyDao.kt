@@ -257,6 +257,8 @@ interface LibraryDao {
     }
 }
 
+data class PackCount(val packId: String, val count: Int)
+
 @Dao
 interface StatsDao {
 
@@ -271,6 +273,18 @@ interface StatsDao {
 
     @Upsert
     suspend fun upsertStat(stat: QuestionStatEntity)
+
+    /** Per pack, how many of its current questions are marked for revision. */
+    @Query(
+        """
+        SELECT s.packId AS packId, COUNT(*) AS count FROM question_stats s
+            JOIN questions q ON q.packId = s.packId AND q.id = s.questionId
+            JOIN packs p ON p.id = s.packId
+        WHERE s.skipped > 0 AND p.moduleCode = :moduleCode
+        GROUP BY s.packId
+        """,
+    )
+    fun observeMarkedCounts(moduleCode: String): Flow<List<PackCount>>
 
     @Insert
     suspend fun insertSession(session: SessionResultEntity): Long

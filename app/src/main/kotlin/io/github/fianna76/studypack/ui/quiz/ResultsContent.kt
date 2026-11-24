@@ -41,6 +41,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.github.fianna76.studypack.R
+import io.github.fianna76.studypack.quiz.Answers
 import io.github.fianna76.studypack.quiz.QuizScore
 import io.github.fianna76.studypack.quiz.TopicScore
 import io.github.fianna76.studypack.quiz.Verdict
@@ -55,6 +56,7 @@ internal fun ResultsContent(state: QuizUiState, actions: QuizActions) {
     BackHandler(onBack = actions.onExit)
     val score = state.score ?: return
     val missed = state.missed
+    val skipped = state.skipped
     var showCorrect by rememberSaveable { mutableStateOf(false) }
 
     Scaffold(
@@ -70,27 +72,40 @@ internal fun ResultsContent(state: QuizUiState, actions: QuizActions) {
         },
         bottomBar = {
             Surface(tonalElevation = 3.dp) {
-                Row(
+                Column(
                     Modifier
                         .fillMaxWidth()
                         .navigationBarsPadding()
                         .padding(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
+                    // Retrying wrong answers and revising skipped ones are separate choices.
+                    if (missed.isNotEmpty() || skipped.isNotEmpty()) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            if (missed.isNotEmpty()) {
+                                Button(
+                                    onClick = actions.onRetryMissed,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .heightIn(min = 56.dp),
+                                ) { Text(stringResource(R.string.results_retry_missed), maxLines = 1) }
+                            }
+                            if (skipped.isNotEmpty()) {
+                                Button(
+                                    onClick = actions.onRetrySkipped,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .heightIn(min = 56.dp),
+                                ) { Text(stringResource(R.string.results_retry_skipped), maxLines = 1) }
+                            }
+                        }
+                    }
                     OutlinedButton(
                         onClick = actions.onNewQuiz,
                         modifier = Modifier
-                            .weight(1f)
+                            .fillMaxWidth()
                             .heightIn(min = 56.dp),
                     ) { Text(stringResource(R.string.results_new_quiz)) }
-                    if (missed.isNotEmpty()) {
-                        Button(
-                            onClick = actions.onRetryMissed,
-                            modifier = Modifier
-                                .weight(1f)
-                                .heightIn(min = 56.dp),
-                        ) { Text(stringResource(R.string.results_retry_missed)) }
-                    }
                 }
             }
         },
@@ -117,6 +132,12 @@ internal fun ResultsContent(state: QuizUiState, actions: QuizActions) {
             }
             items(missed, key = { "missed-$it" }) { index ->
                 ReviewCard(state, index, expandedDetails = true)
+            }
+            if (skipped.isNotEmpty()) {
+                item { SectionHeader(stringResource(R.string.results_skipped, skipped.size), Modifier.padding(top = 8.dp)) }
+                items(skipped, key = { "skipped-$it" }) { index ->
+                    ReviewCard(state, index, expandedDetails = true)
+                }
             }
             val right = state.right
             if (right.isNotEmpty()) {
@@ -174,6 +195,14 @@ private fun ScoreHeader(score: QuizScore) {
             style = MaterialTheme.typography.bodyLarge.tabular,
             textAlign = TextAlign.Center,
         )
+        if (score.skipped > 0) {
+            Text(
+                stringResource(R.string.results_breakdown, score.wrong, score.skipped),
+                style = MaterialTheme.typography.bodyMedium.tabular,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+        }
         if (score.answered < score.total) {
             Text(
                 stringResource(R.string.results_answered_of, score.answered, score.total),
@@ -231,7 +260,9 @@ private fun ReviewCard(state: QuizUiState, index: Int, expandedDetails: Boolean)
                 color = MaterialTheme.colorScheme.primary,
             )
             MathText(asked.question.prompt, style = MaterialTheme.typography.titleMedium)
-            if (!right) {
+            if (answer == Answers.SKIPPED) {
+                Text(stringResource(R.string.results_you_skipped), style = MaterialTheme.typography.bodyLarge, color = colors.skipped)
+            } else if (!right) {
                 MathText(
                     stringResource(R.string.results_your_answer, "${LETTERS[answer]}. ${asked.options[answer]}"),
                     style = MaterialTheme.typography.bodyLarge,

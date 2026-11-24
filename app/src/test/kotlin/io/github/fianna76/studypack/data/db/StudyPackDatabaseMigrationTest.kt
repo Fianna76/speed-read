@@ -5,6 +5,7 @@ import android.database.sqlite.SQLiteDatabase
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.json.JSONObject
 import org.junit.After
@@ -26,7 +27,7 @@ class StudyPackDatabaseMigrationTest {
     }
 
     @Test
-    fun version1NotesUpgradeWithNoSpeedReadingPosition() = runTest {
+    fun version1DataUpgradesThroughEveryVersion() = runTest {
         createVersion1Database()
         val database = Room.databaseBuilder(context, StudyPackDatabase::class.java, name).build()
         try {
@@ -38,6 +39,11 @@ class StudyPackDatabaseMigrationTest {
             dao.updateReadingPosition(1, page = 4, word = 120)
             assertEquals(120, dao.note(1)!!.rsvpWord)
             assertEquals("EE5105", dao.modules().single().code)
+            // 2 → 3: history and results from before "Don't know" have no skips.
+            val stat = database.statsDao().stat("ee5105-ecg-amp", "cmrr-001")!!
+            assertEquals(2, stat.wrong)
+            assertEquals(0, stat.skipped)
+            assertEquals(0, database.statsDao().observeSessions("EE5105").first().single().skipped)
         } finally {
             database.close()
         }
@@ -63,6 +69,11 @@ class StudyPackDatabaseMigrationTest {
             db.execSQL(
                 "INSERT INTO note_files (id, moduleCode, fileName, displayTitle, internalPath, pageCount, lastPage, importedAt) " +
                     "VALUES (1, 'EE5105', 'EE5105-ecg-amp-overview.pdf', 'Overview', 'notes/a.pdf', 20, 3, 1)",
+            )
+            db.execSQL("INSERT INTO question_stats (packId, questionId, seen, wrong, lastSeenAt, lastCorrect) VALUES ('ee5105-ecg-amp', 'cmrr-001', 3, 2, 5, 0)")
+            db.execSQL(
+                "INSERT INTO session_results (moduleCode, startedAt, endedAt, mode, examMode, packIds, total, answered, correct, perTopicJson, seed) " +
+                    "VALUES ('EE5105', 1, 2, 'WARM_UP', 0, '[\"ee5105-ecg-amp\"]', 12, 12, 9, '[]', 7)",
             )
             db.version = 1
         }

@@ -13,6 +13,15 @@ enum class QuizLength(val questionCount: Int?) {
 
     /** Up to 25 of the most-missed questions. */
     WEAK_SPOTS(SessionBuilder.WEAK_SPOT_LIMIT),
+
+    /** Questions skipped with "Don't know" and not answered right since, most-skipped first. */
+    MARKED_FOR_REVISION(SessionBuilder.REVISION_LIMIT),
+}
+
+/** Answer values with a special meaning. */
+object Answers {
+    /** "Don't know": the question was skipped, not answered. */
+    const val SKIPPED = -1
 }
 
 /**
@@ -49,6 +58,7 @@ data class SessionQuestion(
 object SessionBuilder {
 
     const val WEAK_SPOT_LIMIT = 25
+    const val REVISION_LIMIT = 45
 
     /** Questions in [questions] that match the topic filter (`null` = all topics) and the demo-asked filter. */
     fun filterPool(questions: List<Question>, topicIds: Set<String>?, demoAskedOnly: Boolean): List<Question> =
@@ -60,6 +70,7 @@ object SessionBuilder {
         return when (length) {
             QuizLength.EVERYTHING -> slots.size
             QuizLength.WEAK_SPOTS -> minOf(WEAK_SPOT_LIMIT, slots.count { slot -> slot.sumOf { history[it.key]?.wrong ?: 0 } > 0 })
+            QuizLength.MARKED_FOR_REVISION -> minOf(REVISION_LIMIT, slots.count { slot -> slot.any { history[it.key]?.isMarkedForRevision == true } })
             else -> minOf(length.questionCount ?: slots.size, slots.size)
         }
     }
@@ -68,6 +79,10 @@ object SessionBuilder {
     fun slotCount(pool: List<Question>): Int = slots(pool).size
 
     /** True if any question in [pool] has been missed and not yet made up for. */
+    /** True if any question in [pool] is marked for revision (skipped and not answered right since). */
+    fun hasMarkedForRevision(pool: List<Question>, history: Map<QuestionKey, QuestionHistory>): Boolean =
+        pool.any { history[it.key]?.isMarkedForRevision == true }
+
     fun hasWeakSpots(pool: List<Question>, history: Map<QuestionKey, QuestionHistory>): Boolean =
         pool.any { (history[it.key]?.wrong ?: 0) > 0 }
 
@@ -81,6 +96,7 @@ object SessionBuilder {
         val chosen = when (length) {
             QuizLength.EVERYTHING -> slots.map { it.random(random) }.shuffled(random)
             QuizLength.WEAK_SPOTS -> weakSpots(slots, history, random)
+            QuizLength.MARKED_FOR_REVISION -> markedForRevision(slots, history, random)
             else -> stratified(slots.map { it.random(random) }, length.questionCount ?: slots.size, random)
         }
         return chosen.map { shuffleOptions(it, random) }
@@ -120,6 +136,24 @@ object SessionBuilder {
             }
         }
         return picked.shuffled(random)
+    }
+
+    /**
+     * Marked slots, most-skipped first (ties: skipped longest ago first), up to [REVISION_LIMIT].
+     * For a variant group, the instance that was skipped is asked again.
+     */
+    private fun markedForRevision(slots: List<List<Question>>, history: Map<QuestionKey, QuestionHistory>, random: Random): List<Question> {
+        data class Marked(val question: Question, val skipped: Int, val lastSeen: Long)
+        return slots.mapNotNull { slot ->
+            val marked = slot.filter { history[it.key]?.isMarkedForRevision == true }
+            if (marked.isEmpty()) return@mapNotNull null
+            val question = marked.random(random)
+            Marked(question, marked.sumOf { history[it.key]!!.skipped }, history[question.key]?.lastSeenAt ?: 0L)
+        }
+            .sortedWith(compareByDescending<Marked> { it.skipped }.thenBy { it.lastSeen })
+            .take(REVISION_LIMIT)
+            .map { it.question }
+            .shuffled(random)
     }
 
     /** Missed slots ranked worst first, by `wrong / seen` then `wrong`, rolled up across variant instances. */

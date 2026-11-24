@@ -96,6 +96,8 @@ data class StudyColors(
     val sayItContainer: Color,
     val onSayItContainer: Color,
     val sayItBorder: Color,
+    /** Skipped with "Don't know": marked for revision (amber, apart from right and wrong). */
+    val skipped: Color,
     /** Speed reading: the focus letter (red is the RSVP convention) and the guide lines. */
     val focusLetter: Color,
     val guide: Color,
@@ -111,6 +113,7 @@ internal val LightStudyColors = StudyColors(
     sayItContainer = Color(0xFFFFF0C7),
     onSayItContainer = Color(0xFF3B2A00),
     sayItBorder = Color(0xFFE2A400),
+    skipped = Color(0xFF8A5A00),
     focusLetter = Color(0xFFD32F2F),
     guide = Color(0x33000000),
 )
@@ -125,6 +128,7 @@ internal val DarkStudyColors = StudyColors(
     sayItContainer = Color(0xFF4A3800),
     onSayItContainer = Color(0xFFFFE8A8),
     sayItBorder = Color(0xFFD9A21B),
+    skipped = Color(0xFFFFC94D),
     focusLetter = Color(0xFFFF6B6B),
     guide = Color(0x40FFFFFF),
 )

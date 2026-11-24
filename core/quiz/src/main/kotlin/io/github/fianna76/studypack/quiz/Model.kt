@@ -82,10 +82,16 @@ data class QuestionHistory(
     val wrong: Int = 0,
     val lastSeenAt: Long? = null,
     val lastCorrect: Boolean? = null,
+    /** Times skipped with "Don't know" since last answered right: above 0 means marked for revision. */
+    val skipped: Int = 0,
 ) {
+    /** Skipped with "Don't know" and not answered right since. Separate from [wrong] (weak spots). */
+    val isMarkedForRevision: Boolean get() = skipped > 0
+
     /**
      * Records an answer, using the same weak-spot rule as the web quiz: a wrong answer adds 1
      * to [wrong]; in tutor mode a right answer takes 1 off (never below 0); [seen] always goes up.
+     * A right answer also clears the revision mark left by skipping.
      */
     fun record(correct: Boolean, tutorMode: Boolean, now: Long): QuestionHistory = copy(
         seen = seen + 1,
@@ -96,5 +102,14 @@ data class QuestionHistory(
         },
         lastSeenAt = now,
         lastCorrect = correct,
+        skipped = if (correct) 0 else skipped,
+    )
+
+    /** Records a "Don't know": marks the question for revision without counting it as wrong. */
+    fun recordSkip(now: Long): QuestionHistory = copy(
+        seen = seen + 1,
+        skipped = skipped + 1,
+        lastSeenAt = now,
+        lastCorrect = false,
     )
 }

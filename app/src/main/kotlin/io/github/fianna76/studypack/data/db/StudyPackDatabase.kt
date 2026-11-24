@@ -25,11 +25,13 @@ import kotlinx.serialization.json.Json
         QuestionStatEntity::class,
         SessionResultEntity::class,
     ],
-    version = 2,
+    version = 3,
     exportSchema = true,
     autoMigrations = [
         // 1 → 2: note_files.rsvpWord (speed reading resumes at the exact word).
         AutoMigration(from = 1, to = 2),
+        // 2 → 3: question_stats.skipped and session_results.skipped ("Don't know").
+        AutoMigration(from = 2, to = 3),
     ],
 )
 @TypeConverters(Converters::class)

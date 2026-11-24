@@ -52,6 +52,7 @@
     <string name="note_open_external">Open in another app</string>
     <string name="note_open_external_none">No other app on this phone can open PDFs.</string>
     <string name="pack_version">Version %1$s</string>
+    <string name="pack_to_revise">%1$d marked for revision</string>
     <string name="pack_scores">Best %1$d %% · last %2$d %%</string>
     <string name="pack_quiz_this">Quiz this pack</string>
     <string name="delete_pack_title">Delete \"%1$s\"?</string>
@@ -74,6 +75,8 @@
     <string name="length_weak_spots">My weak spots</string>
     <string name="length_count">%1$d</string>
     <string name="length_all">all</string>
+    <string name="length_marked">Marked for revision</string>
+    <string name="marked_none">Questions you skip with Don\'t know are kept here until you answer them right.</string>
     <string name="weak_spots_none">Missed questions show up here once you have answered some wrong.</string>
     <string name="setup_topics">Topics</string>
     <string name="setup_select_all">Select all</string>
@@ -100,6 +103,9 @@
     <string name="quiz_option_wrong">your answer, wrong</string>
     <string name="quiz_option_selected">selected</string>
     <string name="quiz_next">Next</string>
+    <string name="quiz_dont_know">Don\'t know</string>
+    <string name="quiz_skipped_feedback">Skipped and marked for revision. The answer is %1$s.</string>
+    <string name="quiz_skipped_count">%1$d skipped</string>
     <string name="quiz_finish">See results</string>
     <string name="quiz_end_early">End early</string>
     <string name="quiz_end_title">End quiz?</string>
@@ -130,6 +136,10 @@
     <string name="results_your_answer">Your answer: %1$s</string>
     <string name="results_right_answer">Answer: %1$s</string>
     <string name="results_retry_missed">Retry missed</string>
+    <string name="results_retry_skipped">Retry skipped</string>
+    <string name="results_skipped">Skipped, marked for revision (%1$d)</string>
+    <string name="results_you_skipped">You skipped this (don\'t know)</string>
+    <string name="results_breakdown">%1$d wrong · %2$d skipped</string>
     <string name="results_new_quiz">New quiz</string>
 
     <!-- PDF viewer -->

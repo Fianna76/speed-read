@@ -101,6 +101,8 @@ data class QuestionStatEntity(
     val wrong: Int,
     val lastSeenAt: Long?,
     val lastCorrect: Boolean?,
+    /** Times skipped with "Don't know" since last answered right; above 0 = marked for revision. */
+    @ColumnInfo(defaultValue = "0") val skipped: Int = 0,
 )
 
 /** A finished (or ended early) quiz, for "last score" and "best score". */
@@ -120,4 +122,6 @@ data class SessionResultEntity(
     /** Per-topic scores as JSON (`[{"topicId":…,"correct":…,"answered":…}]`). */
     val perTopicJson: String,
     val seed: Long,
+    /** Questions skipped with "Don't know" (included in [answered], not correct). */
+    @ColumnInfo(defaultValue = "0") val skipped: Int = 0,
 )
